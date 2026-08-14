@@ -92,9 +92,11 @@ algoat.sort_inplace(data) # [3, 7, 19, 21, 42, 55, 100]
 index = algoat.search(data, 19)
 print(index)  # 2
 
-# Override backend algorithms with a config file
-algoat.load_global_config("config.json")
-```
+### Usage Examples Repository
+
+For complete, runnable standalone examples of these APIs (including the NumPy benchmarking scripts), please see the dedicated example directories:
+- **[C++ Examples](examples/cpp/README.md)**: Contains `basic_usage.cpp`.
+- **[Python Examples](examples/python/README.md)**: Contains `basic_usage.py` and the `benchmark.py` NumPy speedup suite.
 
 ## Architecture
 
