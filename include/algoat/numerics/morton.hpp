@@ -32,7 +32,8 @@ inline uint64_t morton_interleave(uint32_t x, uint32_t y) noexcept {
 
 inline uint64_t float_to_morton(float x, float y) noexcept {
     auto float_to_ordered_uint = [](float f) -> uint32_t {
-        uint32_t u = std::bit_cast<uint32_t>(f);
+        uint32_t u;
+        std::memcpy(&u, &f, sizeof(u));
         uint32_t mask = (static_cast<int32_t>(u) >> 31) | 0x80000000u;
         return u ^ mask;
     };
