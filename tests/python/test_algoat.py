@@ -12,6 +12,11 @@ def test_sort_floats():
     sorted_data = algoat.sort(data)
     assert sorted_data == [1.1, 2.2, 5.5, 8.8, 9.9]
 
+def test_sort_large_ints():
+    data = [2**80, -(2**70), 3, 2**100, -5]
+    sorted_data = algoat.sort(data)
+    assert sorted_data == [-(2**70), -5, 3, 2**80, 2**100]
+
 def test_search_found():
     data = [1, 2, 5, 8, 9]
     index = algoat.search(data, 5)
