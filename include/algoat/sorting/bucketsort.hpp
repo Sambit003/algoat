@@ -1,3 +1,8 @@
+/**
+ * @file bucketsort.hpp
+ * @brief Distribution-based Bucket Sort algorithm implementation.
+ */
+
 #pragma once
 
 #include <string_view>
@@ -10,15 +15,49 @@
 
 namespace algoat::sorting {
 
+/**
+ * @struct BucketSort
+ * @brief Distribution sorting algorithm partitioning elements across sub-buckets.
+ * 
+ * Divides the input range uniformly across ~N / 10 buckets, sorts each
+ * bucket with @c std::sort, and concatenates the results.
+ *
+ * @par Characteristics:
+ * - <b>Category:</b> Distribution.
+ * - <b>Stability:</b> Dependent on bucket sort stability.
+ *
+ * @par Time Complexity:
+ * - Best Case: @c O(N + K) (uniform distribution)
+ * - Average Case: @c O(N + K)
+ * - Worst Case: @c O(N^2) (all elements cluster in a single bucket)
+ *
+ * @par Space Complexity:
+ * - Auxiliary Space: @c O(N + K) auxiliary space for buckets
+ */
 struct BucketSort {
+    /**
+     * @brief Returns the unique identifier for this algorithm.
+     * @return "bucketsort"
+     */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
         return "bucketsort";
     }
 
+    /**
+     * @brief Preferred minimum size threshold.
+     * @return 0
+     */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
         return 0;
     }
 
+    /**
+     * @brief Sorts an integral span using Bucket Sort.
+     * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
+ *
+ * @param arr Contiguous span of integers to sort.
+     * @throws std::invalid_argument If @c T is non-integral.
+     */
     template<typename T>
     void sort(std::span<T> arr) const {
         if constexpr (!std::is_integral_v<T>) {

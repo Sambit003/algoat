@@ -1,3 +1,8 @@
+/**
+ * @file dispatcher.cpp
+ * @brief Implementation of the Dispatcher constructor and algorithm registration.
+ */
+
 #include "algoat/core/dispatcher.hpp"
 #include "algoat/sorting/insertionsort.hpp"
 #include "algoat/sorting/quicksort.hpp"
@@ -25,7 +30,8 @@
 namespace algoat::core {
 
 Dispatcher::Dispatcher(AlgoConfig config) : config_(std::move(config)) {
-    // Register sorting
+    // Register all supported sorting algorithms into the sorting registry
+    // Each algorithm maps to a variant constructor lambda.
     sort_registry_.register_algo("insertionsort", []() -> sorting::SortVariant { return sorting::InsertionSort{}; });
     sort_registry_.register_algo("quicksort", []() -> sorting::SortVariant { return sorting::QuickSort{}; });
     sort_registry_.register_algo("mergesort", []() -> sorting::SortVariant { return sorting::MergeSort{}; });

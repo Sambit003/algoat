@@ -1,3 +1,11 @@
+/**
+ * @file dispatcher.hpp
+ * @brief Dynamic algorithm dispatcher with trait-based heuristic routing.
+ * 
+ * Coordinates algorithm selection based on input data traits (size, sortedness ratio,
+ * value types) and user-supplied configuration rules.
+ */
+
 #pragma once
 
 #include "algoat/core/traits.hpp"
@@ -16,14 +24,49 @@
 
 namespace algoat::core {
 
+/**
+ * @class Dispatcher
+ * @brief Central controller for dynamic algorithm selection and execution.
+ * 
+ * Owns algorithm registries for sorting and searching, and implements the heuristic
+ * decision tree:
+ * 
+ *
+ * @par Sorting Heuristics (@c "auto"):
+ * - <b>Small Arrays</b> (<tt>N < small_threshold</tt>, default 32): @c InsertionSort (<tt>O(N^2)</tt>, zero overhead).
+ * - <b>Nearly Sorted</b> (sortedness ratio <tt>>= 0.90</tt> or <tt><= 0.10</tt>): @c TimSort (<tt>O(N)</tt> best case on partially ordered data).
+ * - <b>Large Integral Arrays</b> (<tt>N > 10,000</tt> & integral type): @c RadixSortLSD (<tt>O(N * k)</tt> linear time).
+ * - <b>General / Default:</b> @c IntroSort (<tt>O(N log N)</tt> hybrid quicksort/heapsort/insertionsort).
+ * 
+ *
+ * @par Searching Heuristics (@c "auto"):
+ * - <b>Sorted Data</b> (sortedness ratio <tt>== 1.0</tt>): @c BinarySearch (<tt>O(log N)</tt>).
+ * - <b>Unsorted Data:</b> @c LinearSearch (<tt>O(N)</tt>).
+ */
 class Dispatcher {
-    Registry<sorting::SortVariant> sort_registry_;
-    Registry<searching::SearchVariant> search_registry_;
-    AlgoConfig config_;
+    Registry<sorting::SortVariant> sort_registry_;       ///< Registry of available sorting algorithms.
+    Registry<searching::SearchVariant> search_registry_; ///< Registry of available searching algorithms.
+    AlgoConfig config_;                                  ///< User-defined configuration preferences.
 
 public:
+    /**
+     * @brief Constructs a Dispatcher with the given configuration, registering default algorithms.
+ *
+ * @param config Configuration options specifying algorithm preferences and fallbacks.
+     */
     explicit Dispatcher(AlgoConfig config);
 
+    /**
+     * @brief Sorts a contiguous span using dynamic heuristic selection.
+     * 
+     * Profiles @c data via <tt>analyze()</tt> in O(n) time, selects an optimal algorithm,
+     * checks the registry (with fallback on missing algorithms), and executes the sort.
+     * 
+     * @tparam T The element type in the span.
+ *
+ * @param data The contiguous span of elements to sort in-place.
+     * @throws std::runtime_error If the selected algorithm and its fallback are unregistered.
+     */
     template<typename T>
     void sort(std::span<T> data) const {
         DataTraits traits = analyze(data);
@@ -60,6 +103,20 @@ public:
         }, algo_variant);
     }
 
+    /**
+     * @brief Searches for a target value in a span using dynamic heuristic selection.
+     * 
+     * Profiles @c data via <tt>analyze()</tt>, selects @c BinarySearch if data is fully sorted,
+     * otherwise dispatches to @c LinearSearch (or user preferences).
+     * 
+     * @tparam T The element type in the span.
+ *
+ * @param data The contiguous span of elements to search.
+ *
+ * @param target The value to search for.
+     * @return <tt>std::optional<std::size_t></tt> Found index or @c std::nullopt.
+     * @throws std::runtime_error If the selected search algorithm and its fallback are unregistered.
+     */
     template<typename T>
     std::optional<std::size_t> search(std::span<T> data, const T& target) const {
         DataTraits traits = analyze(data);

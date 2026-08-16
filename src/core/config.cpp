@@ -1,3 +1,8 @@
+/**
+ * @file config.cpp
+ * @brief Implementation of JSON configuration loading for Algoat.
+ */
+
 #include "algoat/core/config.hpp"
 #include <nlohmann/json.hpp>
 #include <fstream>
@@ -20,6 +25,7 @@ AlgoConfig load_config(const std::string& filepath) {
 
     AlgoConfig config;
 
+    // Parse sorting configuration options
     if (j.contains("sorting") && j["sorting"].is_object()) {
         auto& s = j["sorting"];
         if (s.contains("prefer") && s["prefer"].is_string()) {
@@ -33,6 +39,7 @@ AlgoConfig load_config(const std::string& filepath) {
         }
     }
 
+    // Parse searching configuration options
     if (j.contains("searching") && j["searching"].is_object()) {
         auto& s = j["searching"];
         if (s.contains("prefer") && s["prefer"].is_string()) {

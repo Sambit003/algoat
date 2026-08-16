@@ -1,3 +1,8 @@
+/**
+ * @file interpolation_search.hpp
+ * @brief Interpolation Search algorithm implementation with binary search fallback.
+ */
+
 #pragma once
 
 #include <string_view>
@@ -8,11 +13,41 @@
 
 namespace algoat::searching {
 
+/**
+ * @struct InterpolationSearch
+ * @brief Search algorithm estimating probe position based on key values in uniformly distributed data.
+ * 
+ * Uses the linear interpolation formula for arithmetic types:
+ *
+ * @par Characteristics:
+ * - <b>Preconditions:</b> Range must be sorted in ascending order and ideally uniformly distributed.
+ *
+ * @par Time Complexity:
+ * - Best Case: @c O(1)
+ * - Average Case: @c O(log(log(N))) (for uniformly distributed arithmetic data)
+ * - Worst Case: @c O(N) (for exponentially distributed data)
+ *
+ * @par Space Complexity:
+ * - Auxiliary Space: * - Auxiliary Space: @c O(1)
+ */
 struct InterpolationSearch {
+    /**
+     * @brief Returns the unique identifier for this algorithm.
+     * @return "interpolationsearch"
+     */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
         return "interpolationsearch";
     }
 
+    /**
+     * @brief Searches for target using arithmetic interpolation (or binary search fallback).
+     * @tparam T Element type.
+ *
+ * @param[in] data Sorted span of elements.
+ *
+ * @param[in] target Value to locate.
+     * @return Index of a matching element if present, or @c std::nullopt.
+     */
     template<typename T>
     std::optional<std::size_t> search(std::span<T> data, const T& target) const {
         if (data.empty()) return std::nullopt;
@@ -51,7 +86,7 @@ struct InterpolationSearch {
                 }
             }
         } else {
-            // Fallback for non-arithmetic types
+            // Fallback to binary search for non-arithmetic types
             std::size_t left = 0;
             std::size_t right = data.size() - 1;
             while (left <= right) {
@@ -68,6 +103,10 @@ struct InterpolationSearch {
         return std::nullopt;
     }
 
+    /**
+     * @brief Indicates whether this search algorithm requires sorted input.
+     * @return @c true
+     */
     [[nodiscard]] constexpr bool requires_sorted() const noexcept {
         return true;
     }

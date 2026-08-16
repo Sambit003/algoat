@@ -1,3 +1,12 @@
+/**
+ * @file bindings.cpp
+ * @brief Nanobind Python C++ extension module for Algoat.
+ * 
+ * Exposes C++ sorting and searching primitives to Python with zero-copy NumPy ndarray
+ * buffer views, mixed-type list sorting with GIL release, and Morton Z-order curve
+ * spatial sorting for complex numbers.
+ */
+
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/optional.h>
@@ -10,6 +19,12 @@
 
 namespace nb = nanobind;
 
+/**
+ * @brief Unboxes Python list elements into C++ wrappers, sorts in C++ releasing the GIL, and returns a new list.
+ * @tparam Wrapper Type of wrapper struct (e.g., `PyFloatWrapper`, `PyBigIntWrapper`).
+ * @param data Input Python list.
+ * @return New sorted Python list.
+ */
 template<typename Wrapper>
 nb::list sort_list_direct(nb::list data) {
     size_t n = nb::len(data);
@@ -32,6 +47,11 @@ nb::list sort_list_direct(nb::list data) {
     return result;
 }
 
+/**
+ * @brief Sorts Python list elements in-place by mutating the underlying `PyListObject`.
+ * @tparam Wrapper Type of wrapper struct.
+ * @param data Python list to sort in-place.
+ */
 template<typename Wrapper>
 void sort_list_inplace_impl(nb::list data) {
     size_t n = nb::len(data);
@@ -52,6 +72,12 @@ void sort_list_inplace_impl(nb::list data) {
     }
 }
 
+/**
+ * @brief Specialized O(N) branchless counting sort for Python boolean lists.
+ * @param data Input Python list.
+ * @param out_result Populated with sorted boolean list if all elements are booleans.
+ * @return `true` if list contained exclusively booleans, `false` otherwise.
+ */
 bool try_sort_bool_list(nb::list data, nb::list& out_result) {
     size_t n = nb::len(data);
     if (n == 0) {
@@ -87,6 +113,11 @@ bool try_sort_bool_list(nb::list data, nb::list& out_result) {
     return true;
 }
 
+/**
+ * @brief Primary entry point for out-of-place Python list sorting.
+ * 
+ * Inspects the type of the first element to dispatch to specialized fast-path wrappers.
+ */
 nb::list sort_dispatch(nb::list data) {
     if (nb::len(data) == 0) return nb::list();
     
@@ -109,6 +140,9 @@ nb::list sort_dispatch(nb::list data) {
     }
 }
 
+/**
+ * @brief Primary entry point for in-place Python list sorting.
+ */
 void sort_inplace_dispatch(nb::list data) {
     if (nb::len(data) == 0) return;
     
@@ -152,6 +186,9 @@ void sort_inplace_dispatch(nb::list data) {
     }
 }
 
+/**
+ * @brief Direct typed search implementation on Python lists.
+ */
 template<typename T>
 std::optional<std::size_t> search_list_direct(nb::list data, const T& target) {
     std::string algo_name = algoat::get_global_config().searching.prefer.value_or("auto");
@@ -181,6 +218,9 @@ std::optional<std::size_t> search_list_direct(nb::list data, const T& target) {
     }
 }
 
+/**
+ * @brief Searches for target value in Python list with dynamic type inference.
+ */
 std::optional<std::size_t> search_dispatch(nb::list data, nb::object target) {
     if (nb::len(data) == 0) return std::nullopt;
     
@@ -197,6 +237,9 @@ std::optional<std::size_t> search_dispatch(nb::list data, nb::object target) {
 #include <algoat/sorting/boolean_sort.hpp>
 #include <stdexcept>
 
+/**
+ * @brief Zero-copy sorting wrapper for NumPy Float16 arrays viewed as uint16.
+ */
 void sort_ndarray_float16_buffer(nb::ndarray<uint16_t, nb::ndim<1>, nb::c_contig> array) {
     if (reinterpret_cast<std::uintptr_t>(array.data()) % alignof(uint16_t) != 0) {
         throw std::invalid_argument("Input array memory buffer is not aligned to alignof(uint16_t). Use np.require(arr, requirements=['A']) in Python.");
@@ -204,6 +247,9 @@ void sort_ndarray_float16_buffer(nb::ndarray<uint16_t, nb::ndim<1>, nb::c_contig
     algoat::numerics::sort_float16(std::span<uint16_t>(array.data(), array.size()));
 }
 
+/**
+ * @brief Zero-copy sorting wrapper for NumPy boolean arrays.
+ */
 void sort_ndarray_bool_buffer(nb::ndarray<uint8_t, nb::ndim<1>, nb::c_contig> array) {
     algoat::sorting::sort_boolean(std::span<uint8_t>(array.data(), array.size()));
 }

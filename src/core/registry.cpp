@@ -1,3 +1,8 @@
-#include "algoat/core/registry.hpp"
+/**
+ * @file registry.cpp
+ * @brief Source unit for Registry template instantiations.
+ * 
+ * The Registry class template implementation resides entirely in @c algoat/core/registry.hpp.
+ */
 
-// Registry is fully templated and header-only.
+#include "algoat/core/registry.hpp"

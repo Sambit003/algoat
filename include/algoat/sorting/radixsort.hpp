@@ -1,3 +1,12 @@
+/**
+ * @file radixsort.hpp
+ * @brief Least Significant Digit (LSD) and Most Significant Digit (MSD) Radix Sort.
+ * 
+ * Provides non-comparative linear-time sorting for integral types by processing
+ * byte-by-byte (8-bit radix = 256 buckets). Signed integers are seamlessly supported
+ * by flipping the most significant sign bit via XOR with <tt>1 << (sizeof(T)*8 - 1)</tt>.
+ */
+
 #pragma once
 
 #include <string_view>
@@ -10,15 +19,44 @@
 
 namespace algoat::sorting {
 
+/**
+ * @struct RadixSortLSD
+ * @brief Stable Least Significant Digit (LSD) Radix Sort for integers.
+ * 
+ * Iterates through digits from least significant byte (LSB) to most significant byte (MSB),
+ * maintaining stability across <tt>sizeof(T)</tt> passes.
+ *
+ * @par Characteristics:
+ * - <b>Category:</b> Non-comparative, Distribution.
+ * - <b>Stability:</b> Stable.
+ *
+ * @par Space Complexity:
+ * - Auxiliary Space: @c O(N) auxiliary buffer
+ */
 struct RadixSortLSD {
+    /**
+     * @brief Returns the unique identifier for this algorithm.
+     * @return "radixsortlsd"
+     */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
         return "radixsortlsd";
     }
 
+    /**
+     * @brief Preferred minimum size threshold.
+     * @return 0
+     */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
         return 0;
     }
 
+    /**
+     * @brief Sorts an integral span using LSD Radix Sort.
+     * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
+ *
+ * @param arr Span of integers to sort in-place.
+     * @throws std::invalid_argument If @c T is non-integral.
+     */
     template<typename T>
     void sort(std::span<T> arr) const {
         if constexpr (!std::is_integral_v<T>) {
@@ -69,15 +107,39 @@ struct RadixSortLSD {
     }
 };
 
+/**
+ * @struct RadixSortMSD
+ * @brief Recursive Most Significant Digit (MSD) Radix Sort for integers.
+ * 
+ * Partitions elements into 256 sub-buckets starting from MSB and recurses down to LSB.
+ *
+ * @par Characteristics:
+ * - <b>Category:</b> Non-comparative, Distribution / Partition.
+ * - <b>Stability:</b> Stable.
+ *
+ * @par Space Complexity:
+ * - Auxiliary Space: @c O(N + k \cdot 256) auxiliary space
+ */
 struct RadixSortMSD {
+    /**
+     * @brief Returns the unique identifier for this algorithm.
+     * @return "radixsortmsd"
+     */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
         return "radixsortmsd";
     }
 
+    /**
+     * @brief Preferred minimum size threshold.
+     * @return 0
+     */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
         return 0;
     }
 
+    /**
+     * @brief Recursive MSD radix sort worker on sub-buckets.
+     */
     template<typename T>
     static void msd_impl(std::span<T> arr, std::span<T> buffer, int shift) {
         if (arr.size() <= 1) return;
@@ -128,6 +190,13 @@ struct RadixSortMSD {
         }
     }
 
+    /**
+     * @brief Sorts an integral span using recursive MSD Radix Sort.
+     * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
+ *
+ * @param arr Span of integers to sort in-place.
+     * @throws std::invalid_argument If @c T is non-integral.
+     */
     template<typename T>
     void sort(std::span<T> arr) const {
         if constexpr (!std::is_integral_v<T>) {

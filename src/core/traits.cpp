@@ -1,3 +1,8 @@
-#include "algoat/core/traits.hpp"
+/**
+ * @file traits.cpp
+ * @brief Source unit for DataTraits implementations.
+ * 
+ * The analyze() algorithm implementation resides in @c algoat/core/traits.hpp.
+ */
 
-// Implementation is header-only due to templates.
+#include "algoat/core/traits.hpp"
