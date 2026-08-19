@@ -58,3 +58,18 @@ TEST_F(QuickSortTest, LargeRandom) {
     }
     verify_sort(data);
 }
+
+TEST_F(QuickSortTest, LowEntropyAllSame) {
+    std::vector<int> data(10000, 42);
+    verify_sort(data);
+}
+
+TEST_F(QuickSortTest, LowEntropyFewDistinct) {
+    std::vector<int> data;
+    for (int i = 0; i < 5000; ++i) {
+        data.push_back(i % 3);
+    }
+    std::mt19937 gen(99);
+    std::shuffle(data.begin(), data.end(), gen);
+    verify_sort(data);
+}
