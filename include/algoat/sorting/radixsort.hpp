@@ -58,8 +58,8 @@ struct RadixSortLSD {
      * @throws std::invalid_argument If @c T is non-integral.
      */
     template <typename T> void sort(std::span<T> arr) const {
-        if constexpr (!std::is_integral_v<T>) {
-            throw std::invalid_argument("RadixSortLSD requires an integral type");
+        if constexpr (!std::is_integral_v<T> || std::is_same_v<T, bool>) {
+            throw std::invalid_argument("RadixSortLSD requires an integral type (excluding bool)");
         } else {
             if (arr.empty())
                 return;
@@ -195,8 +195,8 @@ struct RadixSortMSD {
      * @throws std::invalid_argument If @c T is non-integral.
      */
     template <typename T> void sort(std::span<T> arr) const {
-        if constexpr (!std::is_integral_v<T>) {
-            throw std::invalid_argument("RadixSortMSD requires an integral type");
+        if constexpr (!std::is_integral_v<T> || std::is_same_v<T, bool>) {
+            throw std::invalid_argument("RadixSortMSD requires an integral type (excluding bool)");
         } else {
             if (arr.size() <= 1)
                 return;

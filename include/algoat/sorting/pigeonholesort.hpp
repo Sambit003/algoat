@@ -76,7 +76,7 @@ struct PigeonholeSort {
             std::size_t idx = 0;
             for (std::size_t i = 0; i < range; ++i) {
                 while (holes[i] > 0) {
-                    arr[idx++] = static_cast<T>(i) + min_val;
+                    arr[idx++] = static_cast<T>(static_cast<std::size_t>(min_val) + i);
                     holes[i]--;
                 }
             }
