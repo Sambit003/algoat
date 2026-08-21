@@ -73,6 +73,7 @@ struct CycleSort {
 
             // If the item is already in correct position, skip cycle
             if (pos == cycle_start) {
+                data[cycle_start] = std::move(item);
                 continue;
             }
 
