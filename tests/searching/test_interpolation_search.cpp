@@ -67,3 +67,9 @@ TEST_F(InterpolationSearchTest, NonArithmeticFallback) {
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(result.value(), 2);
 }
+
+TEST_F(InterpolationSearchTest, PathologicalExtrapolation) {
+    std::vector<double> data = {0.0, 10.0, 1000000.0};
+    auto result = algo.search(std::span{data}, 500000.0);
+    EXPECT_FALSE(result.has_value());
+}
