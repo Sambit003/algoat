@@ -25,7 +25,6 @@ compile_commands.json
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 .pytest_cache/
 .venv/
 venv/
@@ -38,3 +37,4 @@ dist/
 # Agentic docs
 AGENTS.md
 docs/agents/
+/.scratch/
