@@ -24,6 +24,12 @@
 
 namespace algoat::core {
 
+template <typename Algo, typename T>
+concept CanSortData = requires(Algo a, std::span<T> arr) { a.sort(arr); };
+
+template <typename Algo, typename T>
+concept CanSearchData = requires(Algo a, std::span<T> arr, const T& t) { a.search(arr, t); };
+
 /**
  * @class Dispatcher
  * @brief Central controller for dynamic algorithm selection and execution.
@@ -103,7 +109,16 @@ public:
         }
 
         auto algo_variant = sort_registry_.create(algo_name);
-        std::visit([data](auto&& algo) { algo.sort(data); }, algo_variant);
+        std::visit(
+            [data](auto&& algo) {
+                using AlgoType = std::remove_cvref_t<decltype(algo)>;
+                if constexpr (CanSortData<AlgoType, T>) {
+                    algo.sort(data);
+                } else {
+                    throw std::invalid_argument("Algorithm does not support this data type.");
+                }
+            },
+            algo_variant);
     }
 
     /**
@@ -145,7 +160,12 @@ public:
         auto algo_variant = search_registry_.create(algo_name);
         return std::visit(
             [data, &target](auto&& algo) -> std::optional<std::size_t> {
-                return algo.search(data, target);
+                using AlgoType = std::remove_cvref_t<decltype(algo)>;
+                if constexpr (CanSearchData<AlgoType, T>) {
+                    return algo.search(data, target);
+                } else {
+                    throw std::invalid_argument("Algorithm does not support this data type.");
+                }
             },
             algo_variant);
     }
