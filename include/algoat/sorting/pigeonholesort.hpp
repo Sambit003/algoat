@@ -54,31 +54,28 @@ struct PigeonholeSort {
      * @param arr Contiguous span of integers to sort.
      * @throws std::invalid_argument If @c T is non-integral.
      */
-    template <typename T> void sort(std::span<T> arr) const {
-        if constexpr (!std::is_integral_v<T> || std::is_same_v<T, bool>) {
-            throw std::invalid_argument(
-                "PigeonholeSort requires an integral type (excluding bool)");
-        } else {
-            if (arr.empty())
-                return;
+    template <typename T>
+        requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+    void sort(std::span<T> arr) const {
+        if (arr.empty())
+            return;
 
-            auto [min_it, max_it] = std::minmax_element(arr.begin(), arr.end());
-            T min_val = *min_it;
+        auto [min_it, max_it] = std::minmax_element(arr.begin(), arr.end());
+        T min_val = *min_it;
 
-            std::size_t range =
-                static_cast<std::size_t>(*max_it) - static_cast<std::size_t>(min_val) + 1;
+        std::size_t range =
+            static_cast<std::size_t>(*max_it) - static_cast<std::size_t>(min_val) + 1;
 
-            std::vector<std::size_t> holes(range, 0);
-            for (T x : arr) {
-                holes[static_cast<std::size_t>(x) - static_cast<std::size_t>(min_val)]++;
-            }
+        std::vector<std::size_t> holes(range, 0);
+        for (T x : arr) {
+            holes[static_cast<std::size_t>(x) - static_cast<std::size_t>(min_val)]++;
+        }
 
-            std::size_t idx = 0;
-            for (std::size_t i = 0; i < range; ++i) {
-                while (holes[i] > 0) {
-                    arr[idx++] = static_cast<T>(static_cast<std::size_t>(min_val) + i);
-                    holes[i]--;
-                }
+        std::size_t idx = 0;
+        for (std::size_t i = 0; i < range; ++i) {
+            while (holes[i] > 0) {
+                arr[idx++] = static_cast<T>(static_cast<std::size_t>(min_val) + i);
+                holes[i]--;
             }
         }
     }

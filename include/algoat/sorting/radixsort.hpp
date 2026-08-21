@@ -57,52 +57,50 @@ struct RadixSortLSD {
      * @param arr Span of integers to sort in-place.
      * @throws std::invalid_argument If @c T is non-integral.
      */
-    template <typename T> void sort(std::span<T> arr) const {
-        if constexpr (!std::is_integral_v<T> || std::is_same_v<T, bool>) {
-            throw std::invalid_argument("RadixSortLSD requires an integral type (excluding bool)");
-        } else {
-            if (arr.empty())
-                return;
+    template <typename T>
+        requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+    void sort(std::span<T> arr) const {
+        if (arr.empty())
+            return;
 
-            using U = std::make_unsigned_t<T>;
-            const int passes = sizeof(T);
-            std::vector<T> buffer(arr.size());
-            std::span<T> src = arr;
-            std::span<T> dst = buffer;
+        using U = std::make_unsigned_t<T>;
+        const int passes = sizeof(T);
+        std::vector<T> buffer(arr.size());
+        std::span<T> src = arr;
+        std::span<T> dst = buffer;
 
-            for (int shift = 0; shift < passes * 8; shift += 8) {
-                std::size_t count[256] = {0};
+        for (int shift = 0; shift < passes * 8; shift += 8) {
+            std::size_t count[256] = {0};
 
-                for (T val : src) {
-                    U u_val = static_cast<U>(val);
-                    if constexpr (std::is_signed_v<T>) {
-                        u_val ^= (U(1) << (sizeof(T) * 8 - 1));
-                    }
-                    count[(u_val >> shift) & 0xFF]++;
+            for (T val : src) {
+                U u_val = static_cast<U>(val);
+                if constexpr (std::is_signed_v<T>) {
+                    u_val ^= (U(1) << (sizeof(T) * 8 - 1));
                 }
-
-                std::size_t total = 0;
-                for (int i = 0; i < 256; ++i) {
-                    std::size_t oldCount = count[i];
-                    count[i] = total;
-                    total += oldCount;
-                }
-
-                for (T val : src) {
-                    U u_val = static_cast<U>(val);
-                    if constexpr (std::is_signed_v<T>) {
-                        u_val ^= (U(1) << (sizeof(T) * 8 - 1));
-                    }
-                    std::size_t bucket = (u_val >> shift) & 0xFF;
-                    dst[count[bucket]++] = val;
-                }
-
-                std::swap(src, dst);
+                count[(u_val >> shift) & 0xFF]++;
             }
 
-            if (passes % 2 != 0) {
-                std::copy(buffer.begin(), buffer.end(), arr.begin());
+            std::size_t total = 0;
+            for (int i = 0; i < 256; ++i) {
+                std::size_t oldCount = count[i];
+                count[i] = total;
+                total += oldCount;
             }
+
+            for (T val : src) {
+                U u_val = static_cast<U>(val);
+                if constexpr (std::is_signed_v<T>) {
+                    u_val ^= (U(1) << (sizeof(T) * 8 - 1));
+                }
+                std::size_t bucket = (u_val >> shift) & 0xFF;
+                dst[count[bucket]++] = val;
+            }
+
+            std::swap(src, dst);
+        }
+
+        if (passes % 2 != 0) {
+            std::copy(buffer.begin(), buffer.end(), arr.begin());
         }
     }
 };
@@ -194,15 +192,13 @@ struct RadixSortMSD {
      * @param arr Span of integers to sort in-place.
      * @throws std::invalid_argument If @c T is non-integral.
      */
-    template <typename T> void sort(std::span<T> arr) const {
-        if constexpr (!std::is_integral_v<T> || std::is_same_v<T, bool>) {
-            throw std::invalid_argument("RadixSortMSD requires an integral type (excluding bool)");
-        } else {
-            if (arr.size() <= 1)
-                return;
-            std::vector<T> buffer(arr.size());
-            msd_impl<T>(arr, buffer, (sizeof(T) - 1) * 8);
-        }
+    template <typename T>
+        requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+    void sort(std::span<T> arr) const {
+        if (arr.size() <= 1)
+            return;
+        std::vector<T> buffer(arr.size());
+        msd_impl<T>(arr, buffer, (sizeof(T) - 1) * 8);
     }
 };
 

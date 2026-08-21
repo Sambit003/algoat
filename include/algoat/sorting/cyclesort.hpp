@@ -86,13 +86,16 @@ struct CycleSort {
                 std::swap(item, data[pos]);
             }
 
-            // Rotate rest of the cycle
             while (pos != cycle_start) {
                 pos = cycle_start;
                 for (std::size_t i = cycle_start + 1; i < data.size(); ++i) {
                     if (data[i] < item) {
                         pos++;
                     }
+                }
+                if (pos == cycle_start) {
+                    data[cycle_start] = std::move(item);
+                    break;
                 }
                 while (item == data[pos]) {
                     pos++;
