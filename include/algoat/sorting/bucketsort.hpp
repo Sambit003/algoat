@@ -59,8 +59,8 @@ struct BucketSort {
      * @throws std::invalid_argument If @c T is non-integral.
      */
     template <typename T> void sort(std::span<T> arr) const {
-        if constexpr (!std::is_integral_v<T>) {
-            throw std::invalid_argument("BucketSort requires an integral type");
+        if constexpr (!std::is_integral_v<T> || std::is_same_v<T, bool>) {
+            throw std::invalid_argument("BucketSort requires an integral type (excluding bool)");
         } else {
             if (arr.empty())
                 return;
@@ -68,8 +68,8 @@ struct BucketSort {
             auto [min_it, max_it] = std::minmax_element(arr.begin(), arr.end());
             T min_val = *min_it;
 
-            using U = std::make_unsigned_t<T>;
-            U range = static_cast<U>(*max_it - min_val);
+            std::size_t range =
+                static_cast<std::size_t>(*max_it) - static_cast<std::size_t>(min_val);
 
             if (range == 0)
                 return;
@@ -78,8 +78,9 @@ struct BucketSort {
             std::vector<std::vector<T>> buckets(num_buckets);
 
             for (T x : arr) {
-                std::size_t b_idx = static_cast<std::size_t>(
-                    (static_cast<double>(static_cast<U>(x - min_val)) / range) * (num_buckets - 1));
+                std::size_t diff = static_cast<std::size_t>(x) - static_cast<std::size_t>(min_val);
+                std::size_t b_idx = static_cast<std::size_t>((static_cast<double>(diff) / range) *
+                                                             (num_buckets - 1));
                 buckets[b_idx].push_back(x);
             }
 
