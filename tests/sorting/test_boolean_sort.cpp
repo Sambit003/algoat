@@ -60,17 +60,6 @@ TEST(BooleanSortTest, HandlesEmptyInput) {
     EXPECT_TRUE(data.empty());
 }
 
-TEST(BooleanSortTest, PreservesMultiset) {
-    std::vector<int> data = {0, 2, 0, 5, -3, 1, 5};
-    auto original = data;
-
-    algoat::sorting::sort_boolean(std::span{data});
-
-    std::sort(original.begin(), original.end());
-    std::sort(data.begin(), data.end());
-
-    EXPECT_EQ(data, original);
-}
 TEST(BooleanSortTest, PreservesSizeAndMultiset) {
     std::vector<int> data = {0, 2, 0, 5, -3, 1, 5};
     auto original = data;
@@ -86,3 +75,4 @@ TEST(BooleanSortTest, PreservesSizeAndMultiset) {
 
     EXPECT_EQ(data, original);
 }
+
