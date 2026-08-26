@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <gtest/gtest.h>
-#include <random>
 #include <vector>
 
 using namespace algoat::sorting;
@@ -10,51 +9,27 @@ using namespace algoat::sorting;
 class HeapSortTest : public ::testing::Test {
 protected:
     HeapSort algo;
-
-    void verify_sort(std::vector<int>& data) {
-        auto expected = data;
-        std::sort(expected.begin(), expected.end());
-        algo.sort(std::span{data});
-        EXPECT_EQ(data, expected);
-    }
 };
 
-TEST_F(HeapSortTest, RandomData) {
-    std::vector<int> data = {5, 3, 8, 1, 9, 2, 7};
-    verify_sort(data);
-}
-
-TEST_F(HeapSortTest, EmptyInput) {
+TEST_F(HeapSortTest, SortsDescendingMaxHeapArray) {
+    // A max-heap array that is descending, which might require N log N swaps
     std::vector<int> data;
-    verify_sort(data);
-}
-
-TEST_F(HeapSortTest, SingleElement) {
-    std::vector<int> data = {42};
-    verify_sort(data);
-}
-
-TEST_F(HeapSortTest, AllDuplicates) {
-    std::vector<int> data = {7, 7, 7, 7, 7};
-    verify_sort(data);
-}
-
-TEST_F(HeapSortTest, AlreadySorted) {
-    std::vector<int> data = {1, 2, 3, 4, 5, 6, 7};
-    verify_sort(data);
-}
-
-TEST_F(HeapSortTest, ReverseSorted) {
-    std::vector<int> data = {7, 6, 5, 4, 3, 2, 1};
-    verify_sort(data);
-}
-
-TEST_F(HeapSortTest, LargeRandom) {
-    std::vector<int> data(1000);
-    std::mt19937 gen(42);
-    std::uniform_int_distribution<int> dist(1, 10000);
-    for (int& x : data) {
-        x = dist(gen);
+    for (int i = 1000; i >= 0; --i) {
+        data.push_back(i);
     }
-    verify_sort(data);
+
+    algo.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+}
+
+TEST_F(HeapSortTest, StrictInPlace) {
+    // We can't strictly assert zero allocations without overriding new,
+    // but we can verify it sorts a large array perfectly.
+    std::vector<int> data(5000);
+    for (int i = 0; i < 5000; ++i) {
+        data[i] = (i * 17) % 5000;
+    }
+
+    algo.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
 }

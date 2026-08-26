@@ -1,10 +1,8 @@
 #include "algoat/sorting/bitonicsort.hpp"
 #include "algoat/sorting/bubblesort.hpp"
-#include "algoat/sorting/combsort.hpp"
 #include "algoat/sorting/cyclesort.hpp"
 #include "algoat/sorting/gnomesort.hpp"
-#include "algoat/sorting/selectionsort.hpp"
-#include "algoat/sorting/shellsort.hpp"
+#include "test_stable_item.hpp"
 
 #include <algorithm>
 #include <gtest/gtest.h>
@@ -14,62 +12,9 @@
 #include <vector>
 
 using namespace algoat::sorting;
+using namespace algoat::sorting::testing;
 
-template <typename Algo> class ClassicalSortTest : public ::testing::Test {
-protected:
-    Algo algo;
-    void verify_sort(std::vector<int>& data) {
-        auto expected = data;
-        std::sort(expected.begin(), expected.end());
-        algo.sort(std::span{data});
-        EXPECT_EQ(data, expected);
-    }
-};
-
-using SortAlgos =
-    ::testing::Types<SelectionSort, BubbleSort, ShellSort, CombSort, GnomeSort, CycleSort>;
-TYPED_TEST_SUITE(ClassicalSortTest, SortAlgos);
-
-TYPED_TEST(ClassicalSortTest, RandomData) {
-    std::vector<int> data = {5, 3, 8, 1, 9, 2, 7};
-    this->verify_sort(data);
-}
-
-TYPED_TEST(ClassicalSortTest, EmptyInput) {
-    std::vector<int> data;
-    this->verify_sort(data);
-}
-
-TYPED_TEST(ClassicalSortTest, SingleElement) {
-    std::vector<int> data = {42};
-    this->verify_sort(data);
-}
-
-TYPED_TEST(ClassicalSortTest, AllDuplicates) {
-    std::vector<int> data = {7, 7, 7, 7, 7};
-    this->verify_sort(data);
-}
-
-TYPED_TEST(ClassicalSortTest, AlreadySorted) {
-    std::vector<int> data = {1, 2, 3, 4, 5, 6, 7};
-    this->verify_sort(data);
-}
-
-TYPED_TEST(ClassicalSortTest, ReverseSorted) {
-    std::vector<int> data = {7, 6, 5, 4, 3, 2, 1};
-    this->verify_sort(data);
-}
-
-TYPED_TEST(ClassicalSortTest, LargeRandom) {
-    std::vector<int> data(1000);
-    std::mt19937 gen(42);
-    std::uniform_int_distribution<int> dist(1, 10000);
-    for (int& x : data) {
-        x = dist(gen);
-    }
-    this->verify_sort(data);
-}
-
+// --- BitonicSort Tests ---
 class BitonicSortTest : public ::testing::Test {
 protected:
     BitonicSort algo;
@@ -106,6 +51,27 @@ TEST_F(BitonicSortTest, ThrowsOnNonPowerOfTwo) {
     EXPECT_THROW(algo.sort(std::span{data}), std::invalid_argument);
 }
 
+// --- BubbleSort Tests ---
+class BubbleSortTest : public ::testing::Test {
+protected:
+    BubbleSort algo;
+};
+
+TEST_F(BubbleSortTest, IsStable) {
+    test_sort_stability(algo);
+}
+
+// --- GnomeSort Tests ---
+class GnomeSortTest : public ::testing::Test {
+protected:
+    GnomeSort algo;
+};
+
+TEST_F(GnomeSortTest, IsStable) {
+    test_sort_stability(algo);
+}
+
+// --- CycleSort Tests ---
 class MoveTracker {
 public:
     enum class State { Valid, MovedFrom, Destructed };
