@@ -138,15 +138,10 @@ public:
      */
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
-        DataTraits traits = analyze(data);
         std::string algo_name = config_.searching.prefer.value_or("auto");
 
         if (algo_name == "auto" || algo_name.empty()) {
-            if (traits.sortedness_ratio == 1.0) {
-                algo_name = "binarysearch";
-            } else {
-                algo_name = "linearsearch";
-            }
+            algo_name = "adaptivebinarysearch";
         }
 
         if (!search_registry_.has(algo_name)) {
