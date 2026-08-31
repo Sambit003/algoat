@@ -50,8 +50,8 @@ concept CanSearchData = requires(Algo a, std::span<const T> arr, const T& t) { a
  *
  *
  * @par Searching Heuristics (@c "auto"):
- * - <b>Sorted Data</b> (sortedness ratio <tt>== 1.0</tt>): @c BinarySearch (<tt>O(log N)</tt>).
- * - <b>Unsorted Data:</b> @c LinearSearch (<tt>O(N)</tt>).
+ * - <b>Default:</b> @c AdaptiveBinarySearch (dynamic <tt>O(log N)</tt> with automatic
+ * invariant verification and <tt>O(N)</tt> fallback if monotonicity violations are detected).
  */
 class Dispatcher {
     Registry<sorting::SortVariant> sort_registry_; ///< Registry of available sorting algorithms.
@@ -124,8 +124,8 @@ public:
     /**
      * @brief Searches for a target value in a span using dynamic heuristic selection.
      *
-     * Profiles @c data via <tt>analyze()</tt>, selects @c BinarySearch if data is fully sorted,
-     * otherwise dispatches to @c LinearSearch (or user preferences).
+     * Dispatches directly to @c AdaptiveBinarySearch for safe sub-linear search unless
+     * overridden by user configuration.
      *
      * @tparam T The element type in the span.
      *

@@ -21,11 +21,12 @@ namespace algoat::searching {
  * Traverses bisection points in O(log N) time while spot-checking monotonicity constraints
  * and local invariants. If an invariant violation (such as an inversion) is detected,
  * it immediately aborts the logarithmic descent and safely pivots to LinearSearch in O(N) time.
- * If logarithmic search concludes without finding the target, it performs a fallback check
- * to ensure 100% soundness across adversarial unsorted inputs.
+ * Note: If no invariant violation is tripped during bisection, it will return std::nullopt.
+ * Therefore, finding elements in fully unsorted datasets is not guaranteed.
  *
  * @par Characteristics:
- * - <b>Preconditions:</b> None (adapts dynamically to both sorted and unsorted spans).
+ * - <b>Preconditions:</b> Data should ideally be sorted. Unsorted arrays are handled gracefully
+ *   if an inversion is detected along the bisection path, but missing elements may return nullopt.
  *
  * @par Time Complexity:
  * - Best Case: @c O(1) (target is at midpoint or first inspected location)
@@ -116,10 +117,8 @@ struct AdaptiveBinarySearch {
         }
 
         // If target was not found in the bisection path:
-        // On sorted arrays, target is truly not present.
-        // For adversarial unsorted arrays (e.g. sawtooth or mostly-sorted where the target
-        // lived in an unvisited sub-interval), fallback to LinearSearch to ensure 100% accuracy.
-        return LinearSearch{}.search(data, target);
+        // Return std::nullopt to guarantee O(log N) latency for missing elements on sorted data.
+        return std::nullopt;
     }
 
     /**

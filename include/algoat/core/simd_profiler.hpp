@@ -38,14 +38,19 @@ inline constexpr std::size_t kCacheLineBytes =
 inline constexpr std::size_t kSublinearThreshold = 10000;
 inline constexpr std::size_t kNumSampleChunks = 64;
 
+struct ChunkProfileResult {
+    std::size_t sorted_pairs{0};
+    bool has_duplicates{false};
+};
+
 /**
  * @brief Evaluates adjacent sortedness and equality across a contiguous memory chunk using SIMD.
  */
 template <typename T>
-HWY_INLINE void profile_chunk_simd(const T* ptr, std::size_t len, std::size_t& out_sorted_pairs,
-                                   bool& out_has_duplicates) {
+HWY_INLINE ChunkProfileResult profile_chunk_simd(const T* ptr, std::size_t len) {
+    ChunkProfileResult res;
     if (len <= 1)
-        return;
+        return res;
 
     const hn::ScalableTag<T> d;
     const std::size_t N = hn::Lanes(d);
@@ -57,27 +62,12 @@ HWY_INLINE void profile_chunk_simd(const T* ptr, std::size_t len, std::size_t& o
             auto v1 = hn::LoadU(d, ptr + i);
             auto v2 = hn::LoadU(d, ptr + i + 1);
 
-#if HWY_TARGET <= HWY_AVX3 && (defined(__x86_64__) || defined(_M_X64)) && defined(__AVX512F__)
-            // Explicit AVX-512 micro-helper escape hatch for 32-bit integers
-            if constexpr (std::is_same_v<T, int32_t>) {
-                __m512i r1 = v1.raw;
-                __m512i r2 = v2.raw;
-                __mmask16 le_mask = _mm512_cmple_epi32_mask(r1, r2);
-                __mmask16 eq_mask = _mm512_cmpeq_epi32_mask(r1, r2);
-                out_sorted_pairs +=
-                    static_cast<std::size_t>(_mm_popcnt_u32(static_cast<uint32_t>(le_mask)));
-                if (eq_mask != 0) {
-                    out_has_duplicates = true;
-                }
-                continue;
-            }
-#endif
-
             auto le_mask = hn::Le(v1, v2);
             auto eq_mask = hn::Eq(v1, v2);
-            out_sorted_pairs += hn::CountTrue(d, le_mask);
+
+            res.sorted_pairs += hn::CountTrue(d, le_mask);
             if (hn::CountTrue(d, eq_mask) > 0) {
-                out_has_duplicates = true;
+                res.has_duplicates = true;
             }
         }
     }
@@ -85,12 +75,14 @@ HWY_INLINE void profile_chunk_simd(const T* ptr, std::size_t len, std::size_t& o
     // Process remaining scalar tail in chunk
     for (; i + 1 < len; ++i) {
         if (ptr[i] <= ptr[i + 1]) {
-            out_sorted_pairs++;
+            res.sorted_pairs++;
         }
         if (ptr[i] == ptr[i + 1]) {
-            out_has_duplicates = true;
+            res.has_duplicates = true;
         }
     }
+
+    return res;
 }
 
 /**
@@ -123,10 +115,12 @@ inline void sample_traits_sublinear_impl(const T* data, std::size_t size,
         std::size_t chunk_start = c * stride;
         std::size_t chunk_len = std::min(chunk_elements, size - chunk_start);
 
-        std::size_t chunk_sorted = 0;
-        profile_chunk_simd(data + chunk_start, chunk_len, chunk_sorted, has_duplicates);
+        ChunkProfileResult chunk_res = profile_chunk_simd(data + chunk_start, chunk_len);
 
-        sorted_sampled_pairs += chunk_sorted;
+        sorted_sampled_pairs += chunk_res.sorted_pairs;
+        if (chunk_res.has_duplicates) {
+            has_duplicates = true;
+        }
         total_sampled_pairs += (chunk_len > 0) ? (chunk_len - 1) : 0;
 
         // Check inter-chunk boundary if applicable
