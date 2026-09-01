@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "algoat/searching/adaptive_binary_search.hpp"
 #include "algoat/searching/binary_search.hpp"
 #include "algoat/searching/interpolation_search.hpp"
 #include "algoat/searching/linear_search.hpp"
@@ -43,6 +44,7 @@ concept SearchAlgorithm = requires(Algo algo, std::span<T> data, const T& target
  * Used by <tt>algoat::core::Registry<SearchVariant></tt> for static dispatch without virtual table
  * overhead.
  */
-using SearchVariant = std::variant<LinearSearch, BinarySearch, InterpolationSearch>;
+using SearchVariant =
+    std::variant<LinearSearch, BinarySearch, InterpolationSearch, AdaptiveBinarySearch>;
 
 } // namespace algoat::searching
