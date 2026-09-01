@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <cstring>
 #include <span>
-#include<algorithm>
+#include <type_traits>
 
 namespace algoat::sorting {
 
@@ -24,10 +24,14 @@ namespace algoat::sorting {
  * @par Characteristics:
  * - <b>Category:</b> Non-comparative, Counting / Memory block set.
  *
- * @par Time Complexity: @c O(N).
+ * @par Time Complexity:
+ *  *   - bool / binary uint8_t : O(N)
+ *   - non-binary or wider   : O(N log N)
  *
  * @par Space Complexity: @c O(1) auxiliary space.
- * - <b>Stability:</b> Stable.
+ *
+ * @par Stability: Not applicable for boolean types (identical values).
+ *      std::sort fallback path is NOT stable.
  *
  *
  * @param data Contiguous span of 8-bit boolean values (@c uint8_t 0 or 1) to sort in-place.
@@ -41,11 +45,14 @@ inline void sort_boolean(std::span<T> data) noexcept {
     // PATH-1:Compie time hardware optimization for pure boolean data
     if constexpr(std::is_same_v<T,bool>){
         size_t count_true = 0;
-        for(bool val:data){
-            //Fully brachless hardware accumulation
-            count_true += val;
+        const T* ptr = data.data();
+        const size_t n = data.size();
+
+        for(size_t i = 0; i < n; i++){
+            // raw pointer loop — better SIMD auto-vectorization
+            count_true += static_cast<size_t>(ptr[i]);
         }
-        size_t count_false = data.size()-count_true;
+        size_t count_false = n-count_true;
 
         if(count_false >0){
             std::memset(data.data(),0,count_false);
@@ -61,37 +68,30 @@ inline void sort_boolean(std::span<T> data) noexcept {
     // We ensure it ONLY takes types where elements are strictly 0 or 1 to prevent corruption.
 
     else if constexpr(sizeof(T)==1 && std::is_integral_v<T>){
-        bool is_strictly_binary = true;
-        size_t true_count=0;
+        size_t count_one = 0;
+        const size_t n   = data.size();
+        const T* ptr     = data.data();
 
-        for(const auto& val:data){
-            if (val>1){
-
-                is_strictly_binary = false;
-
-                break;
+        // single pass — validate AND count simultaneously
+        for(size_t i = 0; i < n; i++){
+            if(ptr[i] != 0 && ptr[i] != 1){
+                // not binary — fallback immediately
+                std::sort(data.begin(), data.end());
+                return;
             }
-            true_count += (val==1);
+            count_one += (ptr[i] == 1);
         }
-        if(is_strictly_binary){
 
-            size_t false_count =  data.size()-true_count;
+        // binary confirmed — use memset
+        size_t count_zero = n - count_one;
+        if(count_zero > 0) std::memset(data.data(), 0, count_zero);
+        if(count_one  > 0) std::memset(data.data() + count_zero, 1, count_one);
 
-            std::memset(data.data(),0,false_count);
-
-            std::memset(data.data()+false_count,1,true_count);
-        }else{
-
-            // Fallback to standard safe sort if numbers like 2, 5, etc., are present
-
-            std::sort(data.begin(),data.end());
-
-        }
     }
     // 3. Fallback path for all wider integral/floating types (int, long, double, etc.)
     else{
 
-        sort(data.begin(),data.end());
+        std::sort(data.begin(),data.end());
     }
 
 }
