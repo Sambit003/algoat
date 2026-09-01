@@ -28,7 +28,7 @@ template <typename Algo, typename T>
 concept CanSortData = requires(Algo a, std::span<T> arr) { a.sort(arr); };
 
 template <typename Algo, typename T>
-concept CanSearchData = requires(Algo a, std::span<T> arr, const T& t) { a.search(arr, t); };
+concept CanSearchData = requires(Algo a, std::span<const T> arr, const T& t) { a.search(arr, t); };
 
 /**
  * @class Dispatcher
@@ -137,7 +137,7 @@ public:
      * unregistered.
      */
     template <typename T>
-    std::optional<std::size_t> search(std::span<T> data, const T& target) const {
+    std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
         DataTraits traits = analyze(data);
         std::string algo_name = config_.searching.prefer.value_or("auto");
 
@@ -168,6 +168,11 @@ public:
                 }
             },
             algo_variant);
+    }
+
+    template <typename T>
+    std::optional<std::size_t> search(std::span<T> data, const T& target) const {
+        return search(std::span<const T>{data.data(), data.size()}, target);
     }
 };
 

@@ -49,6 +49,11 @@ struct LinearSearch {
      */
     template <typename T>
     std::optional<std::size_t> search(std::span<T> data, const T& target) const {
+        return search(std::span<const T>{data.data(), data.size()}, target);
+    }
+
+    template <typename T>
+    std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
         for (std::size_t i = 0; i < data.size(); ++i) {
             if (data[i] == target) {
                 return i; // returns first match

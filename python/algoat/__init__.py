@@ -6,7 +6,7 @@ and zero-copy NumPy interoperability.
 """
 
 from . import _algoat_impl
-from ._algoat_impl import sort_inplace, search, load_global_config, Rational
+from ._algoat_impl import sort_inplace, load_global_config, Rational
 import numpy as np
 from typing import Union, List, Any, Optional
 
@@ -51,4 +51,55 @@ def sort(data: Union[np.ndarray, List[Any]]) -> Union[np.ndarray, List[Any]]:
     else:
         return _algoat_impl.sort(data)
 
-__all__ = ["sort", "sort_inplace", "search", "load_global_config", "Rational"]
+
+_search_impl = _algoat_impl.search
+_search_numpy_impl = _algoat_impl.search_numpy
+_search_many_impl = _algoat_impl.search_many
+_search_many_numpy_impl = _algoat_impl.search_many_numpy
+
+
+def search(data: Union[np.ndarray, List[Any]], target: Any) -> Optional[int]:
+    """Search for a target value within a sorted array or list using branchless bisection.
+
+    If given a NumPy ndarray, performs zero-copy branchless C++ search directly on contiguous memory.
+    If given a standard Python list, searches using fast branchless traversal.
+
+    Args:
+        data: A sorted NumPy 1D array or sorted Python list.
+        target: The value to locate.
+
+    Returns:
+        Index of the matching element if found, or None.
+    """
+    if type(data) is list:
+        return _search_impl(data, target)
+    elif isinstance(data, np.ndarray):
+        return _search_numpy_impl(data, target)
+    return _search_impl(data, target)
+
+
+def search_many(
+    data: Union[np.ndarray, List[Any]], targets: Union[np.ndarray, List[Any]]
+) -> List[Optional[int]]:
+    """Batch search for multiple target values with amortized FFI overhead.
+
+    Args:
+        data: A sorted array or list to search within.
+        targets: An array or list of target values to locate.
+
+    Returns:
+        A list of matching indices (or None for targets not found).
+    """
+    if type(data) is list and type(targets) is list:
+        return _search_many_impl(data, targets)
+    elif isinstance(data, np.ndarray) and isinstance(targets, np.ndarray):
+        return _search_many_numpy_impl(data, targets)
+    else:
+        list_data = data if isinstance(data, list) else list(data)
+        list_targets = targets if isinstance(targets, list) else list(targets)
+        return _search_many_impl(list_data, list_targets)
+
+
+
+__all__ = ["sort", "sort_inplace", "search", "search_many", "load_global_config", "Rational"]
+
