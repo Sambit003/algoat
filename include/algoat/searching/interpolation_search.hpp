@@ -54,6 +54,11 @@ struct InterpolationSearch {
      */
     template <typename T>
     std::optional<std::size_t> search(std::span<T> data, const T& target) const {
+        return search(std::span<const T>{data.data(), data.size()}, target);
+    }
+
+    template <typename T>
+    std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
         if (data.empty())
             return std::nullopt;
 

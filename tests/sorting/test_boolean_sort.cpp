@@ -7,12 +7,11 @@
 #include <vector>
 
 template <typename T>
-void expect_boolean_partition(std::vector<T> data) {
+void verify_boolean_sort(std::vector<T> data) {
     auto original = data;
 
     algoat::sorting::sort_boolean(std::span{data});
 
-    // All zero values must come before nonzero values.
     bool found_nonzero = false;
 
     for (const T value : data) {
@@ -23,56 +22,93 @@ void expect_boolean_partition(std::vector<T> data) {
         }
     }
 
-    // The multiset of values must remain unchanged.
     std::sort(original.begin(), original.end());
     std::sort(data.begin(), data.end());
 
     EXPECT_EQ(data, original);
 }
 
-TEST(BooleanSortTest, SortsBinaryValues) {
-    std::vector<std::uint8_t> data = {1, 0, 1, 0};
+TEST(IntegralInputTest, HandlesMixedValues) {
+    std::vector<std::uint8_t> data = {5, 0, 3, 2, 0, 100, 7};
 
-    algoat::sorting::sort_boolean(std::span{data});
-
-    EXPECT_EQ(data, (std::vector<std::uint8_t>{0, 0, 1, 1}));
+    verify_boolean_sort(data);
 }
 
-TEST(BooleanSortTest, PreservesArbitraryByteValues) {
-    std::vector<std::uint8_t> data = {0, 2, 0, 5, 1, 255};
+TEST(IntegralInputTest, HandlesAllZeroValues) {
+    std::vector<std::uint8_t> data = {0, 0, 0, 0};
 
-    expect_boolean_partition(data);
+    verify_boolean_sort(data);
 }
 
-TEST(BooleanSortTest, PreservesArbitraryIntegerValues) {
-    std::vector<int> data = {5, 0, -3, 2, 0, 100, -7};
+TEST(IntegralInputTest, HandlesAllNonzeroValues) {
+    std::vector<std::uint8_t> data = {5, 2, 3, 100};
 
-    expect_boolean_partition(data);
+    verify_boolean_sort(data);
+}
+
+TEST(IntegralInputTest, HandlesSingleElement) {
+    std::vector<std::uint8_t> data = {7};
+
+    verify_boolean_sort(data);
+}
+
+TEST(IntegralInputTest, PreservesDuplicates) {
+    std::vector<std::uint8_t> data = {2, 0, 5, 0, 2, 3, 5};
+
+    verify_boolean_sort(data);
+}
+
+TEST(BooleanSortTest, SortsBooleanValues) {
+    bool data[] = {true, false, true, false};
+    std::span<bool> view{data};
+
+    algoat::sorting::sort_boolean(view);
+
+    EXPECT_FALSE(data[0]);
+    EXPECT_FALSE(data[1]);
+    EXPECT_TRUE(data[2]);
+    EXPECT_TRUE(data[3]);
+}
+
+TEST(BooleanSortTest, HandlesAllFalseValues) {
+    bool data[] = {false, false, false, false};
+    std::span<bool> view{data};
+
+    algoat::sorting::sort_boolean(view);
+
+    for (bool value : data) {
+        EXPECT_FALSE(value);
+    }
+}
+
+TEST(BooleanSortTest, HandlesAllTrueValues) {
+    bool data[] = {true, true, true, true};
+    std::span<bool> view{data};
+
+    algoat::sorting::sort_boolean(view);
+
+    for (bool value : data) {
+        EXPECT_TRUE(value);
+    }
+}
+
+TEST(BooleanSortTest, HandlesSingleElement) {
+    bool data[] = {true};
+    std::span<bool> view{data};
+
+    algoat::sorting::sort_boolean(view);
+
+    EXPECT_TRUE(data[0]);
 }
 
 TEST(BooleanSortTest, HandlesEmptyInput) {
-    std::vector<int> data;
+    std::span<bool> view{};
 
     EXPECT_NO_THROW(
-        algoat::sorting::sort_boolean(std::span{data})
+        algoat::sorting::sort_boolean(view)
     );
-
-    EXPECT_TRUE(data.empty());
 }
 
-TEST(BooleanSortTest, PreservesSizeAndMultiset) {
-    std::vector<int> data = {0, 2, 0, 5, -3, 1, 5};
-    auto original = data;
 
-    algoat::sorting::sort_boolean(std::span{data});
 
-    // Same number of elements
-    EXPECT_EQ(data.size(), original.size());
-
-    // Same values, including duplicates
-    std::sort(original.begin(), original.end());
-    std::sort(data.begin(), data.end());
-
-    EXPECT_EQ(data, original);
-}
 

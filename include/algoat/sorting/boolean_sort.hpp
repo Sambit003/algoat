@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cstring>
 #include <span>
+#include<algorithm>
 
 namespace algoat::sorting {
 
@@ -31,23 +32,68 @@ namespace algoat::sorting {
  *
  * @param data Contiguous span of 8-bit boolean values (@c uint8_t 0 or 1) to sort in-place.
  */
-inline void sort_boolean(std::span<uint8_t> data) noexcept {
+template<typename T>
+inline void sort_boolean(std::span<T> data) noexcept {
     if (data.empty())
         return;
-    size_t count_false = 0;
-    for (uint8_t val : data) {
-        if (val == 0) {
-            count_false++;
+        
+        
+    // PATH-1:Compie time hardware optimization for pure boolean data
+    if constexpr(std::is_same_v<T,bool>){
+        size_t count_true = 0;
+        for(bool val:data){
+            //Fully brachless hardware accumulation
+            count_true += val;
+        }
+        size_t count_false = data.size()-count_true;
+
+        if(count_false >0){
+            std::memset(data.data(),0,count_false);
+        }
+
+        if(count_true > 0){
+            std::memset(data.data()+count_false,1,count_true);
         }
     }
 
-    size_t count_true = data.size() - count_false;
-    if (count_false > 0) {
-        std::memset(data.data(), 0, count_false);
+
+    // 2. Specialized path for 1-byte pseudo-bools or raw bytes (e.g., uint8_t used strictly as 0 or 1)
+    // We ensure it ONLY takes types where elements are strictly 0 or 1 to prevent corruption.
+
+    else if constexpr(sizeof(T)==1 && std::is_integral_v<T>){
+        bool is_strictly_binary = true;
+        size_t true_count=0;
+
+        for(const auto& val:data){
+            if (val>1){
+
+                is_strictly_binary = false;
+
+                break;
+            }
+            true_count += (val==1);
+        }
+        if(is_strictly_binary){
+
+            size_t false_count =  data.size()-true_count;
+
+            std::memset(data.data(),0,false_count);
+
+            std::memset(data.data()+false_count,1,true_count);
+        }else{
+
+            // Fallback to standard safe sort if numbers like 2, 5, etc., are present
+
+            std::sort(data.begin(),data.end());
+
+        }
     }
-    if (count_true > 0) {
-        std::memset(data.data() + count_false, 1, count_true);
+    // 3. Fallback path for all wider integral/floating types (int, long, double, etc.)
+    else{
+
+        sort(data.begin(),data.end());
     }
+
 }
 
 } // namespace algoat::sorting

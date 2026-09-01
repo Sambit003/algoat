@@ -74,6 +74,10 @@ template <typename T> void sort(std::span<T> data) {
  * std::nullopt.
  */
 template <typename T> std::optional<std::size_t> search(std::span<T> data, const T& target) {
+    return search(std::span<const T>{data.data(), data.size()}, target);
+}
+
+template <typename T> std::optional<std::size_t> search(std::span<const T> data, const T& target) {
     core::Dispatcher dispatcher(get_global_config());
     return dispatcher.search(data, target);
 }

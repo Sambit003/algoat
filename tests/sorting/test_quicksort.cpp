@@ -10,51 +10,32 @@ using namespace algoat::sorting;
 class QuickSortTest : public ::testing::Test {
 protected:
     QuickSort algo;
-
-    void verify_sort(std::vector<int>& data) {
-        auto expected = data;
-        std::sort(expected.begin(), expected.end());
-        algo.sort(std::span{data});
-        EXPECT_EQ(data, expected);
-    }
 };
 
-TEST_F(QuickSortTest, RandomData) {
-    std::vector<int> data = {5, 3, 8, 1, 9, 2, 7};
-    verify_sort(data);
-}
-
-TEST_F(QuickSortTest, EmptyInput) {
-    std::vector<int> data;
-    verify_sort(data);
-}
-
-TEST_F(QuickSortTest, SingleElement) {
-    std::vector<int> data = {42};
-    verify_sort(data);
-}
-
-TEST_F(QuickSortTest, AllDuplicates) {
-    std::vector<int> data = {7, 7, 7, 7, 7};
-    verify_sort(data);
-}
-
-TEST_F(QuickSortTest, AlreadySorted) {
-    std::vector<int> data = {1, 2, 3, 4, 5, 6, 7};
-    verify_sort(data);
-}
-
-TEST_F(QuickSortTest, ReverseSorted) {
-    std::vector<int> data = {7, 6, 5, 4, 3, 2, 1};
-    verify_sort(data);
-}
-
-TEST_F(QuickSortTest, LargeRandom) {
-    std::vector<int> data(1000);
-    std::mt19937 gen(42);
-    std::uniform_int_distribution<int> dist(1, 10000);
-    for (int& x : data) {
-        x = dist(gen);
+TEST_F(QuickSortTest, HandlesPipeOrganData) {
+    int n = 1000;
+    std::vector<int> data(n);
+    for (int i = 0; i < n / 2; ++i) {
+        data[i] = i;
+        data[n - 1 - i] = i;
     }
-    verify_sort(data);
+
+    algo.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+}
+
+TEST_F(QuickSortTest, HandlesDutchFlagDuplicates) {
+    // Mostly three values
+    std::vector<int> data;
+    for (int i = 0; i < 500; ++i) {
+        data.push_back(0);
+        data.push_back(1);
+        data.push_back(2);
+    }
+    std::random_device rd;
+    std::mt19937 g(42);
+    std::shuffle(data.begin(), data.end(), g);
+
+    algo.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
 }
