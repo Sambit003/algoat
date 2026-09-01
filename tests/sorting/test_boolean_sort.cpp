@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <gtest/gtest.h>
+#include <memory>
 #include <span>
 #include <vector>
 
@@ -107,6 +108,55 @@ TEST(BooleanSortTest, HandlesEmptyInput) {
     EXPECT_NO_THROW(
         algoat::sorting::sort_boolean(view)
     );
+}
+
+TEST(BooleanSortTest, HandlesLargeAllFalseInput) {
+    auto values = std::make_unique<bool[]>(100'000);
+    std::fill_n(values.get(), 100'000, false);
+    std::span<bool> view{values.get(), 100'000};
+    algoat::sorting::sort_boolean(view);
+
+    EXPECT_TRUE(std::all_of(values.get(), values.get() + 100'000, [](bool value) {
+        return !value;
+    }));
+}
+
+TEST(BooleanSortTest, HandlesLargeAllTrueInput) {
+    auto values = std::make_unique<bool[]>(100'000);
+    std::fill_n(values.get(), 100'000, true);
+    std::span<bool> view{values.get(), 100'000};
+    algoat::sorting::sort_boolean(view);
+
+    EXPECT_TRUE(std::all_of(values.get(), values.get() + 100'000, [](bool value) {
+        return value;
+    }));
+}
+
+TEST(BooleanSortTest, HandlesLargeAlternatingInput) {
+    auto values = std::make_unique<bool[]>(100'000);
+    for (std::size_t i = 0; i < 100'000; ++i) {
+        values[i] = (i % 2) != 0;
+    }
+
+    algoat::sorting::sort_boolean(std::span<bool>{values.get(), 100'000});
+
+    EXPECT_TRUE(std::all_of(values.get(), values.get() + 50'000,
+                            [](bool value) { return !value; }));
+    EXPECT_TRUE(std::all_of(values.get() + 50'000, values.get() + 100'000,
+                            [](bool value) { return value; }));
+}
+
+TEST(BooleanSortTest, HandlesBoundarySizes) {
+    for (std::size_t size = 0; size <= 3; ++size) {
+        auto values = std::make_unique<bool[]>(size == 0 ? 1 : size);
+        for (std::size_t i = 0; i < size; ++i) {
+            values[i] = ((size - i) % 2) != 0;
+        }
+
+        algoat::sorting::sort_boolean(std::span<bool>{values.get(), size});
+
+        EXPECT_TRUE(std::is_sorted(values.get(), values.get() + size));
+    }
 }
 
 
