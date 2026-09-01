@@ -102,4 +102,8 @@ struct BitonicSort {
     }
 };
 
+// এই ৫ লাইন struct-এর পরে যোগ করুন (namespace-এর ভিতরে)
+template <typename T> void bitonicsort(std::span<T> data) {
+    BitonicSort{}.sort(data);
+}
 } // namespace algoat::sorting

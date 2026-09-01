@@ -81,4 +81,8 @@ struct PigeonholeSort {
     }
 };
 
+template <typename T> void pigeonholesort(std::span<T> data) {
+    PigeonholeSort{}.sort(data);
+}
+
 } // namespace algoat::sorting

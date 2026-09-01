@@ -1,94 +1,69 @@
 /**
  * @file bucketsort.hpp
- * @brief Distribution-based Bucket Sort algorithm implementation.
+ * @brief Bucket Sort implementation.
  */
 
 #pragma once
 
-#include <algorithm>
-#include <concepts>
+#include <cstddef>
 #include <span>
-#include <stdexcept>
 #include <string_view>
-#include <type_traits>
 #include <vector>
+#include <algorithm>
 
 namespace algoat::sorting {
 
-/**
- * @struct BucketSort
- * @brief Distribution sorting algorithm partitioning elements across sub-buckets.
- *
- * Divides the input range uniformly across ~N / 10 buckets, sorts each
- * bucket with @c std::sort, and concatenates the results.
- *
- * @par Characteristics:
- * - <b>Category:</b> Distribution.
- * - <b>Stability:</b> Dependent on bucket sort stability.
- *
- * @par Time Complexity:
- * - Best Case: @c O(N + K) (uniform distribution)
- * - Average Case: @c O(N + K)
- * - Worst Case: @c O(N^2) (all elements cluster in a single bucket)
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(N + K) auxiliary space for buckets
- */
+namespace detail {
+
+template <typename T>
+void bucketsort_impl(T* arr, std::size_t n) {
+    if (n <= 1) return;
+
+    auto [min_it, max_it] = std::minmax_element(arr, arr + n);
+    T min_val = *min_it;
+    T max_val = *max_it;
+
+    if (min_val == max_val) return;
+
+    std::size_t num_buckets = n;
+    std::vector<std::vector<T>> buckets(num_buckets);
+
+    for (std::size_t i = 0; i < n; ++i) {
+        std::size_t idx = static_cast<std::size_t>(
+            (static_cast<double>(arr[i] - min_val) / (max_val - min_val)) * (num_buckets - 1)
+        );
+        buckets[idx].push_back(arr[i]);
+    }
+
+    std::size_t idx = 0;
+    for (auto& bucket : buckets) {
+        std::sort(bucket.begin(), bucket.end());
+        for (const auto& val : bucket) {
+            arr[idx++] = val;
+        }
+    }
+}
+
+} // namespace detail
+
+template <typename T>
+void bucketsort(std::span<T> data) {
+    if (data.size() <= 1) return;
+    detail::bucketsort_impl(data.data(), data.size());
+}
+
 struct BucketSort {
-    /**
-     * @brief Returns the unique identifier for this algorithm.
-     * @return "bucketsort"
-     */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
         return "bucketsort";
     }
 
-    /**
-     * @brief Preferred minimum size threshold.
-     * @return 0
-     */
-    [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
-        return 0;
+    template <typename T>
+    void sort(std::span<T> data) const {
+        bucketsort(data);
     }
 
-    /**
-     * @brief Sorts an integral span using Bucket Sort.
-     * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
-     *
-     * @param arr Contiguous span of integers to sort.
-     * @throws std::invalid_argument If @c T is non-integral.
-     */
-    template <typename T>
-        requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
-    void sort(std::span<T> arr) const {
-        if (arr.empty())
-            return;
-
-        auto [min_it, max_it] = std::minmax_element(arr.begin(), arr.end());
-        T min_val = *min_it;
-
-        std::size_t range = static_cast<std::size_t>(*max_it) - static_cast<std::size_t>(min_val);
-
-        if (range == 0)
-            return;
-
-        std::size_t num_buckets = std::max<std::size_t>(1, arr.size() / 10);
-        std::vector<std::vector<T>> buckets(num_buckets);
-
-        for (T x : arr) {
-            std::size_t diff = static_cast<std::size_t>(x) - static_cast<std::size_t>(min_val);
-            std::size_t b_idx =
-                static_cast<std::size_t>((static_cast<double>(diff) / range) * (num_buckets - 1));
-            buckets[b_idx].push_back(x);
-        }
-
-        std::size_t idx = 0;
-        for (auto& bucket : buckets) {
-            std::sort(bucket.begin(), bucket.end());
-            for (T x : bucket) {
-                arr[idx++] = x;
-            }
-        }
+    [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
+        return 1000;
     }
 };
 

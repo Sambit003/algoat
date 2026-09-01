@@ -12,6 +12,63 @@
 
 namespace algoat::sorting {
 
+// ============ NEW: Private helpers in detail namespace ============
+namespace detail {
+
+template <typename T>
+std::size_t median_of_three(T* arr, std::size_t low, std::size_t high) {
+    std::size_t mid = low + (high - low) / 2;
+    if (arr[mid] < arr[low])
+        std::swap(arr[low], arr[mid]);
+    if (arr[high] < arr[low])
+        std::swap(arr[low], arr[high]);
+    if (arr[mid] < arr[high])
+        std::swap(arr[mid], arr[high]);
+    return high;
+}
+
+template <typename T>
+std::size_t partition(T* arr, std::size_t low, std::size_t high) {
+    median_of_three(arr, low, high);
+    const T& pivot = arr[high];
+    std::size_t i = low;
+
+    for (std::size_t j = low; j < high; j++) {
+        if (arr[j] <= pivot) {
+            std::swap(arr[i], arr[j]);
+            i++;
+        }
+    }
+    std::swap(arr[i], arr[high]);
+    return i;
+}
+
+template <typename T>
+void quicksort_impl(T* arr, std::size_t low, std::size_t high) {
+    if (low < high) {
+        std::size_t pi = partition(arr, low, high);
+        if (pi > 0) {
+            quicksort_impl(arr, low, pi - 1);
+        }
+        quicksort_impl(arr, pi + 1, high);
+    }
+}
+
+} // namespace detail
+
+// ============ NEW: Public free function ============
+/**
+ * @brief Sorts the span in-place using quicksort.
+ * @tparam T Element type supporting <tt>operator<</tt> and <tt>operator<=</tt>.
+ * @param data Contiguous span of elements to sort.
+ */
+template <typename T>
+void quicksort(std::span<T> data) {
+    if (data.size() <= 1) return;
+    detail::quicksort_impl(data.data(), 0, data.size() - 1);
+}
+
+// ============ MODIFIED: Struct now uses free function ============
 /**
  * @struct QuickSort
  * @brief Divide-and-conquer sorting algorithm using median-of-three Lomuto partitioning.
@@ -44,73 +101,15 @@ struct QuickSort {
      * @param data Contiguous span of elements to sort.
      */
     template <typename T> void sort(std::span<T> data) const {
-        if (data.size() <= 1)
-            return;
-        quicksort_impl(data.data(), 0, data.size() - 1);
+        quicksort(data);  // ← CHANGED: Calls free function
     }
 
     /**
      * @brief Preferred minimum size threshold.
-     * @return 32 (arrays smaller than 32 elements are better sorted via InsertionSort).
+     * @return 32
      */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
         return 32;
-    }
-
-private:
-    /**
-     * @brief Recursive quicksort helper.
-     *
-     * @param arr Pointer to the raw buffer.
-     *
-     * @param low Starting index of subrange.
-     *
-     * @param high Ending index of subrange (inclusive).
-     */
-    template <typename T> void quicksort_impl(T* arr, std::size_t low, std::size_t high) const {
-        if (low < high) {
-            std::size_t pi = partition(arr, low, high);
-            if (pi > 0) {
-                quicksort_impl(arr, low, pi - 1);
-            }
-            quicksort_impl(arr, pi + 1, high);
-        }
-    }
-
-    /**
-     * @brief Sorts <tt>arr[low]</tt>, <tt>arr[mid]</tt>, and <tt>arr[high]</tt> to choose the
-     * median as pivot.
-     * @return Index of the pivot element (placed at @c high).
-     */
-    template <typename T>
-    std::size_t median_of_three(T* arr, std::size_t low, std::size_t high) const {
-        std::size_t mid = low + (high - low) / 2;
-        if (arr[mid] < arr[low])
-            std::swap(arr[low], arr[mid]);
-        if (arr[high] < arr[low])
-            std::swap(arr[low], arr[high]);
-        if (arr[mid] < arr[high])
-            std::swap(arr[mid], arr[high]);
-        return high; // pivot is now at high
-    }
-
-    /**
-     * @brief Partitions the subrange <tt>[low, high]</tt> around the median-of-three pivot.
-     * @return Final index position of the pivot.
-     */
-    template <typename T> std::size_t partition(T* arr, std::size_t low, std::size_t high) const {
-        median_of_three(arr, low, high);
-        const T& pivot = arr[high];
-        std::size_t i = low;
-
-        for (std::size_t j = low; j < high; j++) {
-            if (arr[j] <= pivot) {
-                std::swap(arr[i], arr[j]);
-                i++;
-            }
-        }
-        std::swap(arr[i], arr[high]);
-        return i;
     }
 };
 

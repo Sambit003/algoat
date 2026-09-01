@@ -70,4 +70,8 @@ struct GnomeSort {
     }
 };
 
+template <typename T> void gnomesort(std::span<T> data) {
+    GnomeSort{}.sort(data);
+}
+
 } // namespace algoat::sorting

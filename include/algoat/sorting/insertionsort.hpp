@@ -1,6 +1,6 @@
 /**
  * @file insertionsort.hpp
- * @brief In-place comparison-based Insertion Sort algorithm.
+ * @brief Insertion Sort implementation.
  */
 
 #pragma once
@@ -12,59 +12,46 @@
 
 namespace algoat::sorting {
 
+namespace detail {
+
+template <typename T>
+void insertionsort_impl(T* arr, std::size_t n) {
+    for (std::size_t i = 1; i < n; ++i) {
+        T key = std::move(arr[i]);
+        std::size_t j = i;
+        while (j > 0 && arr[j - 1] > key) {
+            arr[j] = std::move(arr[j - 1]);
+            --j;
+        }
+        arr[j] = std::move(key);
+    }
+}
+
+} // namespace detail
+
 /**
- * @struct InsertionSort
- * @brief Standard stable Insertion Sort implementation with move semantics.
- *
- * Efficient for small sequences (<tt>N < 32</tt>) and nearly sorted data. Used as
- * the default base-case sort in hybrid algorithms (IntroSort, TimSort, BlockSort).
- *
- * @par Characteristics:
- * - <b>Category:</b> Comparison-based, Insertion.
- * - <b>Stability:</b> Stable (preserves relative order of equal keys).
- *
- * @par Time Complexity:
- * - Best Case: @c O(N) (already sorted)
- * - Average Case: @c O(N^2)
- * - Worst Case: @c O(N^2) (reverse sorted)
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(1) auxiliary space (in-place)
+ * @brief Sorts the span using Insertion Sort.
+ * @tparam T Element type.
+ * @param data Span of elements to sort.
  */
+template <typename T>
+void insertionsort(std::span<T> data) {
+    if (data.size() <= 1) return;
+    detail::insertionsort_impl(data.data(), data.size());
+}
+
 struct InsertionSort {
-    /**
-     * @brief Returns the unique identifier for this algorithm.
-     * @return "insertionsort"
-     */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
         return "insertionsort";
     }
 
-    /**
-     * @brief Sorts the given span using insertion sort.
-     * @tparam T Element type supporting <tt>operator></tt> and move construction/assignment.
-     *
-     * @param data Span of elements to sort in-place.
-     */
-    template <typename T> void sort(std::span<T> data) const {
-        const std::size_t n = data.size();
-        for (std::size_t i = 1; i < n; ++i) {
-            T key = std::move(data[i]);
-            std::size_t j = i;
-            while (j > 0 && data[j - 1] > key) {
-                data[j] = std::move(data[j - 1]);
-                --j;
-            }
-            data[j] = std::move(key);
-        }
+    template <typename T>
+    void sort(std::span<T> data) const {
+        insertionsort(data);
     }
 
-    /**
-     * @brief Preferred minimum size threshold.
-     * @return 0 (effective from size 0 upwards).
-     */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
-        return 0;
+        return 32;
     }
 };
 

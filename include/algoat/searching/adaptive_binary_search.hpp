@@ -130,4 +130,8 @@ struct AdaptiveBinarySearch {
     }
 };
 
+template <typename T> bool adaptive_binary_search(std::span<T> data, const T& value) {
+    return AdaptiveBinarySearch{}.search(data, value);
+}
+
 } // namespace algoat::searching
