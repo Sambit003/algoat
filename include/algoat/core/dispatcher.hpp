@@ -50,8 +50,8 @@ concept CanSearchData = requires(Algo a, std::span<const T> arr, const T& t) { a
  *
  *
  * @par Searching Heuristics (@c "auto"):
- * - <b>Sorted Data</b> (sortedness ratio <tt>== 1.0</tt>): @c BinarySearch (<tt>O(log N)</tt>).
- * - <b>Unsorted Data:</b> @c LinearSearch (<tt>O(N)</tt>).
+ * - <b>Default:</b> @c AdaptiveBinarySearch (dynamic <tt>O(log N)</tt> with automatic
+ * invariant verification and <tt>O(N)</tt> fallback if monotonicity violations are detected).
  */
 class Dispatcher {
     Registry<sorting::SortVariant> sort_registry_; ///< Registry of available sorting algorithms.
@@ -124,8 +124,8 @@ public:
     /**
      * @brief Searches for a target value in a span using dynamic heuristic selection.
      *
-     * Profiles @c data via <tt>analyze()</tt>, selects @c BinarySearch if data is fully sorted,
-     * otherwise dispatches to @c LinearSearch (or user preferences).
+     * Dispatches directly to @c AdaptiveBinarySearch for safe sub-linear search unless
+     * overridden by user configuration.
      *
      * @tparam T The element type in the span.
      *
@@ -138,15 +138,10 @@ public:
      */
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
-        DataTraits traits = analyze(data);
         std::string algo_name = config_.searching.prefer.value_or("auto");
 
         if (algo_name == "auto" || algo_name.empty()) {
-            if (traits.sortedness_ratio == 1.0) {
-                algo_name = "binarysearch";
-            } else {
-                algo_name = "linearsearch";
-            }
+            algo_name = "adaptivebinarysearch";
         }
 
         if (!search_registry_.has(algo_name)) {

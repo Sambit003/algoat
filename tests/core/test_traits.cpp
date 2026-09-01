@@ -53,4 +53,52 @@ TEST(DataTraitsTest, AllDuplicates) {
     // pairs: (7,7)=T, (7,7)=T, (7,7)=T. 3 sorted pairs out of 3.
     EXPECT_DOUBLE_EQ(traits.sortedness_ratio, 1.0);
     EXPECT_TRUE(traits.has_duplicates);
+    EXPECT_TRUE(traits.is_exact);
+}
+
+TEST(DataTraitsTest, LargeFullySortedSublinear) {
+    std::vector<int> data(50000);
+    for (std::size_t i = 0; i < data.size(); ++i) {
+        data[i] = static_cast<int>(i);
+    }
+    auto traits = analyze(data);
+    EXPECT_EQ(traits.size, 50000);
+    EXPECT_GE(traits.sortedness_ratio, 0.99);
+    EXPECT_FALSE(traits.is_exact);
+}
+
+TEST(DataTraitsTest, LargeReverseSortedSublinear) {
+    std::vector<int> data(50000);
+    for (std::size_t i = 0; i < data.size(); ++i) {
+        data[i] = static_cast<int>(data.size() - i);
+    }
+    auto traits = analyze(data);
+    EXPECT_EQ(traits.size, 50000);
+    EXPECT_LE(traits.sortedness_ratio, 0.05);
+    EXPECT_FALSE(traits.is_exact);
+}
+
+TEST(DataTraitsTest, LargeMostlySortedSublinear) {
+    std::vector<int> data(50000);
+    for (std::size_t i = 0; i < data.size(); ++i) {
+        data[i] = static_cast<int>(i);
+    }
+    // Perturb a few elements
+    data[100] = 500;
+    data[200] = 100;
+    auto traits = analyze(data);
+    EXPECT_EQ(traits.size, 50000);
+    EXPECT_GE(traits.sortedness_ratio, 0.95);
+    EXPECT_FALSE(traits.is_exact);
+}
+
+TEST(DataTraitsTest, LargeFloatSequenceSublinear) {
+    std::vector<float> data(50000);
+    for (std::size_t i = 0; i < data.size(); ++i) {
+        data[i] = static_cast<float>(i) * 0.5f;
+    }
+    auto traits = analyze(data);
+    EXPECT_EQ(traits.size, 50000);
+    EXPECT_GE(traits.sortedness_ratio, 0.99);
+    EXPECT_FALSE(traits.is_exact);
 }

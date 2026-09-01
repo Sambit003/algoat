@@ -5,6 +5,7 @@
 
 #include "algoat/core/dispatcher.hpp"
 
+#include "algoat/searching/adaptive_binary_search.hpp"
 #include "algoat/searching/binary_search.hpp"
 #include "algoat/searching/interpolation_search.hpp"
 #include "algoat/searching/linear_search.hpp"
@@ -78,6 +79,9 @@ Dispatcher::Dispatcher(AlgoConfig config) : config_(std::move(config)) {
         "binarysearch", []() -> searching::SearchVariant { return searching::BinarySearch{}; });
     search_registry_.register_algo("interpolationsearch", []() -> searching::SearchVariant {
         return searching::InterpolationSearch{};
+    });
+    search_registry_.register_algo("adaptivebinarysearch", []() -> searching::SearchVariant {
+        return searching::AdaptiveBinarySearch{};
     });
 }
 

@@ -27,7 +27,23 @@ if(NOT nlohmann_json_FOUND)
     )
     FetchContent_MakeAvailable(json)
 endif()
-target_link_libraries(algoat PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>)
+
+include(FetchContent)
+set(HWY_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+set(HWY_ENABLE_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(HWY_ENABLE_CONTRIB OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(highway
+    GIT_REPOSITORY https://github.com/google/highway.git
+    GIT_TAG        1.2.0
+)
+FetchContent_MakeAvailable(highway)
+
+target_link_libraries(algoat
+    PUBLIC
+        $<BUILD_INTERFACE:hwy>
+    PRIVATE
+        $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>
+)
 
 include(GNUInstallDirs)
 

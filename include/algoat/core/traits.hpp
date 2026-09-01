@@ -8,8 +8,11 @@
 
 #pragma once
 
+#include "algoat/core/simd_profiler.hpp"
+
 #include <cstddef>
 #include <ranges>
+#include <type_traits>
 
 namespace algoat::core {
 
@@ -25,32 +28,44 @@ struct DataTraits {
     std::size_t size;        ///< Number of elements in the range.
     double sortedness_ratio; ///< Sortedness metric: 0.0 = completely reversed, 1.0 = fully sorted.
     bool has_duplicates;     ///< True if at least one adjacent duplicate pair was detected.
+    bool is_exact{
+        true}; ///< True if traits were calculated via exact scan; false if sampled via SIMD.
 };
 
 /**
- * @brief Analyzes a random access range in a single O(N) pass to extract structural traits.
+ * @brief Analyzes a random access range to extract structural traits.
  *
- * Scans adjacent pairs to compute the sortedness ratio:
- * @code{.text}
- * ratio = count(data[i-1] <= data[i]) / (N - 1)
- * @endcode
- * - Arrays with <tt>ratio >= 0.90</tt> are considered nearly sorted.
- * - Arrays with <tt>ratio <= 0.10</tt> indicate nearly reverse-sorted data.
+ * For small sequences (N <= 10,000) or non-contiguous ranges, performs an exact O(N) pass.
+ * For large contiguous sequences (N > 10,000), executes a sub-linear O(1) cache-line-aware
+ * stratified SIMD profiler with high statistical confidence.
  *
  * @tparam R A type satisfying @c std::ranges::random_access_range.
  *
  * @param data The range of elements to analyze.
- * @return @c DataTraits Computed traits (@c size, @c sortedness_ratio, @c has_duplicates).
- *
- * @note Time complexity is <tt>O(N)</tt>, performing exactly <tt>(N - 1)</tt> comparisons with
- * <tt>O(1)</tt> auxiliary space.
+ * @return @c DataTraits Computed traits (@c size, @c sortedness_ratio, @c has_duplicates, @c
+ * is_exact).
  */
 template <std::ranges::random_access_range R> DataTraits analyze(const R& data) {
     const std::size_t size = std::ranges::size(data);
     if (size <= 1) {
-        return {size, 1.0, false};
+        return {size, 1.0, false, true};
     }
 
+    using ElementType = std::remove_cvref_t<std::ranges::range_value_t<R>>;
+
+    // Sub-linear fast path for large contiguous primitive sequences
+    if constexpr (std::ranges::contiguous_range<R> &&
+                  (std::is_arithmetic_v<ElementType> || std::is_pointer_v<ElementType>)) {
+        if (size > detail::kSublinearThreshold) {
+            double ratio = 1.0;
+            bool has_duplicates = false;
+            detail::sample_traits_sublinear_impl(std::ranges::data(data), size, ratio,
+                                                 has_duplicates);
+            return {size, ratio, has_duplicates, /*is_exact=*/false};
+        }
+    }
+
+    // Exact O(N) scalar pass for small arrays or non-contiguous/custom ranges
     std::size_t sorted_pairs = 0;
     bool has_duplicates = false;
 
@@ -70,7 +85,7 @@ template <std::ranges::random_access_range R> DataTraits analyze(const R& data) 
     // A fully sorted array has (size - 1) sorted pairs.
     double ratio = static_cast<double>(sorted_pairs) / static_cast<double>(size - 1);
 
-    return {size, ratio, has_duplicates};
+    return {size, ratio, has_duplicates, /*is_exact=*/true};
 }
 
 } // namespace algoat::core
