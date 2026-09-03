@@ -31,6 +31,7 @@ algoat_add_test(test_classical_sorts sorting/test_classical_sorts.cpp)
 algoat_add_test(test_linear_sorts sorting/test_linear_sorts.cpp)
 algoat_add_test(test_hybrid_sorts sorting/test_hybrid_sorts.cpp)
 algoat_add_test(test_sorting_dispatch sorting/test_sorting_dispatch.cpp)
+algoat_add_test(test_boolean_sort sorting/test_boolean_sort.cpp)
 
 # Searching tests
 algoat_add_test(test_linear_search searching/test_linear_search.cpp)
