@@ -13,7 +13,9 @@
 #include "algoat/core/dispatcher.hpp"
 
 #include <cstddef>
+#include <mutex>
 #include <optional>
+#include <shared_mutex>
 #include <span>
 #include <string>
 
@@ -32,6 +34,16 @@ inline core::AlgoConfig& get_global_config() {
     return config;
 }
 
+inline std::shared_mutex& get_global_config_mutex() {
+    static std::shared_mutex mutex;
+    return mutex;
+}
+
+inline core::Dispatcher& get_dispatcher() {
+    static core::Dispatcher dispatcher(get_global_config());
+    return dispatcher;
+}
+
 /**
  * @brief Loads algorithm configuration overrides from a JSON file into the global config.
  *
@@ -40,7 +52,10 @@ inline core::AlgoConfig& get_global_config() {
  * @throws std::runtime_error If the file cannot be opened or contains invalid JSON.
  */
 inline void load_global_config(const std::string& filepath) {
-    get_global_config() = core::load_config(filepath);
+    auto config = core::load_config(filepath);
+
+    std::unique_lock lock(get_global_config_mutex());
+    get_global_config() = std::move(config);
 }
 
 /**
@@ -55,8 +70,8 @@ inline void load_global_config(const std::string& filepath) {
  * @param data Contiguous span of elements to sort in-place.
  */
 template <typename T> void sort(std::span<T> data) {
-    core::Dispatcher dispatcher(get_global_config());
-    dispatcher.sort(data);
+    std::shared_lock lock(get_global_config_mutex());
+    get_dispatcher().sort(data);
 }
 
 /**
@@ -74,8 +89,8 @@ template <typename T> void sort(std::span<T> data) {
  * std::nullopt.
  */
 template <typename T> std::optional<std::size_t> search(std::span<const T> data, const T& target) {
-    core::Dispatcher dispatcher(get_global_config());
-    return dispatcher.search(data, target);
+    std::shared_lock lock(get_global_config_mutex());
+    return get_dispatcher().search(data, target);
 }
 
 template <typename T> std::optional<std::size_t> search(std::span<T> data, const T& target) {

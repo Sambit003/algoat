@@ -57,7 +57,7 @@ class Dispatcher {
     Registry<sorting::SortVariant> sort_registry_; ///< Registry of available sorting algorithms.
     Registry<searching::SearchVariant>
         search_registry_; ///< Registry of available searching algorithms.
-    AlgoConfig config_;   ///< User-defined configuration preferences.
+    AlgoConfig& config_;   ///< User-defined configuration preferences.
 
 public:
     /**
@@ -65,7 +65,7 @@ public:
      *
      * @param config Configuration options specifying algorithm preferences and fallbacks.
      */
-    explicit Dispatcher(AlgoConfig config);
+    explicit Dispatcher(AlgoConfig& config);
 
     /**
      * @brief Sorts a contiguous span using dynamic heuristic selection.
