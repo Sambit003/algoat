@@ -57,7 +57,7 @@ public:
  * This singleton @c AlgoConfig controls default preferences, fallback algorithms,
  * and thresholds used by @c algoat::sort and @c algoat::search.
  *
- * @return RAII read guard providing read-only access to the global configuration.
+ * @return A @c detail::GlobalConfigReadGuard proxy that holds a shared read lock on the global @c core::AlgoConfig for its lifetime.
  */
 
 inline detail::GlobalConfigReadGuard get_global_config() {
