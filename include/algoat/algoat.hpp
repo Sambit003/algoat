@@ -21,26 +21,51 @@
 
 namespace algoat {
 
+namespace detail {
+
+struct GlobalConfigState {
+    core::AlgoConfig config;
+    mutable std::shared_mutex mutex;
+};
+
+inline GlobalConfigState& get_global_config_state() {
+    static GlobalConfigState state;
+    return state;
+}
+
+class GlobalConfigReadGuard {
+    const GlobalConfigState& state_;
+    std::shared_lock<std::shared_mutex> lock_;
+
+public:
+    explicit GlobalConfigReadGuard(const GlobalConfigState& state)
+        : state_(state), lock_(state.mutex) {}
+
+    const core::AlgoConfig* operator->() const {
+        return &state_.config;
+    }
+
+    const core::AlgoConfig& get() const {
+        return state_.config;
+    }
+};
+
+} // namespace detail
 /**
  * @brief Retrieves the thread-safe global configuration instance.
  *
  * This singleton @c AlgoConfig controls default preferences, fallback algorithms,
  * and thresholds used by @c algoat::sort and @c algoat::search.
  *
- * @return Reference to the static global @c core::AlgoConfig.
+ * @return RAII read guard providing read-only access to the global configuration.
  */
-inline core::AlgoConfig& get_global_config() {
-    static core::AlgoConfig config;
-    return config;
-}
 
-inline std::shared_mutex& get_global_config_mutex() {
-    static std::shared_mutex mutex;
-    return mutex;
+inline detail::GlobalConfigReadGuard get_global_config() {
+    return detail::GlobalConfigReadGuard(detail::get_global_config_state());
 }
 
 inline core::Dispatcher& get_dispatcher() {
-    static core::Dispatcher dispatcher(get_global_config());
+    static core::Dispatcher dispatcher(detail::get_global_config_state().config);
     return dispatcher;
 }
 
@@ -54,8 +79,9 @@ inline core::Dispatcher& get_dispatcher() {
 inline void load_global_config(const std::string& filepath) {
     auto config = core::load_config(filepath);
 
-    std::unique_lock lock(get_global_config_mutex());
-    get_global_config() = std::move(config);
+    auto& state = detail::get_global_config_state();
+    std::unique_lock lock(state.mutex);
+    state.config = std::move(config);
 }
 
 /**
@@ -70,7 +96,7 @@ inline void load_global_config(const std::string& filepath) {
  * @param data Contiguous span of elements to sort in-place.
  */
 template <typename T> void sort(std::span<T> data) {
-    std::shared_lock lock(get_global_config_mutex());
+    auto config = get_global_config();
     get_dispatcher().sort(data);
 }
 
@@ -89,7 +115,7 @@ template <typename T> void sort(std::span<T> data) {
  * std::nullopt.
  */
 template <typename T> std::optional<std::size_t> search(std::span<const T> data, const T& target) {
-    std::shared_lock lock(get_global_config_mutex());
+    auto config = get_global_config();
     return get_dispatcher().search(data, target);
 }
 

@@ -57,8 +57,7 @@ class Dispatcher {
     Registry<sorting::SortVariant> sort_registry_; ///< Registry of available sorting algorithms.
     Registry<searching::SearchVariant>
         search_registry_; ///< Registry of available searching algorithms.
-    AlgoConfig& config_;   ///< User-defined configuration preferences.
-
+    AlgoConfig& config_;   ///< Configuration reference; callers must hold the appropriate external lock when accessing it.
 public:
     /**
      * @brief Constructs a Dispatcher with the given configuration, registering default algorithms.
