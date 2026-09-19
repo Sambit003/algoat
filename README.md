@@ -51,6 +51,18 @@ cmake --build build -j$(nproc)
 sudo cmake --install build
 ```
 
+### Windows
+
+For Windows users with Visual Studio 2022 or another C++20-compatible compiler:
+
+```powershell
+cmake -S . -B build
+cmake --build build --config Release
+cmake --install build --config Release
+```
+
+For development, testing, and contribution instructions, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ### C++ (via Package Managers)
 
 > [!NOTE]
