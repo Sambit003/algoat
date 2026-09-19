@@ -11,7 +11,9 @@
 #include "algoat/core/config.hpp"
 #include "algoat/core/registry.hpp"
 #include "algoat/core/traits.hpp"
+#include "algoat/numerics/morton.hpp"
 #include "algoat/searching/searching.hpp"
+#include "algoat/sorting/boolean_sort.hpp"
 #include "algoat/sorting/sorting.hpp"
 
 #include <cstddef>
@@ -57,7 +59,8 @@ class Dispatcher {
     Registry<sorting::SortVariant> sort_registry_; ///< Registry of available sorting algorithms.
     Registry<searching::SearchVariant>
         search_registry_; ///< Registry of available searching algorithms.
-    AlgoConfig& config_;   ///< Configuration reference; callers must hold the appropriate external lock when accessing it.
+    AlgoConfig& config_;  ///< Configuration reference; callers must hold the appropriate external
+                          ///< lock when accessing it.
 public:
     /**
      * @brief Constructs a Dispatcher with the given configuration, registering default algorithms.
@@ -67,10 +70,12 @@ public:
     explicit Dispatcher(AlgoConfig& config);
 
     /**
-     * @brief Sorts a contiguous span using dynamic heuristic selection.
+     * @brief Sorts a contiguous span using compile-time static dispatch or dynamic heuristics.
      *
-     * Profiles @c data via <tt>analyze()</tt> in O(n) time, selects an optimal algorithm,
-     * checks the registry (with fallback on missing algorithms), and executes the sort.
+     * Statically routes domain-specific types (e.g. @c bool via @c sort_boolean, @c std::complex
+     * via @c sort_complex_morton) at compile time without runtime profiling overhead.
+     * For general types, profiles @c data via <tt>analyze()</tt> in O(n) time, selects an optimal
+     * algorithm, checks the registry (with fallback on missing algorithms), and executes the sort.
      *
      * @tparam T The element type in the span.
      *
@@ -78,46 +83,52 @@ public:
      * @throws std::runtime_error If the selected algorithm and its fallback are unregistered.
      */
     template <typename T> void sort(std::span<T> data) const {
-        DataTraits traits = analyze(data);
-        std::string algo_name = config_.sorting.prefer.value_or("auto");
+        if constexpr (IsBoolean<T>) {
+            sorting::sort_boolean(data);
+        } else if constexpr (IsComplex<T>) {
+            numerics::sort_complex_morton(data);
+        } else {
+            DataTraits traits = analyze(data);
+            std::string algo_name = config_.sorting.prefer.value_or("auto");
 
-        if (algo_name == "auto" || algo_name.empty()) {
-            if (traits.size < config_.sorting.small_threshold.value_or(32)) {
-                algo_name = "insertionsort";
-            } else if (traits.sortedness_ratio >= 0.9 || traits.sortedness_ratio <= 0.1) {
-                algo_name = "timsort";
-            } else {
-                if constexpr (std::is_integral_v<T>) {
-                    if (traits.size > 10000) {
-                        algo_name = "radixsortlsd";
+            if (algo_name == "auto" || algo_name.empty()) {
+                if (traits.size < config_.sorting.small_threshold.value_or(32)) {
+                    algo_name = "insertionsort";
+                } else if (traits.sortedness_ratio >= 0.9 || traits.sortedness_ratio <= 0.1) {
+                    algo_name = "timsort";
+                } else {
+                    if constexpr (std::is_integral_v<T>) {
+                        if (traits.size > 10000) {
+                            algo_name = "radixsortlsd";
+                        } else {
+                            algo_name = "introsort";
+                        }
                     } else {
                         algo_name = "introsort";
                     }
-                } else {
-                    algo_name = "introsort";
                 }
             }
-        }
 
-        if (!sort_registry_.has(algo_name)) {
-            algo_name = config_.sorting.fallback.value_or("heapsort");
             if (!sort_registry_.has(algo_name)) {
-                throw std::runtime_error(
-                    "Requested sorting algorithm not registered and fallback missing");
-            }
-        }
-
-        auto algo_variant = sort_registry_.create(algo_name);
-        std::visit(
-            [data](auto&& algo) {
-                using AlgoType = std::remove_cvref_t<decltype(algo)>;
-                if constexpr (CanSortData<AlgoType, T>) {
-                    algo.sort(data);
-                } else {
-                    throw std::invalid_argument("Algorithm does not support this data type.");
+                algo_name = config_.sorting.fallback.value_or("heapsort");
+                if (!sort_registry_.has(algo_name)) {
+                    throw std::runtime_error(
+                        "Requested sorting algorithm not registered and fallback missing");
                 }
-            },
-            algo_variant);
+            }
+
+            auto algo_variant = sort_registry_.create(algo_name);
+            std::visit(
+                [data](auto&& algo) {
+                    using AlgoType = std::remove_cvref_t<decltype(algo)>;
+                    if constexpr (CanSortData<AlgoType, T>) {
+                        algo.sort(data);
+                    } else {
+                        throw std::invalid_argument("Algorithm does not support this data type.");
+                    }
+                },
+                algo_variant);
+        }
     }
 
     /**

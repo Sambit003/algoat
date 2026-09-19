@@ -10,11 +10,38 @@
 
 #include "algoat/core/simd_profiler.hpp"
 
+#include <complex>
+#include <concepts>
 #include <cstddef>
 #include <ranges>
 #include <type_traits>
 
 namespace algoat::core {
+
+/**
+ * @brief Type trait to identify std::complex types.
+ * @tparam T The type to check.
+ */
+template <typename T> struct is_complex : std::false_type {};
+
+template <typename T> struct is_complex<std::complex<T>> : std::true_type {};
+
+/**
+ * @brief Helper variable template for is_complex.
+ */
+template <typename T> constexpr bool is_complex_v = is_complex<T>::value;
+
+/**
+ * @brief Concept matching std::complex instances.
+ */
+template <typename T>
+concept IsComplex = is_complex_v<std::remove_cvref_t<T>>;
+
+/**
+ * @brief Concept matching boolean data types.
+ */
+template <typename T>
+concept IsBoolean = std::same_as<std::remove_cvref_t<T>, bool>;
 
 /**
  * @struct DataTraits
