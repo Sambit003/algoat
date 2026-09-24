@@ -138,3 +138,11 @@ struct IntroSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_introsort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "introsort", []() -> std::any { return ::algoat::sorting::IntroSort{}; });
+    return 0;
+}();

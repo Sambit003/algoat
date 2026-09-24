@@ -87,3 +87,11 @@ struct ShellSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_shellsort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "shellsort", []() -> std::any { return ::algoat::sorting::ShellSort{}; });
+    return 0;
+}();

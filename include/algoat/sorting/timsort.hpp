@@ -505,3 +505,11 @@ private:
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_timsort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "timsort", []() -> std::any { return ::algoat::sorting::TimSort{}; });
+    return 0;
+}();

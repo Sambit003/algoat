@@ -71,3 +71,11 @@ struct GnomeSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_gnomesort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "gnomesort", []() -> std::any { return ::algoat::sorting::GnomeSort{}; });
+    return 0;
+}();

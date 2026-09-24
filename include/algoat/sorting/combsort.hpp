@@ -75,3 +75,11 @@ struct CombSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_combsort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "combsort", []() -> std::any { return ::algoat::sorting::CombSort{}; });
+    return 0;
+}();

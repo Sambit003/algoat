@@ -174,3 +174,11 @@ private:
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_quicksort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "quicksort", []() -> std::any { return ::algoat::sorting::QuickSort{}; });
+    return 0;
+}();

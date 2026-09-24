@@ -109,3 +109,11 @@ struct CycleSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_cyclesort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "cyclesort", []() -> std::any { return ::algoat::sorting::CycleSort{}; });
+    return 0;
+}();

@@ -103,3 +103,11 @@ private:
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_heapsort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "heapsort", []() -> std::any { return ::algoat::sorting::HeapSort{}; });
+    return 0;
+}();

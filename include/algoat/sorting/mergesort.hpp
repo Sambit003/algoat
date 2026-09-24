@@ -114,3 +114,11 @@ private:
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_mergesort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "mergesort", []() -> std::any { return ::algoat::sorting::MergeSort{}; });
+    return 0;
+}();

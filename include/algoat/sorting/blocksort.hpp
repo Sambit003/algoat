@@ -91,3 +91,11 @@ struct BlockSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_blocksort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "blocksort", []() -> std::any { return ::algoat::sorting::BlockSort{}; });
+    return 0;
+}();

@@ -72,3 +72,11 @@ struct BubbleSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_bubblesort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "bubblesort", []() -> std::any { return ::algoat::sorting::BubbleSort{}; });
+    return 0;
+}();

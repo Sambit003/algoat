@@ -93,3 +93,11 @@ struct BucketSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_bucketsort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "bucketsort", []() -> std::any { return ::algoat::sorting::BucketSort{}; });
+    return 0;
+}();

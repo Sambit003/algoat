@@ -82,3 +82,11 @@ struct PigeonholeSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+inline const auto registrar_pigeonholesort = []() {
+    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
+        "pigeonholesort", []() -> std::any { return ::algoat::sorting::PigeonholeSort{}; });
+    return 0;
+}();
