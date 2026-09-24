@@ -131,3 +131,12 @@ struct AdaptiveBinarySearch {
 };
 
 } // namespace algoat::searching
+
+#include "algoat/core/registry.hpp"
+inline const auto registrar_adaptivebinarysearch = []() {
+    ::algoat::core::BaseRegistry::global("searching")
+        .register_algorithm("adaptivebinarysearch", []() -> std::any {
+            return ::algoat::searching::AdaptiveBinarySearch{};
+        });
+    return 0;
+}();

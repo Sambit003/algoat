@@ -49,13 +49,3 @@ using SearchVariant =
     std::variant<LinearSearch, BinarySearch, InterpolationSearch, AdaptiveBinarySearch>;
 
 } // namespace algoat::searching
-
-#include "algoat/core/registry.hpp"
-ALGOAT_REGISTER_ALGORITHM(::algoat::searching::SearchVariant, "linearsearch",
-                          ::algoat::searching::LinearSearch)
-ALGOAT_REGISTER_ALGORITHM(::algoat::searching::SearchVariant, "binarysearch",
-                          ::algoat::searching::BinarySearch)
-ALGOAT_REGISTER_ALGORITHM(::algoat::searching::SearchVariant, "interpolationsearch",
-                          ::algoat::searching::InterpolationSearch)
-ALGOAT_REGISTER_ALGORITHM(::algoat::searching::SearchVariant, "adaptivebinarysearch",
-                          ::algoat::searching::AdaptiveBinarySearch)

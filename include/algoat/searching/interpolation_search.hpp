@@ -132,3 +132,12 @@ struct InterpolationSearch {
 };
 
 } // namespace algoat::searching
+
+#include "algoat/core/registry.hpp"
+inline const auto registrar_interpolationsearch = []() {
+    ::algoat::core::BaseRegistry::global("searching")
+        .register_algorithm("interpolationsearch", []() -> std::any {
+            return ::algoat::searching::InterpolationSearch{};
+        });
+    return 0;
+}();

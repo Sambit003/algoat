@@ -11,7 +11,8 @@ struct MockAlgo {
     std::string name;
 };
 
-using MockRegistry = Registry<MockAlgo>;
+using MockVariant = std::variant<MockAlgo>;
+using MockRegistry = Registry<MockVariant>;
 
 TEST(RegistryTest, RegisterAndCreate) {
     MockRegistry registry;
@@ -19,7 +20,7 @@ TEST(RegistryTest, RegisterAndCreate) {
 
     ASSERT_TRUE(registry.has("algo1"));
     auto instance = registry.create("algo1");
-    EXPECT_EQ(instance.name, "algo1_instance");
+    EXPECT_EQ(std::get<MockAlgo>(instance).name, "algo1_instance");
 }
 
 TEST(RegistryTest, DuplicateRegistrationThrows) {
@@ -55,7 +56,7 @@ TEST(RegistryTest, GetReturnsOptional) {
 
     auto factory_opt = registry.get("algo1");
     ASSERT_TRUE(factory_opt.has_value());
-    EXPECT_EQ((*factory_opt)().name, "algo1_instance");
+    EXPECT_EQ(std::get<MockAlgo>((*factory_opt)()).name, "algo1_instance");
 
     EXPECT_FALSE(registry.get("unknown").has_value());
 }
@@ -67,7 +68,7 @@ TEST(RegistryTest, TransparentStringViewLookup) {
     std::string_view sv = "my_algo";
     EXPECT_TRUE(registry.has(sv));
     EXPECT_TRUE(registry.get(sv).has_value());
-    EXPECT_EQ(registry.create(sv).name, "val");
+    EXPECT_EQ(std::get<MockAlgo>(registry.create(sv)).name, "val");
 }
 
 TEST(RegistryTest, ExtremeEdgeCases) {
@@ -75,7 +76,7 @@ TEST(RegistryTest, ExtremeEdgeCases) {
     // Empty string registration
     registry.register_algorithm("", []() { return MockAlgo{"empty"}; });
     EXPECT_TRUE(registry.has(""));
-    EXPECT_EQ(registry.create("").name, "empty");
+    EXPECT_EQ(std::get<MockAlgo>(registry.create("")).name, "empty");
 
     // Null characters in name
     std::string bad_name("a\0b", 3);

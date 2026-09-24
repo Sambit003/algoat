@@ -38,6 +38,10 @@ struct StringHash {
 
 template <typename Variant, typename... Types>
 Variant any_to_variant_impl(const std::any& a, std::variant<Types...>*) {
+    if (auto* ptr = std::any_cast<Variant>(&a)) {
+        return *ptr;
+    }
+
     Variant result;
     bool found = (... || [&]() {
         if (auto* ptr = std::any_cast<Types>(&a)) {
@@ -118,50 +122,52 @@ protected:
  *
  * @tparam AlgoVariant A @c std::variant containing all supported algorithm types.
  */
-template <typename AlgoVariant> class Registry : public BaseRegistry {
+template <typename AlgoVariant> class Registry {
 public:
     /// Type alias for algorithm factory callables.
     using FactoryFn = std::function<AlgoVariant()>;
 
-    static Registry& global() {
-        static Registry instance;
-        return instance;
+    static Registry global(std::string_view domain) {
+        return Registry(domain);
     }
 
-    /**
-     * @brief Registers an algorithm factory under a unique string name.
-     *
-     *
-     * @param name Unique identifier for the algorithm (e.g., "quicksort").
-     *
-     * @param factory Callable that constructs and returns the algorithm variant.
-     * @throws std::runtime_error If an algorithm with the given name is already registered.
-     */
+    Registry(std::string_view domain = "default") : base_(BaseRegistry::global(domain)) {}
+
     void register_algorithm(std::string_view name, FactoryFn factory) {
-        BaseRegistry::register_algorithm(
+        base_.register_algorithm(
             name, [factory = std::move(factory)]() -> std::any { return factory(); });
     }
 
-    // Retained for backwards compatibility if needed
     void register_algo(std::string_view name, FactoryFn factory) {
         register_algorithm(name, std::move(factory));
     }
 
-    /**
-     * @brief Creates an algorithm variant instance by name.
-     *
-     *
-     * @param name Name of the algorithm to instantiate.
-     * @return @c AlgoVariant The constructed algorithm variant.
-     * @throws std::runtime_error If the algorithm name is not registered.
-     */
     AlgoVariant create(std::string_view name) const {
-        auto factory = get(name);
+        auto factory = base_.get(name);
         if (!factory) {
             throw std::runtime_error("Algorithm not found in registry: " + std::string(name));
         }
         return any_to_variant<AlgoVariant>((*factory)());
     }
+
+    [[nodiscard]] std::optional<FactoryFn> get(std::string_view name) const noexcept {
+        auto base_opt = base_.get(name);
+        if (!base_opt)
+            return std::nullopt;
+        return [base_factory = std::move(*base_opt)]() -> AlgoVariant {
+            return any_to_variant<AlgoVariant>(base_factory());
+        };
+    }
+
+    bool has(std::string_view name) const noexcept {
+        return base_.has(name);
+    }
+    std::vector<std::string> list_registered() const {
+        return base_.list_registered();
+    }
+
+private:
+    BaseRegistry& base_;
 };
 
 } // namespace algoat::core

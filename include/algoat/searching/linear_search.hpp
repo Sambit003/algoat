@@ -72,3 +72,11 @@ struct LinearSearch {
 };
 
 } // namespace algoat::searching
+
+#include "algoat/core/registry.hpp"
+inline const auto registrar_linearsearch = []() {
+    ::algoat::core::BaseRegistry::global("searching")
+        .register_algorithm("linearsearch",
+                            []() -> std::any { return ::algoat::searching::LinearSearch{}; });
+    return 0;
+}();
