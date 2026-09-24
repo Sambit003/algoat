@@ -123,9 +123,5 @@ struct BinarySearch {
 } // namespace algoat::searching
 
 #include "algoat/core/registry.hpp"
-inline const auto registrar_binarysearch = []() {
-    ::algoat::core::BaseRegistry::global("searching")
-        .register_algorithm("binarysearch",
-                            []() -> std::any { return ::algoat::searching::BinarySearch{}; });
-    return 0;
-}();
+
+ALGOAT_REGISTER_ALGORITHM("searching", "binarysearch", ::algoat::searching::BinarySearch)

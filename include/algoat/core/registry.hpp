@@ -10,7 +10,6 @@
 #pragma once
 
 #include <any>
-#include <functional>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -26,12 +25,6 @@ struct StringHash {
     using is_transparent = void;
 
     size_t operator()(std::string_view txt) const {
-        return std::hash<std::string_view>{}(txt);
-    }
-    size_t operator()(const std::string& txt) const {
-        return std::hash<std::string_view>{}(txt);
-    }
-    size_t operator()(const char* txt) const {
         return std::hash<std::string_view>{}(txt);
     }
 };
@@ -61,20 +54,21 @@ template <typename Variant> Variant any_to_variant(const std::any& a) {
 
 class BaseRegistry {
 public:
+    using AnyFactoryFn = std::any (*)();
+
     static BaseRegistry& global(std::string_view domain) {
         static std::unordered_map<std::string, BaseRegistry> instances;
         return instances[std::string(domain)];
     }
 
-    void register_algorithm(std::string_view name, std::function<std::any()> factory) {
+    void register_algorithm(std::string_view name, AnyFactoryFn factory) {
         if (factories_.contains(name)) {
             throw std::runtime_error("Algorithm already registered: " + std::string(name));
         }
-        factories_.emplace(std::string(name), std::move(factory));
+        factories_.emplace(std::string(name), factory);
     }
 
-    [[nodiscard]] std::optional<std::function<std::any()>>
-    get(std::string_view name) const noexcept {
+    [[nodiscard]] std::optional<AnyFactoryFn> get(std::string_view name) const noexcept {
         auto it = factories_.find(name);
         if (it != factories_.end()) {
             return it->second;
@@ -108,8 +102,7 @@ public:
     }
 
 protected:
-    std::unordered_map<std::string, std::function<std::any()>, StringHash, std::equal_to<>>
-        factories_;
+    std::unordered_map<std::string, AnyFactoryFn, StringHash, std::equal_to<>> factories_;
 };
 
 /**
@@ -124,22 +117,15 @@ protected:
  */
 template <typename AlgoVariant> class Registry {
 public:
-    /// Type alias for algorithm factory callables.
-    using FactoryFn = std::function<AlgoVariant()>;
-
     static Registry global(std::string_view domain) {
         return Registry(domain);
     }
 
     Registry(std::string_view domain = "default") : base_(BaseRegistry::global(domain)) {}
 
-    void register_algorithm(std::string_view name, FactoryFn factory) {
-        base_.register_algorithm(
-            name, [factory = std::move(factory)]() -> std::any { return factory(); });
-    }
-
-    void register_algo(std::string_view name, FactoryFn factory) {
-        register_algorithm(name, std::move(factory));
+    /// Forwards stateless factory function pointers to the underlying BaseRegistry.
+    void register_algorithm(std::string_view name, BaseRegistry::AnyFactoryFn factory) {
+        base_.register_algorithm(name, factory);
     }
 
     AlgoVariant create(std::string_view name) const {
@@ -150,13 +136,9 @@ public:
         return any_to_variant<AlgoVariant>((*factory)());
     }
 
-    [[nodiscard]] std::optional<FactoryFn> get(std::string_view name) const noexcept {
-        auto base_opt = base_.get(name);
-        if (!base_opt)
-            return std::nullopt;
-        return [base_factory = std::move(*base_opt)]() -> AlgoVariant {
-            return any_to_variant<AlgoVariant>(base_factory());
-        };
+    [[nodiscard]] std::optional<BaseRegistry::AnyFactoryFn>
+    get(std::string_view name) const noexcept {
+        return base_.get(name);
     }
 
     bool has(std::string_view name) const noexcept {
@@ -175,12 +157,12 @@ private:
 #define ALGOAT_CONCAT_IMPL(x, y) x##y
 #define ALGOAT_CONCAT(x, y) ALGOAT_CONCAT_IMPL(x, y)
 
-#define ALGOAT_REGISTER_ALGORITHM_IMPL(VariantType, Name, AlgoType, Counter)                       \
+#define ALGOAT_REGISTER_ALGORITHM_IMPL(Domain, Name, AlgoType, Counter)                            \
     inline const auto ALGOAT_CONCAT(registrar_, Counter) = []() {                                  \
-        ::algoat::core::Registry<VariantType>::global().register_algorithm(                        \
-            Name, []() -> VariantType { return AlgoType{}; });                                     \
+        ::algoat::core::BaseRegistry::global(Domain).register_algorithm(                           \
+            Name, []() -> std::any { return AlgoType{}; });                                        \
         return 0;                                                                                  \
     }();
 
-#define ALGOAT_REGISTER_ALGORITHM(VariantType, Name, AlgoType)                                     \
-    ALGOAT_REGISTER_ALGORITHM_IMPL(VariantType, Name, AlgoType, __COUNTER__)
+#define ALGOAT_REGISTER_ALGORITHM(Domain, Name, AlgoType)                                          \
+    ALGOAT_REGISTER_ALGORITHM_IMPL(Domain, Name, AlgoType, __COUNTER__)

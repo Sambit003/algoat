@@ -106,8 +106,4 @@ struct BitonicSort {
 
 #include "algoat/core/registry.hpp"
 
-inline const auto registrar_bitonicsort = []() {
-    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
-        "bitonicsort", []() -> std::any { return ::algoat::sorting::BitonicSort{}; });
-    return 0;
-}();
+ALGOAT_REGISTER_ALGORITHM("sorting", "bitonicsort", ::algoat::sorting::BitonicSort)

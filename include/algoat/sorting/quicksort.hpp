@@ -177,8 +177,4 @@ private:
 
 #include "algoat/core/registry.hpp"
 
-inline const auto registrar_quicksort = []() {
-    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
-        "quicksort", []() -> std::any { return ::algoat::sorting::QuickSort{}; });
-    return 0;
-}();
+ALGOAT_REGISTER_ALGORITHM("sorting", "quicksort", ::algoat::sorting::QuickSort)

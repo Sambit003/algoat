@@ -68,8 +68,4 @@ struct SelectionSort {
 
 #include "algoat/core/registry.hpp"
 
-inline const auto registrar_selectionsort = []() {
-    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
-        "selectionsort", []() -> std::any { return ::algoat::sorting::SelectionSort{}; });
-    return 0;
-}();
+ALGOAT_REGISTER_ALGORITHM("sorting", "selectionsort", ::algoat::sorting::SelectionSort)

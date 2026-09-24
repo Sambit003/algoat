@@ -92,8 +92,4 @@ struct CountingSort {
 
 #include "algoat/core/registry.hpp"
 
-inline const auto registrar_countingsort = []() {
-    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
-        "countingsort", []() -> std::any { return ::algoat::sorting::CountingSort{}; });
-    return 0;
-}();
+ALGOAT_REGISTER_ALGORITHM("sorting", "countingsort", ::algoat::sorting::CountingSort)

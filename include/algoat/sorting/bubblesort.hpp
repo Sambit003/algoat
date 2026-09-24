@@ -75,8 +75,4 @@ struct BubbleSort {
 
 #include "algoat/core/registry.hpp"
 
-inline const auto registrar_bubblesort = []() {
-    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
-        "bubblesort", []() -> std::any { return ::algoat::sorting::BubbleSort{}; });
-    return 0;
-}();
+ALGOAT_REGISTER_ALGORITHM("sorting", "bubblesort", ::algoat::sorting::BubbleSort)

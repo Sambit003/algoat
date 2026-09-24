@@ -72,8 +72,4 @@ struct InsertionSort {
 
 #include "algoat/core/registry.hpp"
 
-inline const auto registrar_insertionsort = []() {
-    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
-        "insertionsort", []() -> std::any { return ::algoat::sorting::InsertionSort{}; });
-    return 0;
-}();
+ALGOAT_REGISTER_ALGORITHM("sorting", "insertionsort", ::algoat::sorting::InsertionSort)

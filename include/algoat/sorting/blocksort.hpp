@@ -94,8 +94,4 @@ struct BlockSort {
 
 #include "algoat/core/registry.hpp"
 
-inline const auto registrar_blocksort = []() {
-    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
-        "blocksort", []() -> std::any { return ::algoat::sorting::BlockSort{}; });
-    return 0;
-}();
+ALGOAT_REGISTER_ALGORITHM("sorting", "blocksort", ::algoat::sorting::BlockSort)

@@ -90,8 +90,4 @@ struct ShellSort {
 
 #include "algoat/core/registry.hpp"
 
-inline const auto registrar_shellsort = []() {
-    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
-        "shellsort", []() -> std::any { return ::algoat::sorting::ShellSort{}; });
-    return 0;
-}();
+ALGOAT_REGISTER_ALGORITHM("sorting", "shellsort", ::algoat::sorting::ShellSort)

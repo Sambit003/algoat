@@ -141,8 +141,4 @@ struct IntroSort {
 
 #include "algoat/core/registry.hpp"
 
-inline const auto registrar_introsort = []() {
-    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
-        "introsort", []() -> std::any { return ::algoat::sorting::IntroSort{}; });
-    return 0;
-}();
+ALGOAT_REGISTER_ALGORITHM("sorting", "introsort", ::algoat::sorting::IntroSort)

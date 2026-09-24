@@ -508,8 +508,4 @@ private:
 
 #include "algoat/core/registry.hpp"
 
-inline const auto registrar_timsort = []() {
-    ::algoat::core::BaseRegistry::global("sorting").register_algorithm(
-        "timsort", []() -> std::any { return ::algoat::sorting::TimSort{}; });
-    return 0;
-}();
+ALGOAT_REGISTER_ALGORITHM("sorting", "timsort", ::algoat::sorting::TimSort)
