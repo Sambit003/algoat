@@ -66,3 +66,33 @@ using SortVariant = std::variant<InsertionSort, QuickSort, MergeSort, HeapSort, 
                                  BucketSort, IntroSort, TimSort, BlockSort>;
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "insertionsort",
+                          ::algoat::sorting::InsertionSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "quicksort", ::algoat::sorting::QuickSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "mergesort", ::algoat::sorting::MergeSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "heapsort", ::algoat::sorting::HeapSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "selectionsort",
+                          ::algoat::sorting::SelectionSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "bubblesort",
+                          ::algoat::sorting::BubbleSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "shellsort", ::algoat::sorting::ShellSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "combsort", ::algoat::sorting::CombSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "gnomesort", ::algoat::sorting::GnomeSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "cyclesort", ::algoat::sorting::CycleSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "bitonicsort",
+                          ::algoat::sorting::BitonicSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "countingsort",
+                          ::algoat::sorting::CountingSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "pigeonholesort",
+                          ::algoat::sorting::PigeonholeSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "radixsortlsd",
+                          ::algoat::sorting::RadixSortLSD)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "radixsortmsd",
+                          ::algoat::sorting::RadixSortMSD)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "bucketsort",
+                          ::algoat::sorting::BucketSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "introsort", ::algoat::sorting::IntroSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "timsort", ::algoat::sorting::TimSort)
+ALGOAT_REGISTER_ALGORITHM(::algoat::sorting::SortVariant, "blocksort", ::algoat::sorting::BlockSort)

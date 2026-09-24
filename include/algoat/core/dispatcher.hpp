@@ -56,8 +56,8 @@ concept CanSearchData = requires(Algo a, std::span<const T> arr, const T& t) { a
  * invariant verification and <tt>O(N)</tt> fallback if monotonicity violations are detected).
  */
 class Dispatcher {
-    Registry<sorting::SortVariant> sort_registry_; ///< Registry of available sorting algorithms.
-    Registry<searching::SearchVariant>
+    Registry<sorting::SortVariant>& sort_registry_; ///< Registry of available sorting algorithms.
+    Registry<searching::SearchVariant>&
         search_registry_; ///< Registry of available searching algorithms.
     AlgoConfig& config_;  ///< Configuration reference; callers must hold the appropriate external
                           ///< lock when accessing it.
