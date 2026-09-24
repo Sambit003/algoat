@@ -53,6 +53,8 @@ The `Registry<VariantType>` class stores string-to-factory mappings (`std::funct
 ### 2.3 Heuristic Dispatcher (`algoat::core::Dispatcher`)
 Located in [`include/algoat/core/dispatcher.hpp`](include/algoat/core/dispatcher.hpp) and [`src/core/dispatcher.cpp`](src/core/dispatcher.cpp).
 
+*Note: Domain-specific data types (e.g., `bool`, `std::complex`) that require highly specialized routing and cannot participate in dynamic profiling bypass the standard dynamic registry. These types are intentionally intercepted at compile-time via C++20 `if constexpr` concepts to avoid performance overhead.*
+
 When `algoat::sort(span)` or `algoat::search(span, target)` is called with `"auto"` configuration (the default), the dispatcher executes this decision tree:
 
 ```mermaid
@@ -91,7 +93,7 @@ Rather than sorting complex numbers along a single 1D axis (lexicographically by
 
 ## 4. How to Add a New Sorting Algorithm
 
-To contribute a new sorting algorithm to Algoat, follow these 4 steps:
+To contribute a new sorting algorithm to Algoat, follow these 4 steps *(unless it is a domain-specific static dispatch optimization for a single type, in which case it is intercepted via `if constexpr` in `Dispatcher::sort` directly)*:
 
 ### Step 1: Implement the Header
 Create `include/algoat/sorting/my_new_sort.hpp`. Your struct must satisfy the `algoat::sorting::SortAlgorithm` concept:
