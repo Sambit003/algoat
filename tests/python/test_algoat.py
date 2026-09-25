@@ -63,7 +63,8 @@ def test_numpy_specialized_sorts():
     # Float16
     f16 = np.array([3.5, -1.2, 0.0, 100.0, -50.5], dtype=np.float16)
     res_f16 = algoat.sort(f16)
-    assert np.array_equal(res_f16, np.sort(f16))
+    expected_f16 = np.array([-50.5, -1.2, 0.0, 3.5, 100.0], dtype=np.float16)
+    assert np.array_equal(res_f16, expected_f16)
 
     # Bool
     b = np.array([True, False, True, False, True], dtype=np.bool_)
