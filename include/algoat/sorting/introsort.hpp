@@ -138,3 +138,7 @@ struct IntroSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+ALGOAT_REGISTER_ALGORITHM("sorting", "introsort", ::algoat::sorting::IntroSort)

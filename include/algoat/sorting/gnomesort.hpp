@@ -71,3 +71,7 @@ struct GnomeSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+ALGOAT_REGISTER_ALGORITHM("sorting", "gnomesort", ::algoat::sorting::GnomeSort)

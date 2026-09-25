@@ -72,3 +72,7 @@ struct LinearSearch {
 };
 
 } // namespace algoat::searching
+
+#include "algoat/core/registry.hpp"
+
+ALGOAT_REGISTER_ALGORITHM("searching", "linearsearch", ::algoat::searching::LinearSearch)

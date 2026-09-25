@@ -72,3 +72,7 @@ struct BubbleSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+ALGOAT_REGISTER_ALGORITHM("sorting", "bubblesort", ::algoat::sorting::BubbleSort)

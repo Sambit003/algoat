@@ -203,3 +203,8 @@ struct RadixSortMSD {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+ALGOAT_REGISTER_ALGORITHM("sorting", "radixsortlsd", ::algoat::sorting::RadixSortLSD)
+ALGOAT_REGISTER_ALGORITHM("sorting", "radixsortmsd", ::algoat::sorting::RadixSortMSD)

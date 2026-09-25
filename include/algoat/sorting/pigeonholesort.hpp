@@ -82,3 +82,7 @@ struct PigeonholeSort {
 };
 
 } // namespace algoat::sorting
+
+#include "algoat/core/registry.hpp"
+
+ALGOAT_REGISTER_ALGORITHM("sorting", "pigeonholesort", ::algoat::sorting::PigeonholeSort)
