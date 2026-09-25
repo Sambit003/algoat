@@ -9,12 +9,12 @@
 
 #pragma once
 
+#include <algorithm>
 #include <any>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <typeindex>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -30,31 +30,44 @@ struct StringHash {
     }
 };
 
-template <typename Variant, typename... Types>
-Variant any_to_variant_impl(const std::any& a, std::variant<Types...>*) {
-    if (auto* ptr = std::any_cast<Variant>(&a)) {
-        return *ptr;
-    }
+inline size_t get_next_type_id() noexcept {
+    static size_t id = 0;
+    return id++;
+}
 
+template <typename T> size_t get_type_id() noexcept {
+    static size_t id = get_next_type_id();
+    return id;
+}
+
+template <typename Variant> struct VariantCaster;
+
+template <typename... Types> struct VariantCaster<std::variant<Types...>> {
+    using Variant = std::variant<Types...>;
     using CastFn = Variant (*)(const std::any&);
-    static const std::unordered_map<std::type_index, CastFn> casters = {
-        {std::type_index(typeid(Types)),
-         [](const std::any& any_val) -> Variant { return *std::any_cast<Types>(&any_val); }}...};
 
-    auto it = casters.find(std::type_index(a.type()));
-    if (it != casters.end()) {
-        return it->second(a);
+    static const std::vector<CastFn>& get_casters() {
+        static std::vector<CastFn> casters = []() {
+            std::vector<CastFn> arr;
+            size_t max_id = std::max({get_type_id<Types>()...});
+            arr.resize(max_id + 1, nullptr);
+            (..., (arr[get_type_id<Types>()] = [](const std::any& a) -> Variant {
+                 return *std::any_cast<Types>(&a);
+             }));
+            return arr;
+        }();
+        return casters;
     }
-    throw std::bad_any_cast();
-}
-
-template <typename Variant> Variant any_to_variant(const std::any& a) {
-    return any_to_variant_impl<Variant>(a, static_cast<Variant*>(nullptr));
-}
+};
 
 class BaseRegistry {
 public:
     using AnyFactoryFn = std::any (*)();
+
+    struct RegistryEntry {
+        size_t type_id;
+        AnyFactoryFn factory;
+    };
 
     static BaseRegistry& global(std::string_view domain) {
         static std::unordered_map<std::string, BaseRegistry, StringHash, std::equal_to<>> instances;
@@ -65,14 +78,14 @@ public:
         return it->second;
     }
 
-    void register_algorithm(std::string_view name, AnyFactoryFn factory) {
+    void register_algorithm(std::string_view name, size_t type_id, AnyFactoryFn factory) {
         if (factories_.contains(name)) {
             throw std::runtime_error("Algorithm already registered: " + std::string(name));
         }
-        factories_.emplace(std::string(name), factory);
+        factories_.emplace(std::string(name), RegistryEntry{type_id, factory});
     }
 
-    [[nodiscard]] std::optional<AnyFactoryFn> get(std::string_view name) const noexcept {
+    [[nodiscard]] std::optional<RegistryEntry> get(std::string_view name) const noexcept {
         auto it = factories_.find(name);
         if (it != factories_.end()) {
             return it->second;
@@ -106,7 +119,7 @@ public:
     }
 
 protected:
-    std::unordered_map<std::string, AnyFactoryFn, StringHash, std::equal_to<>> factories_;
+    std::unordered_map<std::string, RegistryEntry, StringHash, std::equal_to<>> factories_;
 };
 
 /**
@@ -121,33 +134,50 @@ protected:
  */
 template <typename AlgoVariant> class Registry {
 public:
+    struct TypedFactory {
+        size_t type_id;
+        BaseRegistry::AnyFactoryFn raw_factory;
+
+        AlgoVariant operator()() const {
+            const auto& casters = VariantCaster<AlgoVariant>::get_casters();
+            if (type_id >= casters.size() || !casters[type_id]) {
+                throw std::bad_any_cast();
+            }
+            return casters[type_id](raw_factory());
+        }
+    };
+
     static Registry global(std::string_view domain) {
         return Registry(domain);
     }
 
     Registry(std::string_view domain = "default") : base_(BaseRegistry::global(domain)) {}
 
-    /// Forwards stateless factory function pointers to the underlying BaseRegistry.
-    void register_algorithm(std::string_view name, BaseRegistry::AnyFactoryFn factory) {
-        base_.register_algorithm(name, factory);
+    void register_algorithm(std::string_view name, size_t type_id,
+                            BaseRegistry::AnyFactoryFn factory) {
+        base_.register_algorithm(name, type_id, factory);
     }
 
     AlgoVariant create(std::string_view name) const {
-        auto factory = base_.get(name);
-        if (!factory) {
+        auto factory_opt = get(name);
+        if (!factory_opt) {
             throw std::runtime_error("Algorithm not found in registry: " + std::string(name));
         }
-        return any_to_variant<AlgoVariant>((*factory)());
+        return (*factory_opt)();
     }
 
-    [[nodiscard]] std::optional<BaseRegistry::AnyFactoryFn>
-    get(std::string_view name) const noexcept {
-        return base_.get(name);
+    [[nodiscard]] std::optional<TypedFactory> get(std::string_view name) const noexcept {
+        auto entry_opt = base_.get(name);
+        if (!entry_opt) {
+            return std::nullopt;
+        }
+        return TypedFactory{entry_opt->type_id, entry_opt->factory};
     }
 
     bool has(std::string_view name) const noexcept {
         return base_.has(name);
     }
+
     std::vector<std::string> list_registered() const {
         return base_.list_registered();
     }
@@ -164,7 +194,8 @@ private:
 #define ALGOAT_REGISTER_ALGORITHM_IMPL(Domain, Name, AlgoType, Counter)                            \
     inline const auto ALGOAT_CONCAT(registrar_, Counter) = []() {                                  \
         ::algoat::core::BaseRegistry::global(Domain).register_algorithm(                           \
-            Name, []() -> std::any { return AlgoType{}; });                                        \
+            Name, ::algoat::core::get_type_id<AlgoType>(),                                         \
+            []() -> std::any { return AlgoType{}; });                                              \
         return 0;                                                                                  \
     }();
 
