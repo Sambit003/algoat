@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "algoat/simd/partition.hpp"
 #include "algoat/sorting/insertionsort.hpp"
 
 #include <cstddef>
@@ -142,9 +143,65 @@ private:
      */
     template <typename T> void quicksort_impl(T* arr, std::size_t low, std::size_t high) const {
         while (low < high) {
-            if (high - low + 1 <= 16) {
-                InsertionSort{}.sort(std::span<T>{arr + low, high - low + 1});
+            std::size_t current_size = high - low + 1;
+            if (current_size <= 16) {
+                InsertionSort{}.sort(std::span<T>{arr + low, current_size});
                 return;
+            }
+
+            if constexpr (std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t> ||
+                          std::is_same_v<T, int64_t> || std::is_same_v<T, uint64_t> ||
+                          std::is_same_v<T, float> || std::is_same_v<T, double>) {
+                if (current_size > 128) {
+                    median_of_three(arr, low, high);
+                    const T pivot = arr[high];
+
+                    // Fallback to scalar 3-way partition for extreme duplicate arrays
+                    if (arr[low] == pivot) {
+                        auto [lt, gt] = partition_3way(arr, low, high);
+                        std::size_t left_size = (lt > low) ? (lt - low) : 0;
+                        std::size_t right_size = (high > gt) ? (high - gt) : 0;
+
+                        if (left_size < right_size) {
+                            if (left_size > 0 && lt > 0)
+                                quicksort_impl(arr, low, lt - 1);
+                            if (right_size == 0)
+                                break;
+                            low = gt + 1;
+                        } else {
+                            if (right_size > 0)
+                                quicksort_impl(arr, gt + 1, high);
+                            if (left_size == 0 || lt == 0)
+                                break;
+                            high = lt - 1;
+                        }
+                        continue;
+                    }
+
+                    std::size_t lt_count =
+                        ::algoat::simd::partition_simd(arr + low, current_size - 1, pivot);
+                    std::size_t split_idx = low + lt_count;
+
+                    std::swap(arr[split_idx], arr[high]);
+
+                    std::size_t left_size = (split_idx > low) ? (split_idx - low) : 0;
+                    std::size_t right_size = (high > split_idx) ? (high - split_idx) : 0;
+
+                    if (left_size < right_size) {
+                        if (left_size > 0)
+                            quicksort_impl(arr, low, split_idx - 1);
+                        if (right_size == 0)
+                            break;
+                        low = split_idx + 1;
+                    } else {
+                        if (right_size > 0)
+                            quicksort_impl(arr, split_idx + 1, high);
+                        if (left_size == 0)
+                            break;
+                        high = split_idx - 1;
+                    }
+                    continue;
+                }
             }
 
             auto [lt, gt] = partition_3way(arr, low, high);
