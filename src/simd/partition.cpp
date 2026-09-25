@@ -1,6 +1,6 @@
 #include "algoat/simd/partition.hpp"
 
-#include <vector>
+#include "algoat/simd/isa.hpp"
 
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "simd/partition.cpp"
@@ -13,42 +13,54 @@ namespace HWY_NAMESPACE {
 namespace hn = hwy::HWY_NAMESPACE;
 
 template <typename T> std::size_t partition_simd_impl(T* data, std::size_t size, T pivot) {
-    std::vector<T> left(size);
-    std::vector<T> right(size);
-    std::size_t left_idx = 0;
-    std::size_t right_idx = 0;
+    const hn::ScalableTag<T> tag;
+    const std::size_t N = hn::Lanes(tag);
+    const auto v_pivot = hn::Set(tag, pivot);
 
-    const hn::ScalableTag<T> d;
-    const std::size_t N = hn::Lanes(d);
-    const auto v_pivot = hn::Set(d, pivot);
+    std::size_t l = 0;
+    std::size_t r = size; // exclusive right bound
 
-    std::size_t i = 0;
-    for (; i + N <= size; i += N) {
-        auto v = hn::LoadU(d, data + i);
-        auto mask_lt = hn::Lt(v, v_pivot);
-        auto mask_ge = hn::Not(mask_lt);
+    // SIMD fast-skipping partition: in-place, O(1) auxiliary space.
+    while (true) {
+        // Fast-skip left elements < pivot using vector loads
+        while (l + N <= r) {
+            auto vec_data = hn::LoadU(tag, data + l);
+            auto mask_lt = hn::Lt(vec_data, v_pivot);
+            if (hn::AllTrue(tag, mask_lt)) {
+                l += N;
+            } else {
+                break;
+            }
+        }
 
-        hn::CompressStore(v, mask_lt, d, left.data() + left_idx);
-        left_idx += hn::CountTrue(d, mask_lt);
+        // Fast-skip right elements >= pivot using vector loads
+        while (l + N <= r) {
+            auto vec_data = hn::LoadU(tag, data + r - N);
+            auto mask_ge = hn::Not(hn::Lt(vec_data, v_pivot));
+            if (hn::AllTrue(tag, mask_ge)) {
+                r -= N;
+            } else {
+                break;
+            }
+        }
 
-        hn::CompressStore(v, mask_ge, d, right.data() + right_idx);
-        right_idx += hn::CountTrue(d, mask_ge);
-    }
-
-    for (; i < size; ++i) {
-        if (data[i] < pivot) {
-            left[left_idx++] = data[i];
+        // Scalar fallback for the mismatch boundary
+        if (l < r) {
+            if (data[l] < pivot) {
+                l++;
+            } else if (data[r - 1] >= pivot) {
+                r--;
+            } else {
+                std::swap(data[l], data[r - 1]);
+                l++;
+                r--;
+            }
         } else {
-            right[right_idx++] = data[i];
+            break;
         }
     }
 
-    for (std::size_t j = 0; j < left_idx; ++j)
-        data[j] = left[j];
-    for (std::size_t j = 0; j < right_idx; ++j)
-        data[left_idx + j] = right[j];
-
-    return left_idx;
+    return l;
 }
 
 } // namespace HWY_NAMESPACE
@@ -59,16 +71,15 @@ HWY_AFTER_NAMESPACE();
 namespace algoat::simd {
 
 template <typename T> std::size_t partition_simd(T* data, std::size_t size, T pivot) {
+    // HWY_STATIC_DISPATCH provides safe fallback architecture context.
     return HWY_STATIC_DISPATCH(partition_simd_impl)(data, size, pivot);
 }
 
-// instantiations
+// instantiations for 32-bit and 64-bit primitives
 template std::size_t partition_simd<int32_t>(int32_t*, std::size_t, int32_t);
 template std::size_t partition_simd<uint32_t>(uint32_t*, std::size_t, uint32_t);
 template std::size_t partition_simd<int64_t>(int64_t*, std::size_t, int64_t);
 template std::size_t partition_simd<uint64_t>(uint64_t*, std::size_t, uint64_t);
-template std::size_t partition_simd<float>(float*, std::size_t, float);
-template std::size_t partition_simd<double>(double*, std::size_t, double);
 
 } // namespace algoat::simd
 #endif
