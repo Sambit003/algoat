@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <typeindex>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -35,17 +36,16 @@ Variant any_to_variant_impl(const std::any& a, std::variant<Types...>*) {
         return *ptr;
     }
 
-    Variant result;
-    bool found = (... || [&]() {
-        if (auto* ptr = std::any_cast<Types>(&a)) {
-            result = *ptr;
-            return true;
-        }
-        return false;
-    }());
-    if (!found)
-        throw std::bad_any_cast();
-    return result;
+    using CastFn = Variant (*)(const std::any&);
+    static const std::unordered_map<std::type_index, CastFn> casters = {
+        {std::type_index(typeid(Types)),
+         [](const std::any& any_val) -> Variant { return *std::any_cast<Types>(&any_val); }}...};
+
+    auto it = casters.find(std::type_index(a.type()));
+    if (it != casters.end()) {
+        return it->second(a);
+    }
+    throw std::bad_any_cast();
 }
 
 template <typename Variant> Variant any_to_variant(const std::any& a) {
@@ -57,8 +57,12 @@ public:
     using AnyFactoryFn = std::any (*)();
 
     static BaseRegistry& global(std::string_view domain) {
-        static std::unordered_map<std::string, BaseRegistry> instances;
-        return instances[std::string(domain)];
+        static std::unordered_map<std::string, BaseRegistry, StringHash, std::equal_to<>> instances;
+        auto it = instances.find(domain);
+        if (it == instances.end()) {
+            it = instances.emplace(std::string(domain), BaseRegistry{}).first;
+        }
+        return it->second;
     }
 
     void register_algorithm(std::string_view name, AnyFactoryFn factory) {
