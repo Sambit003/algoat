@@ -40,3 +40,6 @@ algoat_add_test(test_interpolation_search searching/test_interpolation_search.cp
 algoat_add_test(test_adaptive_binary_search searching/test_adaptive_binary_search.cpp)
 algoat_add_test(test_eytzinger_search_tree searching/test_eytzinger_search_tree.cpp)
 algoat_add_test(test_searching_dispatch searching/test_searching_dispatch.cpp)
+
+# SIMD tests
+algoat_add_test(test_simd simd/test_simd.cpp)

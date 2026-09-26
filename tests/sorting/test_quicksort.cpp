@@ -149,3 +149,69 @@ TEST_F(QuickSortTest, PreferredMinSizeAndName) {
     EXPECT_EQ(algo.name(), "quicksort");
     EXPECT_EQ(algo.preferred_min_size(), 32);
 }
+
+TEST(QuickSortSimdIntegration, LargeInt32RandomArraySortsCorrectly) {
+    std::vector<int32_t> data(500);
+    std::iota(data.begin(), data.end(), 0);
+    std::shuffle(data.begin(), data.end(), std::mt19937{42});
+
+    QuickSort{}.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+}
+
+TEST(QuickSortSimdIntegration, LargeInt64RandomArraySortsCorrectly) {
+    std::vector<int64_t> data(1000);
+    std::iota(data.begin(), data.end(), 0LL);
+    std::shuffle(data.begin(), data.end(), std::mt19937{99});
+
+    QuickSort{}.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+}
+
+TEST(QuickSortSimdIntegration, LargeUInt32ReverseSortedSortsCorrectly) {
+    std::vector<uint32_t> data(512);
+    std::iota(data.begin(), data.end(), 0u);
+    std::reverse(data.begin(), data.end());
+
+    QuickSort{}.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+}
+
+TEST(QuickSortSimdIntegration, LargeAllDuplicatesFallsBackToScalar) {
+    // All-duplicate array triggers the arr[low]==pivot guard; must not hang or corrupt.
+    std::vector<int32_t> data(500, 42);
+
+    QuickSort{}.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+    EXPECT_EQ(data.front(), 42);
+    EXPECT_EQ(data.back(), 42);
+}
+
+TEST(QuickSortSimdIntegration, LargeNegativeInt64ArraySortsCorrectly) {
+    std::vector<int64_t> data(300);
+    std::iota(data.begin(), data.end(), -150LL);
+    std::shuffle(data.begin(), data.end(), std::mt19937{7});
+
+    QuickSort{}.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+}
+
+TEST(QuickSortSimdIntegration, LargeAlreadySortedArraySortsCorrectly) {
+    // Tests boundary condition where all elements in partition sub-ranges are already ordered
+    std::vector<int32_t> data(1000);
+    std::iota(data.begin(), data.end(), 0);
+
+    QuickSort{}.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+}
+
+TEST(QuickSortSimdIntegration, LargeNearlySortedArraySortsCorrectly) {
+    std::vector<int32_t> data(1000);
+    std::iota(data.begin(), data.end(), 0);
+    for (std::size_t i = 0; i + 10 < data.size(); i += 50) {
+        std::swap(data[i], data[i + 10]);
+    }
+
+    QuickSort{}.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+}

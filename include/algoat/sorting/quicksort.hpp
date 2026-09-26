@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "algoat/simd/partition.hpp"
 #include "algoat/sorting/insertionsort.hpp"
 
 #include <cstddef>
@@ -108,7 +109,6 @@ private:
      */
     template <typename T>
     PartitionResult partition_3way(T* arr, std::size_t low, std::size_t high) const {
-        median_of_three(arr, low, high);
         const T& pivot = arr[high];
         std::size_t lt = low;
         std::size_t i = low;
@@ -141,34 +141,69 @@ private:
      * and iterates on the larger partition to strictly guarantee @c O(log N) maximum stack depth.
      */
     template <typename T> void quicksort_impl(T* arr, std::size_t low, std::size_t high) const {
+        // Threshold where SIMD vectorization overhead is overcome by parallel throughput
+        constexpr std::size_t SIMD_THRESHOLD = 128;
+
+        // Recurses on the smaller partition and advances the iterative loop bounds to the larger
+        // partition (tail-call elimination). Sets low == high to signal loop termination.
+        auto recurse_smaller_and_advance = [&](std::size_t left_end, std::size_t right_start) {
+            std::size_t left_size = (left_end > low) ? (left_end - low) : 0;
+            std::size_t right_size = (high > right_start) ? (high - right_start) : 0;
+
+            if (left_size < right_size) {
+                if (left_size > 0 && left_end > 0) {
+                    quicksort_impl(arr, low, left_end - 1);
+                }
+                if (right_size == 0) {
+                    low = high; // sentinel: terminate loop
+                    return;
+                }
+                low = right_start + 1;
+            } else {
+                if (right_size > 0) {
+                    quicksort_impl(arr, right_start + 1, high);
+                }
+                if (left_size == 0 || left_end == 0) {
+                    low = high; // sentinel: terminate loop
+                    return;
+                }
+                high = left_end - 1;
+            }
+        };
+
         while (low < high) {
-            if (high - low + 1 <= 16) {
-                InsertionSort{}.sort(std::span<T>{arr + low, high - low + 1});
+            std::size_t current_size = high - low + 1;
+            if (current_size <= 16) {
+                InsertionSort{}.sort(std::span<T>{arr + low, current_size});
                 return;
             }
 
-            auto [lt, gt] = partition_3way(arr, low, high);
+            median_of_three(arr, low, high);
 
-            std::size_t left_size = (lt > low) ? (lt - low) : 0;
-            std::size_t right_size = (high > gt) ? (high - gt) : 0;
+            if constexpr (::algoat::simd::is_simd_supported_v<T>) {
+                if (current_size > SIMD_THRESHOLD) {
+                    const T& pivot = arr[high];
 
-            if (left_size < right_size) {
-                if (left_size > 0 && lt > 0) {
-                    quicksort_impl(arr, low, lt - 1);
+                    // Proceed with SIMD partitioning only if the array sample is not an extreme
+                    // duplicate sequence (arr[low] == arr[high] == pivot means sample is identical)
+                    if (arr[low] != pivot) {
+                        auto split_opt =
+                            ::algoat::simd::partition_simd(arr + low, current_size - 1, pivot);
+
+                        // If SIMD partition succeeded, apply split and advance;
+                        // if std::nullopt (scalar host fallback), fall through to partition_3way.
+                        if (split_opt.has_value()) {
+                            std::size_t split_idx = low + *split_opt;
+                            std::swap(arr[split_idx], arr[high]);
+                            recurse_smaller_and_advance(split_idx, split_idx);
+                            continue;
+                        }
+                    }
                 }
-                if (right_size == 0) {
-                    break;
-                }
-                low = gt + 1;
-            } else {
-                if (right_size > 0) {
-                    quicksort_impl(arr, gt + 1, high);
-                }
-                if (left_size == 0 || lt == 0) {
-                    break;
-                }
-                high = lt - 1;
             }
+
+            auto [lt, gt] = partition_3way(arr, low, high);
+            recurse_smaller_and_advance(lt, gt);
         }
     }
 };

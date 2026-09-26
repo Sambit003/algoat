@@ -2,6 +2,8 @@ add_library(algoat
     algoat.cpp
     core/config.cpp
     core/dispatcher.cpp
+    simd/isa.cpp
+    simd/partition.cpp
     sorting/quicksort.cpp
     sorting/mergesort.cpp
     sorting/heapsort.cpp
