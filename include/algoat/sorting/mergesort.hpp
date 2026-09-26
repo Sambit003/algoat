@@ -6,12 +6,18 @@
 #pragma once
 
 #include <cstddef>
+#include <memory_resource>
 #include <span>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace algoat::sorting {
+
+// Forward declare the free function so we can friend it
+template <typename T>
+void mergesort(std::span<T> data, std::pmr::memory_resource* mr = std::pmr::get_default_resource());
 
 /**
  * @struct MergeSort
@@ -45,10 +51,7 @@ struct MergeSort {
      * @param data Span of elements to sort.
      */
     template <typename T> void sort(std::span<T> data) const {
-        if (data.size() <= 1)
-            return;
-        std::vector<T> buffer(data.size());
-        mergesort_impl(data.data(), buffer.data(), 0, data.size() - 1);
+        mergesort(data);
     }
 
     /**
@@ -60,6 +63,8 @@ struct MergeSort {
     }
 
 private:
+    template <typename U> friend void mergesort(std::span<U> data, std::pmr::memory_resource* mr);
+
     /**
      * @brief Recursive mergesort dividing subranges at the midpoint.
      *
@@ -112,6 +117,33 @@ private:
         }
     }
 };
+
+/**
+ * @brief Sorts the span in-place using top-down merge sort with an optional memory resource.
+ * @tparam T Element type supporting <tt>operator<=</tt> and move operations.
+ *
+ * @param data Span of elements to sort.
+ * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+ */
+template <typename T> void mergesort(std::span<T> data, std::pmr::memory_resource* mr) {
+    if (data.size() <= 1)
+        return;
+
+    // Add padding to avoid a second allocation due to alignment offsets.
+    std::size_t buffer_size = data.size() * sizeof(T) + alignof(T) * 4 + 64;
+    std::pmr::monotonic_buffer_resource mbr(buffer_size, mr);
+
+    if constexpr (std::is_trivially_default_constructible_v<T> &&
+                  std::is_trivially_copy_assignable_v<T> && std::is_trivially_destructible_v<T>) {
+        // Bypass O(N) default initialization overhead for trivial types
+        std::pmr::polymorphic_allocator<T> alloc(&mbr);
+        T* buffer = alloc.allocate(data.size());
+        MergeSort{}.mergesort_impl(data.data(), buffer, 0, data.size() - 1);
+    } else {
+        std::pmr::vector<T> buffer(data.size(), &mbr);
+        MergeSort{}.mergesort_impl(data.data(), buffer.data(), 0, data.size() - 1);
+    }
+}
 
 } // namespace algoat::sorting
 

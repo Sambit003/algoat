@@ -68,6 +68,39 @@ DECLARE_SORT_BENCHMARK(BucketSort)
 DECLARE_SORT_BENCHMARK(ShellSort)
 DECLARE_SORT_BENCHMARK(CombSort)
 
+#define DECLARE_LARGE_SORT_BENCHMARK(Name, SortCall)                                               \
+    static void BM_##Name##_Large(benchmark::State& state) {                                       \
+        auto data = generate_random_data(state.range(0));                                          \
+        for (auto _ : state) {                                                                     \
+            state.PauseTiming();                                                                   \
+            auto copy = data;                                                                      \
+            state.ResumeTiming();                                                                  \
+            SortCall;                                                                              \
+        }                                                                                          \
+        state.SetComplexityN(state.range(0));                                                      \
+    }                                                                                              \
+    BENCHMARK(BM_##Name##_Large)->RangeMultiplier(4)->Range(1 << 16, 1 << 22)->Complexity();
+
+DECLARE_LARGE_SORT_BENCHMARK(StdSort, std::sort(copy.begin(), copy.end()))
+DECLARE_LARGE_SORT_BENCHMARK(MergeSort, algoat::sorting::MergeSort{}.sort(std::span{copy}))
+
+static void BM_MergeSort_Large_PMR(benchmark::State& state) {
+    auto data = generate_random_data(state.range(0));
+    std::size_t buffer_size = state.range(0) * sizeof(int) + 256;
+    std::vector<std::byte> arena(buffer_size);
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        // null_memory_resource ensures no secondary dynamic allocations occur
+        std::pmr::monotonic_buffer_resource mbr(arena.data(), arena.size(),
+                                                std::pmr::null_memory_resource());
+        state.ResumeTiming();
+        algoat::sorting::mergesort(std::span{copy}, &mbr);
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_MergeSort_Large_PMR)->RangeMultiplier(4)->Range(1 << 16, 1 << 22)->Complexity();
+
 #include <algoat/numerics/float16_sort.hpp>
 #include <algoat/numerics/morton.hpp>
 #include <algoat/sorting/boolean_sort.hpp>
