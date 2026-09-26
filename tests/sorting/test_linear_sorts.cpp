@@ -23,8 +23,8 @@ protected:
     }
 };
 
-using LinearAlgos =
-    ::testing::Types<CountingSort, PigeonholeSort, RadixSortLSD, RadixSortMSD, BucketSort>;
+using LinearAlgos = ::testing::Types<CountingSort, PigeonholeSort, RadixSortLSD, RadixSortMSD,
+                                     RadixSortInPlaceMSD, BucketSort>;
 TYPED_TEST_SUITE(LinearSortTest, LinearAlgos);
 
 TYPED_TEST(LinearSortTest, RandomData) {
@@ -121,5 +121,7 @@ TEST(AlgorithmConstraintTest, RejectsBoolAtCompileTime) {
                   "PigeonholeSort must reject bool");
     static_assert(!CanSort<algoat::sorting::RadixSortLSD, bool>, "RadixSortLSD must reject bool");
     static_assert(!CanSort<algoat::sorting::RadixSortMSD, bool>, "RadixSortMSD must reject bool");
+    static_assert(!CanSort<algoat::sorting::RadixSortInPlaceMSD, bool>,
+                  "RadixSortInPlaceMSD must reject bool");
     SUCCEED();
 }
