@@ -2,7 +2,7 @@
  * @file sorting.hpp
  * @brief Umbrella header for all sorting algorithms and C++20 concepts in Algoat.
  *
- * Aggregates all 19 sorting algorithm implementations and defines the @c SortAlgorithm
+ * Aggregates all 20 sorting algorithm implementations and defines the @c SortAlgorithm
  * concept along with the @c SortVariant type definition for dynamic registry storage.
  */
 
@@ -63,6 +63,6 @@ concept SortAlgorithm = requires(Algo algo, std::span<T> data) {
 using SortVariant = std::variant<InsertionSort, QuickSort, MergeSort, HeapSort, SelectionSort,
                                  BubbleSort, ShellSort, CombSort, GnomeSort, CycleSort, BitonicSort,
                                  CountingSort, PigeonholeSort, RadixSortLSD, RadixSortMSD,
-                                 BucketSort, IntroSort, TimSort, BlockSort>;
+                                 RadixSortInPlaceMSD, BucketSort, IntroSort, TimSort, BlockSort>;
 
 } // namespace algoat::sorting

@@ -389,18 +389,16 @@ In [`include/algoat/sorting/sorting.hpp`](include/algoat/sorting/sorting.hpp):
    >;
    ```
 
-#### Step 3: Register in Dispatcher
-In [`src/core/dispatcher.cpp`](src/core/dispatcher.cpp):
-1. Add the include:
-   ```cpp
-   #include "algoat/sorting/my_new_sort.hpp"
-   ```
-2. Register the algorithm factory inside `Dispatcher::Dispatcher()`:
-   ```cpp
-   sort_registry_.register_algo("mynewsort", []() -> sorting::SortVariant {
-       return sorting::MyNewSort{};
-   });
-   ```
+#### Step 3: Register the Algorithm
+At the bottom of your header file (outside the namespace), register your algorithm with the decentralized factory:
+
+```cpp
+// include/algoat/sorting/my_new_sort.hpp
+// ... algorithm implementation ...
+} // namespace algoat::sorting
+
+ALGOAT_REGISTER_ALGORITHM("sorting", "mynewsort", ::algoat::sorting::MyNewSort)
+```
 
 #### Step 4: Add Unit Tests
 Create [`tests/sorting/test_my_new_sort.cpp`](tests/sorting/):

@@ -63,6 +63,7 @@ DECLARE_SORT_BENCHMARK(IntroSort)
 DECLARE_SORT_BENCHMARK(BlockSort)
 DECLARE_SORT_BENCHMARK(RadixSortLSD)
 DECLARE_SORT_BENCHMARK(RadixSortMSD)
+DECLARE_SORT_BENCHMARK(RadixSortInPlaceMSD)
 DECLARE_SORT_BENCHMARK(CountingSort)
 DECLARE_SORT_BENCHMARK(BucketSort)
 DECLARE_SORT_BENCHMARK(ShellSort)
@@ -82,6 +83,8 @@ DECLARE_SORT_BENCHMARK(CombSort)
     BENCHMARK(BM_##Name##_Large)->RangeMultiplier(4)->Range(1 << 16, 1 << 22)->Complexity();
 
 DECLARE_LARGE_SORT_BENCHMARK(StdSort, std::sort(copy.begin(), copy.end()))
+DECLARE_LARGE_SORT_BENCHMARK(RadixSortInPlaceMSD,
+                             algoat::sorting::inplace_radix_sort(std::span{copy}))
 DECLARE_LARGE_SORT_BENCHMARK(MergeSort, algoat::sorting::MergeSort{}.sort(std::span{copy}))
 
 static void BM_MergeSort_Large_PMR(benchmark::State& state) {
