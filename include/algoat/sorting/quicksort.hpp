@@ -109,7 +109,6 @@ private:
      */
     template <typename T>
     PartitionResult partition_3way(T* arr, std::size_t low, std::size_t high) const {
-        median_of_three(arr, low, high);
         const T& pivot = arr[high];
         std::size_t lt = low;
         std::size_t i = low;
@@ -145,7 +144,9 @@ private:
         // Threshold where SIMD vectorization overhead is overcome by parallel throughput
         constexpr std::size_t SIMD_THRESHOLD = 128;
 
-        auto recurse_tail_call = [&](std::size_t left_end, std::size_t right_start) {
+        // Recurses on the smaller partition and advances the iterative loop bounds to the larger
+        // partition (tail-call elimination). Sets low == high to signal loop termination.
+        auto recurse_smaller_and_advance = [&](std::size_t left_end, std::size_t right_start) {
             std::size_t left_size = (left_end > low) ? (left_end - low) : 0;
             std::size_t right_size = (high > right_start) ? (high - right_start) : 0;
 
@@ -154,7 +155,8 @@ private:
                     quicksort_impl(arr, low, left_end - 1);
                 }
                 if (right_size == 0) {
-                    return false; // Break loop
+                    low = high; // sentinel: terminate loop
+                    return;
                 }
                 low = right_start + 1;
             } else {
@@ -162,11 +164,11 @@ private:
                     quicksort_impl(arr, right_start + 1, high);
                 }
                 if (left_size == 0 || left_end == 0) {
-                    return false; // Break loop
+                    low = high; // sentinel: terminate loop
+                    return;
                 }
                 high = left_end - 1;
             }
-            return true; // Continue loop
         };
 
         while (low < high) {
@@ -176,30 +178,32 @@ private:
                 return;
             }
 
+            median_of_three(arr, low, high);
+
             if constexpr (::algoat::simd::is_simd_supported_v<T>) {
                 if (current_size > SIMD_THRESHOLD) {
-                    median_of_three(arr, low, high);
                     const T& pivot = arr[high];
 
-                    // Proceed with SIMD partitioning only if the array is not an extreme duplicate
-                    // sequence
+                    // Proceed with SIMD partitioning only if the array sample is not an extreme
+                    // duplicate sequence (arr[low] == arr[high] == pivot means sample is identical)
                     if (arr[low] != pivot) {
-                        std::size_t lt_count =
+                        auto split_opt =
                             ::algoat::simd::partition_simd(arr + low, current_size - 1, pivot);
-                        std::size_t split_idx = low + lt_count;
 
-                        std::swap(arr[split_idx], arr[high]);
-
-                        if (!recurse_tail_call(split_idx, split_idx))
-                            break;
-                        continue;
+                        // If SIMD partition succeeded, apply split and advance;
+                        // if std::nullopt (scalar host fallback), fall through to partition_3way.
+                        if (split_opt.has_value()) {
+                            std::size_t split_idx = low + *split_opt;
+                            std::swap(arr[split_idx], arr[high]);
+                            recurse_smaller_and_advance(split_idx, split_idx);
+                            continue;
+                        }
                     }
                 }
             }
 
             auto [lt, gt] = partition_3way(arr, low, high);
-            if (!recurse_tail_call(lt, gt))
-                break;
+            recurse_smaller_and_advance(lt, gt);
         }
     }
 };
