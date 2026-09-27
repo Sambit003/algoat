@@ -337,30 +337,3 @@ def test_list_subclass_support():
 
     idx = algoat.search(cl, 4)
     assert idx == 2
-
-
-def test_hybrid_interpolation_search_numpy():
-    """Verifies hybrid interpolation search across numpy array dtypes."""
-    # Int64 with large values > 2^53
-    base = 1 << 55
-    arr_i64 = np.array([0, base, base + 1, base + 2, base + 100], dtype=np.int64)
-    assert algoat.hybrid_interpolation_search(arr_i64, base + 1) == 2
-    assert algoat.hybrid_interpolation_search(arr_i64, base + 50) is None
-    assert algoat.hybrid_interpolation_search(arr_i64, -1) is None
-
-    # Float64
-    arr_f64 = np.array([-10.5, 0.0, 3.14, 25.0, 100.2], dtype=np.float64)
-    assert algoat.hybrid_interpolation_search(arr_f64, 3.14) == 2
-    assert algoat.hybrid_interpolation_search(arr_f64, 5.0) is None
-
-    # Int32 with small size <= 16 (branchless linear scan)
-    arr_small = np.array([10, 20, 30, 40, 50], dtype=np.int32)
-    assert algoat.hybrid_interpolation_search(arr_small, 30) == 2
-    assert algoat.hybrid_interpolation_search(arr_small, 35) is None
-
-
-def test_hybrid_interpolation_search_list():
-    """Verifies hybrid interpolation search on python lists."""
-    data = [2, 4, 6, 8, 10, 12, 14, 16]
-    assert algoat.hybrid_interpolation_search(data, 10) == 4
-    assert algoat.hybrid_interpolation_search(data, 5) is None

@@ -91,7 +91,6 @@ _search_impl = _algoat_impl.search
 _search_numpy_impl = _algoat_impl.search_numpy
 _search_many_impl = _algoat_impl.search_many
 _search_many_numpy_impl = _algoat_impl.search_many_numpy
-_hybrid_interpolation_search_numpy_impl = _algoat_impl.hybrid_interpolation_search_numpy
 
 
 def search(data: Union[np.ndarray, List[Any]], target: Any) -> Optional[int]:
@@ -112,28 +111,6 @@ def search(data: Union[np.ndarray, List[Any]], target: Any) -> Optional[int]:
     elif isinstance(data, np.ndarray):
         return _search_numpy_impl(data, target)
     return _search_impl(data, target)
-
-
-def hybrid_interpolation_search(
-    data: Union[np.ndarray, List[Any]], target: Any
-) -> Optional[int]:
-    """Search for a target value using Precision-Safe Hybrid Interpolation-Binary Search (IBS).
-
-    Features 128-bit exact integer fixed-point slope calculation (zero IEEE-754 precision loss),
-    an adaptive binary contraction budget to prevent pathological clustering degradation, and a
-    branchless linear scan for leaf sub-ranges <= 16.
-
-    Args:
-        data: A sorted NumPy 1D array or sorted Python list.
-        target: The value to locate.
-
-    Returns:
-        Index of the matching element if found, or None.
-    """
-    if isinstance(data, np.ndarray):
-        return _hybrid_interpolation_search_numpy_impl(data, target)
-    arr = np.asarray(data)
-    return _hybrid_interpolation_search_numpy_impl(arr, target)
 
 
 def search_many(
@@ -158,12 +135,4 @@ def search_many(
         return _search_many_impl(list_data, list_targets)
 
 
-__all__ = [
-    "sort",
-    "sort_inplace",
-    "search",
-    "hybrid_interpolation_search",
-    "search_many",
-    "load_global_config",
-    "Rational",
-]
+__all__ = ["sort", "sort_inplace", "search", "search_many", "load_global_config", "Rational"]

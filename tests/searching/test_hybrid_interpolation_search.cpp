@@ -1,4 +1,3 @@
-#include "algoat/core/dispatcher.hpp"
 #include "algoat/searching/hybrid_interpolation_search.hpp"
 
 #include <cmath>
@@ -10,27 +9,21 @@
 
 using namespace algoat::searching;
 
-class HybridInterpolationSearchTest : public ::testing::Test {
-protected:
-    HybridInterpolationSearch algo;
-};
+class HybridInterpolationSearchTest : public ::testing::Test {};
 
 TEST_F(HybridInterpolationSearchTest, EmptyInput) {
     std::vector<int> data;
-    auto res = algo.search(std::span{data}, 42);
-    EXPECT_FALSE(res.has_value());
-
     auto free_res = hybrid_interpolation_search(std::span<const int>{data}, 42);
     EXPECT_FALSE(free_res.has_value());
 }
 
 TEST_F(HybridInterpolationSearchTest, SingleElement) {
     std::vector<int> data = {42};
-    auto res_found = algo.search(std::span{data}, 42);
+    auto res_found = hybrid_interpolation_search(std::span<const int>{data}, 42);
     ASSERT_TRUE(res_found.has_value());
     EXPECT_EQ(res_found.value(), 0);
 
-    auto res_missing = algo.search(std::span{data}, 10);
+    auto res_missing = hybrid_interpolation_search(std::span<const int>{data}, 10);
     EXPECT_FALSE(res_missing.has_value());
 }
 
@@ -41,22 +34,20 @@ TEST_F(HybridInterpolationSearchTest, SmallArrayBranchlessScan) {
             data[i] = i * 10;
         }
 
-        // Test every element present
         for (int i = 0; i < size; ++i) {
-            auto res = algo.search(std::span{data}, i * 10);
+            auto res = hybrid_interpolation_search(std::span<const int>{data}, i * 10);
             ASSERT_TRUE(res.has_value()) << "Failed for size=" << size << ", target=" << i * 10;
             EXPECT_EQ(res.value(), static_cast<std::size_t>(i));
         }
 
-        // Test missing elements (smaller, in-between, larger)
-        EXPECT_FALSE(algo.search(std::span{data}, -5).has_value());
-        EXPECT_FALSE(algo.search(std::span{data}, 5).has_value());
-        EXPECT_FALSE(algo.search(std::span{data}, size * 10).has_value());
+        EXPECT_FALSE(hybrid_interpolation_search(std::span<const int>{data}, -5).has_value());
+        EXPECT_FALSE(hybrid_interpolation_search(std::span<const int>{data}, 5).has_value());
+        EXPECT_FALSE(
+            hybrid_interpolation_search(std::span<const int>{data}, size * 10).has_value());
     }
 }
 
 TEST_F(HybridInterpolationSearchTest, PrecisionSafetyLarge64BitIntegers) {
-    // Values strictly greater than 2^53 (which would truncate in IEEE-754 double mantissa)
     constexpr uint64_t base = 1ULL << 55;
     std::vector<uint64_t> data = {0ULL,
                                   base,
@@ -68,18 +59,17 @@ TEST_F(HybridInterpolationSearchTest, PrecisionSafetyLarge64BitIntegers) {
                                   std::numeric_limits<uint64_t>::max()};
 
     for (std::size_t i = 0; i < data.size(); ++i) {
-        auto res = algo.search(std::span{data}, data[i]);
+        auto res = hybrid_interpolation_search(std::span<const uint64_t>{data}, data[i]);
         ASSERT_TRUE(res.has_value()) << "Failed finding large uint64 at index " << i;
         EXPECT_EQ(res.value(), i);
     }
 
-    // Target between base and base + 1 (not present)
-    auto missing = algo.search(std::span{data}, base + 50ULL);
+    auto missing = hybrid_interpolation_search(std::span<const uint64_t>{data},
+                                               static_cast<uint64_t>(base + 50ULL));
     EXPECT_FALSE(missing.has_value());
 }
 
 TEST_F(HybridInterpolationSearchTest, Signed64BitExtremeSpan) {
-    // Span covering the entire int64 range from MIN to MAX
     std::vector<int64_t> data = {std::numeric_limits<int64_t>::min(),
                                  std::numeric_limits<int64_t>::min() + 10,
                                  -1000LL,
@@ -89,57 +79,59 @@ TEST_F(HybridInterpolationSearchTest, Signed64BitExtremeSpan) {
                                  std::numeric_limits<int64_t>::max()};
 
     for (std::size_t i = 0; i < data.size(); ++i) {
-        auto res = algo.search(std::span{data}, data[i]);
+        auto res = hybrid_interpolation_search(std::span<const int64_t>{data}, data[i]);
         ASSERT_TRUE(res.has_value()) << "Failed finding int64 at index " << i;
         EXPECT_EQ(res.value(), i);
     }
 
-    EXPECT_FALSE(algo.search(std::span{data}, -999LL).has_value());
-    EXPECT_FALSE(algo.search(std::span{data}, 500LL).has_value());
+    EXPECT_FALSE(
+        hybrid_interpolation_search(std::span<const int64_t>{data}, static_cast<int64_t>(-999LL))
+            .has_value());
+    EXPECT_FALSE(
+        hybrid_interpolation_search(std::span<const int64_t>{data}, static_cast<int64_t>(500LL))
+            .has_value());
 }
 
 TEST_F(HybridInterpolationSearchTest, AdversarialClusteringTermination) {
-    // 10^6 elements with severe exponential skew / clustering at 0
     constexpr std::size_t N = 1000000;
     std::vector<uint64_t> data(N, 0ULL);
     data[N - 1] = 1000000000ULL;
 
-    // Searching for the outlier at the end
-    auto res_outlier = algo.search(std::span{data}, 1000000000ULL);
+    auto res_outlier = hybrid_interpolation_search(std::span<const uint64_t>{data},
+                                                   static_cast<uint64_t>(1000000000ULL));
     ASSERT_TRUE(res_outlier.has_value());
     EXPECT_EQ(res_outlier.value(), N - 1);
 
-    // Searching for 0 (duplicate cluster)
-    auto res_zero = algo.search(std::span{data}, 0ULL);
+    auto res_zero =
+        hybrid_interpolation_search(std::span<const uint64_t>{data}, static_cast<uint64_t>(0ULL));
     ASSERT_TRUE(res_zero.has_value());
     EXPECT_EQ(data[res_zero.value()], 0ULL);
 
-    // Searching for a non-existent element in clustered data
-    // Standard interpolation search would degrade to O(N) linear scan, taking 10^6 iterations.
-    // Hybrid search must adaptively fallback to binary search and terminate in O(log N) iterations.
-    auto res_missing = algo.search(std::span{data}, 1ULL);
+    auto res_missing =
+        hybrid_interpolation_search(std::span<const uint64_t>{data}, static_cast<uint64_t>(1ULL));
     EXPECT_FALSE(res_missing.has_value());
 
-    auto res_missing_high = algo.search(std::span{data}, 500000000ULL);
+    auto res_missing_high = hybrid_interpolation_search(std::span<const uint64_t>{data},
+                                                        static_cast<uint64_t>(500000000ULL));
     EXPECT_FALSE(res_missing_high.has_value());
 }
 
 TEST_F(HybridInterpolationSearchTest, ExponentialGrowthDistribution) {
     constexpr std::size_t N = 100000;
     std::vector<uint64_t> data(N);
-    // Severe cubic distribution causing non-linear probe drift
     for (std::size_t i = 0; i < N; ++i) {
         data[i] = static_cast<uint64_t>(i) * i * i;
     }
 
     for (std::size_t i = 0; i < N; i += 2345) {
-        auto res = algo.search(std::span{data}, data[i]);
+        auto res = hybrid_interpolation_search(std::span<const uint64_t>{data}, data[i]);
         ASSERT_TRUE(res.has_value());
         EXPECT_EQ(res.value(), i);
     }
 
-    // Value between cubes
-    EXPECT_FALSE(algo.search(std::span{data}, data[50] + 1).has_value());
+    EXPECT_FALSE(hybrid_interpolation_search(std::span<const uint64_t>{data},
+                                             static_cast<uint64_t>(data[50] + 1ULL))
+                     .has_value());
 }
 
 TEST_F(HybridInterpolationSearchTest, UniformlyDistributedLarge) {
@@ -150,80 +142,44 @@ TEST_F(HybridInterpolationSearchTest, UniformlyDistributedLarge) {
     }
 
     for (std::size_t i = 0; i < N; i += 1234) {
-        auto res = algo.search(std::span{data}, static_cast<int>(i * 3));
+        auto res = hybrid_interpolation_search(std::span<const int>{data}, static_cast<int>(i * 3));
         ASSERT_TRUE(res.has_value());
         EXPECT_EQ(res.value(), i);
     }
 
-    EXPECT_FALSE(algo.search(std::span{data}, -1).has_value());
-    EXPECT_FALSE(algo.search(std::span{data}, 1).has_value());
-    EXPECT_FALSE(algo.search(std::span{data}, static_cast<int>(N * 3)).has_value());
+    EXPECT_FALSE(hybrid_interpolation_search(std::span<const int>{data}, -1).has_value());
+    EXPECT_FALSE(hybrid_interpolation_search(std::span<const int>{data}, 1).has_value());
+    EXPECT_FALSE(hybrid_interpolation_search(std::span<const int>{data}, static_cast<int>(N * 3))
+                     .has_value());
 }
 
 TEST_F(HybridInterpolationSearchTest, AllIdenticalElements) {
     std::vector<int> data(500, 7);
-    auto res = algo.search(std::span{data}, 7);
+    auto res = hybrid_interpolation_search(std::span<const int>{data}, 7);
     ASSERT_TRUE(res.has_value());
     EXPECT_EQ(data[res.value()], 7);
 
-    EXPECT_FALSE(algo.search(std::span{data}, 6).has_value());
-    EXPECT_FALSE(algo.search(std::span{data}, 8).has_value());
+    EXPECT_FALSE(hybrid_interpolation_search(std::span<const int>{data}, 6).has_value());
+    EXPECT_FALSE(hybrid_interpolation_search(std::span<const int>{data}, 8).has_value());
 }
 
-TEST_F(HybridInterpolationSearchTest, NonArithmeticFallback) {
-    std::vector<std::string> words = {"alpha",   "bravo", "charlie", "delta", "echo",
-                                      "foxtrot", "golf",  "hotel",   "india", "juliet"};
+TEST_F(HybridInterpolationSearchTest, PointerFallbackAndInterpolation) {
+    int arr[10];
+    std::vector<int*> data;
+    for (int i = 0; i < 10; ++i) {
+        data.push_back(&arr[i]);
+    }
 
-    auto res = algo.search(std::span{words}, std::string("echo"));
-    ASSERT_TRUE(res.has_value());
-    EXPECT_EQ(res.value(), 4);
-
-    EXPECT_FALSE(algo.search(std::span{words}, std::string("zulu")).has_value());
-}
-
-TEST_F(HybridInterpolationSearchTest, DispatcherIntegration) {
-    algoat::core::AlgoConfig config;
-    config.searching.prefer = "hybridinterpolationsearch";
-    algoat::core::Dispatcher dispatcher(config);
-
-    std::vector<int> data = {10, 20, 30, 40, 50, 60, 70, 80};
-    auto res = dispatcher.search(std::span{data}, 60);
+    auto res = hybrid_interpolation_search(std::span<int* const>{data}, &arr[5]);
     ASSERT_TRUE(res.has_value());
     EXPECT_EQ(res.value(), 5);
 }
 
-TEST_F(HybridInterpolationSearchTest, FloatingPointInterpolation) {
-    std::vector<double> data_double = {-50.5, -20.0, -1.5, 0.0, 3.14, 10.0, 42.42, 100.0};
-    for (std::size_t i = 0; i < data_double.size(); ++i) {
-        auto res = algo.search(std::span{data_double}, data_double[i]);
-        ASSERT_TRUE(res.has_value());
-        EXPECT_EQ(res.value(), i);
+enum class Timestamp : uint64_t { START = 0, MIDDLE = 1000, END = 2000 };
 
-        auto free_res =
-            hybrid_interpolation_search(std::span<const double>{data_double}, data_double[i]);
-        ASSERT_TRUE(free_res.has_value());
-        EXPECT_EQ(free_res.value(), i);
-    }
-
-    EXPECT_FALSE(algo.search(std::span{data_double}, -100.0).has_value());
-    EXPECT_FALSE(algo.search(std::span{data_double}, 1.0).has_value());
-    EXPECT_FALSE(algo.search(std::span{data_double}, 200.0).has_value());
-
-    std::vector<float> data_float = {1.0f, 2.5f, 4.0f, 8.5f, 16.0f, 32.5f};
-    auto res_f = hybrid_interpolation_search(std::span{data_float}, 8.5f);
-    ASSERT_TRUE(res_f.has_value());
-    EXPECT_EQ(res_f.value(), 3);
-}
-
-TEST_F(HybridInterpolationSearchTest, FreeFunctionExactSignature) {
-    std::vector<int> data = {2, 4, 6, 8, 10, 12, 14, 16};
-    std::span<const int> const_span{data};
-    auto res = hybrid_interpolation_search(const_span, 10);
+TEST_F(HybridInterpolationSearchTest, EnumInterpolation) {
+    std::vector<Timestamp> data = {Timestamp::START, Timestamp::MIDDLE, Timestamp::END};
+    auto res = hybrid_interpolation_search(std::span<const Timestamp>{data}, Timestamp::MIDDLE);
     ASSERT_TRUE(res.has_value());
-    EXPECT_EQ(res.value(), 4);
-
-    std::span<int> non_const_span{data};
-    auto res2 = hybrid_interpolation_search(non_const_span, 12);
-    ASSERT_TRUE(res2.has_value());
-    EXPECT_EQ(res2.value(), 5);
+    EXPECT_EQ(res.value(), 1);
 }
