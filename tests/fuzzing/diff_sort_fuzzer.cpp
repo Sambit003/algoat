@@ -21,7 +21,7 @@ struct StableItem {
 };
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-    if (size % sizeof(int) != 0)
+    if (size == 0 || size % sizeof(int) != 0)
         return 0;
     size_t num_elements = size / sizeof(int);
 
