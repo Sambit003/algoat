@@ -191,3 +191,39 @@ TEST_F(HybridInterpolationSearchTest, DispatcherIntegration) {
     ASSERT_TRUE(res.has_value());
     EXPECT_EQ(res.value(), 5);
 }
+
+TEST_F(HybridInterpolationSearchTest, FloatingPointInterpolation) {
+    std::vector<double> data_double = {-50.5, -20.0, -1.5, 0.0, 3.14, 10.0, 42.42, 100.0};
+    for (std::size_t i = 0; i < data_double.size(); ++i) {
+        auto res = algo.search(std::span{data_double}, data_double[i]);
+        ASSERT_TRUE(res.has_value());
+        EXPECT_EQ(res.value(), i);
+
+        auto free_res =
+            hybrid_interpolation_search(std::span<const double>{data_double}, data_double[i]);
+        ASSERT_TRUE(free_res.has_value());
+        EXPECT_EQ(free_res.value(), i);
+    }
+
+    EXPECT_FALSE(algo.search(std::span{data_double}, -100.0).has_value());
+    EXPECT_FALSE(algo.search(std::span{data_double}, 1.0).has_value());
+    EXPECT_FALSE(algo.search(std::span{data_double}, 200.0).has_value());
+
+    std::vector<float> data_float = {1.0f, 2.5f, 4.0f, 8.5f, 16.0f, 32.5f};
+    auto res_f = hybrid_interpolation_search(std::span{data_float}, 8.5f);
+    ASSERT_TRUE(res_f.has_value());
+    EXPECT_EQ(res_f.value(), 3);
+}
+
+TEST_F(HybridInterpolationSearchTest, FreeFunctionExactSignature) {
+    std::vector<int> data = {2, 4, 6, 8, 10, 12, 14, 16};
+    std::span<const int> const_span{data};
+    auto res = hybrid_interpolation_search(const_span, 10);
+    ASSERT_TRUE(res.has_value());
+    EXPECT_EQ(res.value(), 4);
+
+    std::span<int> non_const_span{data};
+    auto res2 = hybrid_interpolation_search(non_const_span, 12);
+    ASSERT_TRUE(res2.has_value());
+    EXPECT_EQ(res2.value(), 5);
+}

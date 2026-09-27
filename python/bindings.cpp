@@ -12,6 +12,7 @@
 
 #include <algoat/algoat.hpp>
 #include <algoat/numerics/float16_sort.hpp>
+#include <algoat/searching/hybrid_interpolation_search.hpp>
 #include <algoat/sorting/boolean_sort.hpp>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
@@ -307,6 +308,14 @@ std::optional<std::size_t> search_ndarray_typed(nb::ndarray<T, nb::ndim<1>, nb::
 }
 
 template <typename T>
+std::optional<std::size_t>
+hybrid_interpolation_search_ndarray_typed(nb::ndarray<T, nb::ndim<1>, nb::c_contig> array,
+                                          T target) {
+    return algoat::searching::hybrid_interpolation_search<T>(
+        std::span<const T>(array.data(), array.size()), target);
+}
+
+template <typename T>
 std::vector<std::optional<std::size_t>>
 search_many_ndarray_typed(nb::ndarray<T, nb::ndim<1>, nb::c_contig> array,
                           nb::ndarray<T, nb::ndim<1>, nb::c_contig> targets) {
@@ -341,8 +350,7 @@ void sort_ndarray_bool_buffer(nb::ndarray<uint8_t, nb::ndim<1>, nb::c_contig> ar
     algoat::sorting::sort_boolean(std::span<uint8_t>(array.data(), array.size()));
 }
 
-template <typename T>
-void sort_ndarray(nb::ndarray<T, nb::ndim<1>, nb::c_contig> array) {
+template <typename T> void sort_ndarray(nb::ndarray<T, nb::ndim<1>, nb::c_contig> array) {
     algoat::sort(std::span<T>(array.data(), array.size()));
 }
 
@@ -421,6 +429,37 @@ NB_MODULE(_algoat_impl, m) {
           nb::arg("target"), nb::call_guard<nb::gil_scoped_release>());
     m.def("search_numpy", &search_ndarray_typed<double>, nb::arg("array").noconvert(),
           nb::arg("target"), nb::call_guard<nb::gil_scoped_release>());
+
+    m.def("hybrid_interpolation_search_numpy", &hybrid_interpolation_search_ndarray_typed<int8_t>,
+          nb::arg("array").noconvert(), nb::arg("target"),
+          nb::call_guard<nb::gil_scoped_release>());
+    m.def("hybrid_interpolation_search_numpy", &hybrid_interpolation_search_ndarray_typed<uint8_t>,
+          nb::arg("array").noconvert(), nb::arg("target"),
+          nb::call_guard<nb::gil_scoped_release>());
+    m.def("hybrid_interpolation_search_numpy", &hybrid_interpolation_search_ndarray_typed<int16_t>,
+          nb::arg("array").noconvert(), nb::arg("target"),
+          nb::call_guard<nb::gil_scoped_release>());
+    m.def("hybrid_interpolation_search_numpy", &hybrid_interpolation_search_ndarray_typed<uint16_t>,
+          nb::arg("array").noconvert(), nb::arg("target"),
+          nb::call_guard<nb::gil_scoped_release>());
+    m.def("hybrid_interpolation_search_numpy", &hybrid_interpolation_search_ndarray_typed<int32_t>,
+          nb::arg("array").noconvert(), nb::arg("target"),
+          nb::call_guard<nb::gil_scoped_release>());
+    m.def("hybrid_interpolation_search_numpy", &hybrid_interpolation_search_ndarray_typed<uint32_t>,
+          nb::arg("array").noconvert(), nb::arg("target"),
+          nb::call_guard<nb::gil_scoped_release>());
+    m.def("hybrid_interpolation_search_numpy", &hybrid_interpolation_search_ndarray_typed<int64_t>,
+          nb::arg("array").noconvert(), nb::arg("target"),
+          nb::call_guard<nb::gil_scoped_release>());
+    m.def("hybrid_interpolation_search_numpy", &hybrid_interpolation_search_ndarray_typed<uint64_t>,
+          nb::arg("array").noconvert(), nb::arg("target"),
+          nb::call_guard<nb::gil_scoped_release>());
+    m.def("hybrid_interpolation_search_numpy", &hybrid_interpolation_search_ndarray_typed<float>,
+          nb::arg("array").noconvert(), nb::arg("target"),
+          nb::call_guard<nb::gil_scoped_release>());
+    m.def("hybrid_interpolation_search_numpy", &hybrid_interpolation_search_ndarray_typed<double>,
+          nb::arg("array").noconvert(), nb::arg("target"),
+          nb::call_guard<nb::gil_scoped_release>());
 
     m.def("search_many_numpy", &search_many_ndarray_typed<int8_t>, nb::arg("array").noconvert(),
           nb::arg("targets").noconvert(), nb::call_guard<nb::gil_scoped_release>());
