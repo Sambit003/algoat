@@ -15,3 +15,5 @@ target_link_libraries(bench_profiler PRIVATE algoat benchmark::benchmark benchma
 add_executable(bench_eytzinger_search bench_eytzinger_search.cpp)
 target_link_libraries(bench_eytzinger_search PRIVATE algoat benchmark::benchmark)
 
+add_executable(bench_config_dispatch bench_config_dispatch.cpp)
+target_link_libraries(bench_config_dispatch PRIVATE algoat benchmark::benchmark)

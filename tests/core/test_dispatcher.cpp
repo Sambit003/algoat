@@ -1,4 +1,5 @@
 #include "algoat/algoat.hpp"
+#include "algoat/core/config_manager.hpp"
 #include "algoat/core/dispatcher.hpp"
 
 #include <array>

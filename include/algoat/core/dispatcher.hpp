@@ -59,15 +59,15 @@ class Dispatcher {
     Registry<sorting::SortVariant> sort_registry_; ///< Registry of available sorting algorithms.
     Registry<searching::SearchVariant>
         search_registry_; ///< Registry of available searching algorithms.
-    AlgoConfig& config_;  ///< Configuration reference; callers must hold the appropriate external
-                          ///< lock when accessing it.
+
+    const AlgoConfig& config_; ///< Configuration reference injected for dispatch
+
 public:
     /**
-     * @brief Constructs a Dispatcher with the given configuration, registering default algorithms.
-     *
+     * @brief Constructs a Dispatcher, registering default algorithms.
      * @param config Configuration options specifying algorithm preferences and fallbacks.
      */
-    explicit Dispatcher(AlgoConfig& config);
+    explicit Dispatcher(const AlgoConfig& config);
 
     /**
      * @brief Sorts a contiguous span using compile-time static dispatch or dynamic heuristics.
@@ -132,19 +132,17 @@ public:
     }
 
     /**
-     * @brief Searches for a target value in a span using dynamic heuristic selection.
+     * @brief Searches for a target value using heuristic algorithm selection.
      *
-     * Dispatches directly to @c AdaptiveBinarySearch for safe sub-linear search unless
-     * overridden by user configuration.
+     * Depending on whether the underlying data is sorted or not, dispatches to the most
+     * appropriate searching algorithm.
      *
      * @tparam T The element type in the span.
      *
-     * @param data The contiguous span of elements to search.
-     *
-     * @param target The value to search for.
-     * @return <tt>std::optional<std::size_t></tt> Found index or @c std::nullopt.
-     * @throws std::runtime_error If the selected search algorithm and its fallback are
-     * unregistered.
+     * @param data Contiguous span of elements to search.
+     * @param target The value to locate.
+     * @return <tt>std::optional<std::size_t></tt> Index of the matching element if found.
+     * @throws std::runtime_error If algorithms are unavailable.
      */
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
@@ -175,6 +173,15 @@ public:
             algo_variant);
     }
 
+    /**
+     * @brief Searches for a target value using heuristic algorithm selection (mutable span).
+     *
+     * @tparam T The element type in the span.
+     *
+     * @param data Contiguous span of elements to search.
+     * @param target The value to locate.
+     * @return <tt>std::optional<std::size_t></tt> Index of the matching element if found.
+     */
     template <typename T>
     std::optional<std::size_t> search(std::span<T> data, const T& target) const {
         return search(std::span<const T>{data.data(), data.size()}, target);

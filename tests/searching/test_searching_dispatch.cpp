@@ -1,3 +1,4 @@
+#include "algoat/core/config_manager.hpp"
 #include "algoat/core/dispatcher.hpp"
 
 #include <gtest/gtest.h>
