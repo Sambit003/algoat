@@ -9,7 +9,6 @@
 #pragma once
 
 #include "algoat/core/config.hpp"
-#include "algoat/core/config_manager.hpp"
 #include "algoat/core/registry.hpp"
 #include "algoat/core/traits.hpp"
 #include "algoat/numerics/morton.hpp"
@@ -36,50 +35,21 @@ concept CanSearchData = requires(Algo a, std::span<const T> arr, const T& t) { a
 /**
  * @class Dispatcher
  * @brief Central controller for dynamic algorithm selection and execution.
- *
- * Owns algorithm registries for sorting and searching, and implements the heuristic
- * decision tree:
- *
- *
- * @par Sorting Heuristics (@c "auto"):
- * - <b>Small Arrays</b> (<tt>N < small_threshold</tt>, default 32): @c InsertionSort
- * (<tt>O(N^2)</tt>, zero overhead).
- * - <b>Nearly Sorted</b> (sortedness ratio <tt>>= 0.90</tt> or <tt><= 0.10</tt>): @c TimSort
- * (<tt>O(N)</tt> best case on partially ordered data).
- * - <b>Large Integral Arrays</b> (<tt>N > 10,000</tt> & integral type): @c RadixSortLSD (<tt>O(N *
- * k)</tt> linear time).
- * - <b>General / Default:</b> @c IntroSort (<tt>O(N log N)</tt> hybrid
- * quicksort/heapsort/insertionsort).
- *
- *
- * @par Searching Heuristics (@c "auto"):
- * - <b>Default:</b> @c AdaptiveBinarySearch (dynamic <tt>O(log N)</tt> with automatic
- * invariant verification and <tt>O(N)</tt> fallback if monotonicity violations are detected).
  */
 class Dispatcher {
     Registry<sorting::SortVariant> sort_registry_; ///< Registry of available sorting algorithms.
     Registry<searching::SearchVariant>
         search_registry_; ///< Registry of available searching algorithms.
 
+    const AlgoConfig& config_; ///< Configuration reference injected for dispatch
+
 public:
     /**
      * @brief Constructs a Dispatcher, registering default algorithms.
+     * @param config Configuration options specifying algorithm preferences and fallbacks.
      */
-    Dispatcher();
+    explicit Dispatcher(const AlgoConfig& config);
 
-    /**
-     * @brief Sorts a contiguous span using compile-time static dispatch or dynamic heuristics.
-     *
-     * Statically routes domain-specific types (e.g. @c bool via @c sort_boolean, @c std::complex
-     * via @c sort_complex_morton) at compile time without runtime profiling overhead.
-     * For general types, profiles @c data via <tt>analyze()</tt> in O(n) time, selects an optimal
-     * algorithm, checks the registry (with fallback on missing algorithms), and executes the sort.
-     *
-     * @tparam T The element type in the span.
-     *
-     * @param data The contiguous span of elements to sort in-place.
-     * @throws std::runtime_error If the selected algorithm and its fallback are unregistered.
-     */
     template <typename T> void sort(std::span<T> data) const {
         if constexpr (IsBoolean<T>) {
             sorting::sort_boolean(data);
@@ -87,11 +57,10 @@ public:
             numerics::sort_complex_morton(data);
         } else {
             DataTraits traits = analyze(data);
-            auto active_config = ConfigManager::instance().active_config();
-            std::string algo_name = active_config->sorting.prefer.value_or("auto");
+            std::string algo_name = config_.sorting.prefer.value_or("auto");
 
             if (algo_name == "auto" || algo_name.empty()) {
-                if (traits.size < active_config->sorting.small_threshold.value_or(32)) {
+                if (traits.size < config_.sorting.small_threshold.value_or(32)) {
                     algo_name = "insertionsort";
                 } else if (traits.sortedness_ratio >= 0.9 || traits.sortedness_ratio <= 0.1) {
                     algo_name = "timsort";
@@ -109,7 +78,7 @@ public:
             }
 
             if (!sort_registry_.has(algo_name)) {
-                algo_name = active_config->sorting.fallback.value_or("heapsort");
+                algo_name = config_.sorting.fallback.value_or("heapsort");
                 if (!sort_registry_.has(algo_name)) {
                     throw std::runtime_error(
                         "Requested sorting algorithm not registered and fallback missing");
@@ -130,32 +99,16 @@ public:
         }
     }
 
-    /**
-     * @brief Searches for a target value in a span using dynamic heuristic selection.
-     *
-     * Dispatches directly to @c AdaptiveBinarySearch for safe sub-linear search unless
-     * overridden by user configuration.
-     *
-     * @tparam T The element type in the span.
-     *
-     * @param data The contiguous span of elements to search.
-     *
-     * @param target The value to search for.
-     * @return <tt>std::optional<std::size_t></tt> Found index or @c std::nullopt.
-     * @throws std::runtime_error If the selected search algorithm and its fallback are
-     * unregistered.
-     */
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
-        auto active_config = ConfigManager::instance().active_config();
-        std::string algo_name = active_config->searching.prefer.value_or("auto");
+        std::string algo_name = config_.searching.prefer.value_or("auto");
 
         if (algo_name == "auto" || algo_name.empty()) {
             algo_name = "adaptivebinarysearch";
         }
 
         if (!search_registry_.has(algo_name)) {
-            algo_name = active_config->searching.fallback.value_or("linearsearch");
+            algo_name = config_.searching.fallback.value_or("linearsearch");
             if (!search_registry_.has(algo_name)) {
                 throw std::runtime_error(
                     "Requested searching algorithm not registered and fallback missing");

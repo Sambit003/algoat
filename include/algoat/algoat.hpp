@@ -33,11 +33,6 @@ inline std::shared_ptr<const core::AlgoConfig> get_global_config() {
     return core::ConfigManager::instance().active_config();
 }
 
-inline core::Dispatcher& get_dispatcher() {
-    static core::Dispatcher dispatcher;
-    return dispatcher;
-}
-
 /**
  * @brief Loads algorithm configuration overrides from a JSON file into the global config.
  *
@@ -62,7 +57,9 @@ inline void load_global_config(const std::string& filepath) {
  * @param data Contiguous span of elements to sort in-place.
  */
 template <typename T> void sort(std::span<T> data) {
-    get_dispatcher().sort(data);
+    auto config_ptr = get_global_config();
+    core::Dispatcher dispatcher(*config_ptr);
+    dispatcher.sort(data);
 }
 
 /**
@@ -80,7 +77,9 @@ template <typename T> void sort(std::span<T> data) {
  * std::nullopt.
  */
 template <typename T> std::optional<std::size_t> search(std::span<const T> data, const T& target) {
-    return get_dispatcher().search(data, target);
+    auto config_ptr = get_global_config();
+    core::Dispatcher dispatcher(*config_ptr);
+    return dispatcher.search(data, target);
 }
 
 template <typename T> std::optional<std::size_t> search(std::span<T> data, const T& target) {
