@@ -1,52 +1,42 @@
-#include "algoat/searching/binary_search.hpp"
-#include "algoat/searching/interpolation_search.hpp"
-#include "algoat/searching/linear_search.hpp"
 #include "algoat/searching/searching.hpp"
 
 #include <algorithm>
 #include <gtest/gtest.h>
 #include <rapidcheck.h>
-#include <rapidcheck/gtest.h>
 #include <vector>
 
 using namespace algoat::searching;
 
-template <typename Algo> void verify_searching(Algo& algo, std::vector<int> data, int target) {
-    if (algo.requires_sorted()) {
-        std::sort(data.begin(), data.end());
-    }
+template <typename Algo> class SearchingPBT : public ::testing::Test {
+protected:
+    Algo algo;
+};
 
-    auto result = algo.search(std::span{data}, target);
+using SearchAlgos = ::testing::Types<LinearSearch, BinarySearch, InterpolationSearch,
+                                     AdaptiveBinarySearch, HybridInterpolationSearch>;
 
-    if (result.has_value()) {
-        RC_ASSERT(data[result.value()] == target);
-    } else {
-        bool found = false;
-        for (auto x : data) {
-            if (x == target)
-                found = true;
+TYPED_TEST_SUITE(SearchingPBT, SearchAlgos);
+
+TYPED_TEST(SearchingPBT, Invariants) {
+    rc::check("Searching invariants", [this](std::vector<int> data, int target) {
+        if (this->algo.requires_sorted()) {
+            std::sort(data.begin(), data.end());
+            auto it = std::unique(data.begin(), data.end());
+            data.erase(it, data.end()); // Interpolation search sometimes prefers unique or uniform,
+                                        // but standard sorted is fine.
         }
-        RC_ASSERT(!found);
-    }
-}
 
-// Linear Search
-RC_GTEST_PROP(SearchingInvariantsPBT, LinearSearch_Invariants,
-              (std::vector<int> data, int target)) {
-    LinearSearch algo;
-    verify_searching(algo, data, target);
-}
+        auto result = this->algo.search(std::span<const int>{data}, target);
 
-// Binary Search
-RC_GTEST_PROP(SearchingInvariantsPBT, BinarySearch_Invariants,
-              (std::vector<int> data, int target)) {
-    BinarySearch algo;
-    verify_searching(algo, data, target);
-}
-
-// Interpolation Search
-RC_GTEST_PROP(SearchingInvariantsPBT, InterpolationSearch_Invariants,
-              (std::vector<int> data, int target)) {
-    InterpolationSearch algo;
-    verify_searching(algo, data, target);
+        if (result.has_value()) {
+            RC_ASSERT(data[result.value()] == target);
+        } else {
+            bool found = false;
+            for (auto x : data) {
+                if (x == target)
+                    found = true;
+            }
+            RC_ASSERT(!found);
+        }
+    });
 }
