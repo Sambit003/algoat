@@ -3,16 +3,84 @@
 #include "algoat/core/config.hpp"
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
-#include <mutex>
 #include <vector>
 
 namespace algoat::core {
 
 class ConfigManager {
+    static constexpr size_t max_threads = 128;
+
+    struct alignas(64) ThreadState {
+        std::shared_ptr<void> dummy;
+        ThreadState() : dummy(std::make_shared<int>(0)) {}
+    };
+
+    struct RetiredNode {
+        const AlgoConfig* ptr;
+        uint64_t active_threads_mask[2];
+        RetiredNode* next;
+    };
+
     std::atomic<const AlgoConfig*> active_config_;
-    std::mutex garbage_mutex_;
-    std::vector<std::unique_ptr<const AlgoConfig>> garbage_;
+    std::atomic<RetiredNode*> retired_list_{nullptr};
+    std::atomic<int> thread_id_counter_{0};
+    ThreadState thread_states_[max_threads];
+
+    int get_thread_id() {
+        thread_local int id = -1;
+        if (id == -1) {
+            id = thread_id_counter_.fetch_add(1, std::memory_order_relaxed);
+            if (id >= (int)max_threads) {
+                std::terminate(); // Thread capacity exceeded
+            }
+        }
+        return id;
+    }
+
+    void reclaim() {
+        uint64_t quiescent_mask[2] = {0, 0};
+
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+
+        for (size_t i = 0; i < max_threads; ++i) {
+            if (thread_states_[i].dummy.use_count() == 1) {
+                quiescent_mask[i / 64] |= (1ULL << (i % 64));
+            }
+        }
+
+        RetiredNode* current = retired_list_.exchange(nullptr, std::memory_order_acquire);
+        RetiredNode* un_reclaimable = nullptr;
+
+        while (current) {
+            RetiredNode* next = current->next;
+
+            current->active_threads_mask[0] &= ~quiescent_mask[0];
+            current->active_threads_mask[1] &= ~quiescent_mask[1];
+
+            if (current->active_threads_mask[0] == 0 && current->active_threads_mask[1] == 0) {
+                delete current->ptr;
+                delete current;
+            } else {
+                current->next = un_reclaimable;
+                un_reclaimable = current;
+            }
+            current = next;
+        }
+
+        if (un_reclaimable) {
+            RetiredNode* tail = un_reclaimable;
+            while (tail->next)
+                tail = tail->next;
+
+            RetiredNode* old_head = retired_list_.load(std::memory_order_relaxed);
+            do {
+                tail->next = old_head;
+            } while (!retired_list_.compare_exchange_weak(
+                old_head, un_reclaimable, std::memory_order_release, std::memory_order_relaxed));
+        }
+    }
 
     ConfigManager() {
         active_config_.store(new AlgoConfig(), std::memory_order_relaxed);
@@ -20,6 +88,13 @@ class ConfigManager {
 
     ~ConfigManager() {
         delete active_config_.load(std::memory_order_relaxed);
+        RetiredNode* current = retired_list_.load(std::memory_order_relaxed);
+        while (current) {
+            RetiredNode* next = current->next;
+            delete current->ptr;
+            delete current;
+            current = next;
+        }
     }
 
 public:
@@ -29,22 +104,45 @@ public:
     }
 
     // Wait-free read path: zero locks, zero atomic RMW on shared cache lines.
-    // By using an aliased shared_ptr with a thread-local control block, we satisfy
-    // the API requirement of returning a shared_ptr without inducing a MESI storm.
+    // Uses Quiescent State Based Reclamation (QSBR) with thread-local aliased shared_ptrs.
     [[nodiscard]] std::shared_ptr<const AlgoConfig> active_config() const noexcept {
+        int tid = const_cast<ConfigManager*>(this)->get_thread_id();
+        ThreadState& state = const_cast<ConfigManager*>(this)->thread_states_[tid];
+
+        // Signal entry into read-side critical section by incrementing dummy refcount
+        std::shared_ptr<void> local_dummy = state.dummy;
+
+        // Ensure signal is visible before reading global pointer
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+
         const AlgoConfig* ptr = active_config_.load(std::memory_order_acquire);
-        thread_local std::shared_ptr<void> local_cb = std::make_shared<int>(0);
-        return std::shared_ptr<const AlgoConfig>(local_cb, ptr);
+
+        return std::shared_ptr<const AlgoConfig>(std::move(local_dummy), ptr);
     }
 
     // Non-blocking write path: publishes immutable snapshot
     void update_config(AlgoConfig new_config) {
-        const AlgoConfig* new_ptr = new AlgoConfig(std::move(new_config));
-        const AlgoConfig* old_ptr = active_config_.exchange(new_ptr, std::memory_order_release);
+        const AlgoConfig* old_ptr = active_config_.exchange(new AlgoConfig(std::move(new_config)),
+                                                            std::memory_order_release);
 
-        // Defer reclamation (in a real system, we'd use EBR/RCU synchronization before deleting)
-        std::lock_guard<std::mutex> lock(garbage_mutex_);
-        garbage_.emplace_back(old_ptr);
+        RetiredNode* node = new RetiredNode{old_ptr, {0, 0}, nullptr};
+
+        // Ensure new pointer is published before capturing active threads
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+
+        for (size_t i = 0; i < max_threads; ++i) {
+            if (thread_states_[i].dummy.use_count() > 1) {
+                node->active_threads_mask[i / 64] |= (1ULL << (i % 64));
+            }
+        }
+
+        RetiredNode* old_head = retired_list_.load(std::memory_order_relaxed);
+        do {
+            node->next = old_head;
+        } while (!retired_list_.compare_exchange_weak(old_head, node, std::memory_order_release,
+                                                      std::memory_order_relaxed));
+
+        reclaim();
     }
 };
 

@@ -3,8 +3,8 @@
  * @brief Main public entry point for the Algoat library.
  *
  * Provides global convenience functions for sorting and searching, as well as
- * runtime configuration management. These functions internally delegate to a
- * global @c algoat::core::Dispatcher instance.
+ * runtime configuration management. These functions construct and dispatch to a
+ * @c algoat::core::Dispatcher instance dynamically using the current active global config.
  */
 
 #pragma once
@@ -45,6 +45,10 @@ inline void load_global_config(const std::string& filepath) {
     core::ConfigManager::instance().update_config(std::move(config));
 }
 
+inline core::Dispatcher get_dispatcher() {
+    return core::Dispatcher(*get_global_config());
+}
+
 /**
  * @brief Sorts a contiguous span of data in-place using dynamic algorithm dispatch.
  *
@@ -57,9 +61,7 @@ inline void load_global_config(const std::string& filepath) {
  * @param data Contiguous span of elements to sort in-place.
  */
 template <typename T> void sort(std::span<T> data) {
-    auto config_ptr = get_global_config();
-    core::Dispatcher dispatcher(*config_ptr);
-    dispatcher.sort(data);
+    get_dispatcher().sort(data);
 }
 
 /**
@@ -77,9 +79,7 @@ template <typename T> void sort(std::span<T> data) {
  * std::nullopt.
  */
 template <typename T> std::optional<std::size_t> search(std::span<const T> data, const T& target) {
-    auto config_ptr = get_global_config();
-    core::Dispatcher dispatcher(*config_ptr);
-    return dispatcher.search(data, target);
+    return get_dispatcher().search(data, target);
 }
 
 template <typename T> std::optional<std::size_t> search(std::span<T> data, const T& target) {

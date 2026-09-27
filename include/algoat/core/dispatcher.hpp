@@ -35,6 +35,25 @@ concept CanSearchData = requires(Algo a, std::span<const T> arr, const T& t) { a
 /**
  * @class Dispatcher
  * @brief Central controller for dynamic algorithm selection and execution.
+ *
+ * Owns algorithm registries for sorting and searching, and implements the heuristic
+ * decision tree:
+ *
+ *
+ * @par Sorting Heuristics (@c "auto"):
+ * - <b>Small Arrays</b> (<tt>N < small_threshold</tt>, default 32): @c InsertionSort
+ * (<tt>O(N^2)</tt>, zero overhead).
+ * - <b>Nearly Sorted</b> (sortedness ratio <tt>>= 0.90</tt> or <tt><= 0.10</tt>): @c TimSort
+ * (<tt>O(N)</tt> best case on partially ordered data).
+ * - <b>Large Integral Arrays</b> (<tt>N > 10,000</tt> & integral type): @c RadixSortLSD (<tt>O(N *
+ * k)</tt> linear time).
+ * - <b>General / Default:</b> @c IntroSort (<tt>O(N log N)</tt> hybrid
+ * quicksort/heapsort/insertionsort).
+ *
+ *
+ * @par Searching Heuristics (@c "auto"):
+ * - <b>Default:</b> @c AdaptiveBinarySearch (dynamic <tt>O(log N)</tt> with automatic
+ * invariant verification and <tt>O(N)</tt> fallback if monotonicity violations are detected).
  */
 class Dispatcher {
     Registry<sorting::SortVariant> sort_registry_; ///< Registry of available sorting algorithms.
