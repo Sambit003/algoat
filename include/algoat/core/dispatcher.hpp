@@ -69,6 +69,19 @@ public:
      */
     explicit Dispatcher(const AlgoConfig& config);
 
+    /**
+     * @brief Sorts a contiguous span using compile-time static dispatch or dynamic heuristics.
+     *
+     * Statically routes domain-specific types (e.g. @c bool via @c sort_boolean, @c std::complex
+     * via @c sort_complex_morton) at compile time without runtime profiling overhead.
+     * For general types, profiles @c data via <tt>analyze()</tt> in O(n) time, selects an optimal
+     * algorithm, checks the registry (with fallback on missing algorithms), and executes the sort.
+     *
+     * @tparam T The element type in the span.
+     *
+     * @param data The contiguous span of elements to sort in-place.
+     * @throws std::runtime_error If the selected algorithm and its fallback are unregistered.
+     */
     template <typename T> void sort(std::span<T> data) const {
         if constexpr (IsBoolean<T>) {
             sorting::sort_boolean(data);
@@ -118,6 +131,19 @@ public:
         }
     }
 
+    /**
+     * @brief Searches for a target value using heuristic algorithm selection.
+     *
+     * Depending on whether the underlying data is sorted or not, dispatches to the most
+     * appropriate searching algorithm.
+     *
+     * @tparam T The element type in the span.
+     *
+     * @param data Contiguous span of elements to search.
+     * @param target The value to locate.
+     * @return <tt>std::optional<std::size_t></tt> Index of the matching element if found.
+     * @throws std::runtime_error If algorithms are unavailable.
+     */
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
         std::string algo_name = config_.searching.prefer.value_or("auto");
@@ -147,6 +173,15 @@ public:
             algo_variant);
     }
 
+    /**
+     * @brief Searches for a target value using heuristic algorithm selection (mutable span).
+     *
+     * @tparam T The element type in the span.
+     *
+     * @param data Contiguous span of elements to search.
+     * @param target The value to locate.
+     * @return <tt>std::optional<std::size_t></tt> Index of the matching element if found.
+     */
     template <typename T>
     std::optional<std::size_t> search(std::span<T> data, const T& target) const {
         return search(std::span<const T>{data.data(), data.size()}, target);

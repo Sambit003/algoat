@@ -14,14 +14,18 @@ class ConfigManager {
     static constexpr size_t max_threads = 8192;
 
     struct alignas(64) ThreadState {
-        std::shared_ptr<void> dummy;
-        ThreadState() : dummy(std::make_shared<int>(0)) {}
+        std::shared_ptr<void> quiescent_state_signal;
+        ThreadState() : quiescent_state_signal(std::make_shared<int>(0)) {}
     };
 
     struct RetiredNode {
         const AlgoConfig* ptr;
         std::bitset<max_threads> active_threads_mask;
         RetiredNode* next;
+
+        ~RetiredNode() {
+            delete ptr;
+        }
     };
 
     std::atomic<const AlgoConfig*> active_config_;
@@ -47,7 +51,7 @@ class ConfigManager {
 
         int current_max = thread_id_counter_.load(std::memory_order_relaxed);
         for (int i = 0; i < current_max; ++i) {
-            if (thread_states_[i].dummy.use_count() == 1) {
+            if (thread_states_[i].quiescent_state_signal.use_count() == 1) {
                 quiescent_mask.set(i);
             }
         }
@@ -62,7 +66,6 @@ class ConfigManager {
             current->active_threads_mask &= ~quiescent_mask;
 
             if (current->active_threads_mask.none()) {
-                delete current->ptr;
                 delete current;
             } else {
                 current->next = un_reclaimable;
@@ -93,7 +96,6 @@ class ConfigManager {
         RetiredNode* current = retired_list_.load(std::memory_order_relaxed);
         while (current) {
             RetiredNode* next = current->next;
-            delete current->ptr;
             delete current;
             current = next;
         }
@@ -111,15 +113,16 @@ public:
         int tid = const_cast<ConfigManager*>(this)->get_thread_id();
         ThreadState& state = const_cast<ConfigManager*>(this)->thread_states_[tid];
 
-        // Signal entry into read-side critical section by incrementing dummy refcount
-        std::shared_ptr<void> local_dummy = state.dummy;
+        // Signal entry into read-side critical section by incrementing quiescent_state_signal
+        // refcount
+        std::shared_ptr<void> local_signal = state.quiescent_state_signal;
 
         // Ensure signal is visible before reading global pointer
         std::atomic_thread_fence(std::memory_order_seq_cst);
 
         const AlgoConfig* ptr = active_config_.load(std::memory_order_acquire);
 
-        return std::shared_ptr<const AlgoConfig>(std::move(local_dummy), ptr);
+        return std::shared_ptr<const AlgoConfig>(std::move(local_signal), ptr);
     }
 
     // Non-blocking write path: publishes immutable snapshot
@@ -134,7 +137,7 @@ public:
 
         int current_max = thread_id_counter_.load(std::memory_order_relaxed);
         for (int i = 0; i < current_max; ++i) {
-            if (thread_states_[i].dummy.use_count() > 1) {
+            if (thread_states_[i].quiescent_state_signal.use_count() > 1) {
                 node->active_threads_mask.set(i);
             }
         }
