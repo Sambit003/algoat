@@ -60,25 +60,25 @@ branchless_last_mile_scan(std::span<const T> window, const T& target) noexcept {
 }
 
 /**
- * @brief Converts generic compatible types into an unsigned 128-bit integer.
+ * @brief Converts generic compatible types into an unsigned 64-bit integer.
  */
 template <typename T>
-[[nodiscard]] constexpr unsigned __int128 to_u128(const T& val) noexcept
+[[nodiscard]] constexpr std::uint64_t to_u64(const T& val) noexcept
     requires(!std::is_floating_point_v<T>) && (std::is_pointer_v<T> || std::is_enum_v<T> ||
-                                               requires { static_cast<unsigned __int128>(val); })
+                                               requires { static_cast<std::uint64_t>(val); })
 {
     if constexpr (std::is_pointer_v<T>) {
-        return static_cast<unsigned __int128>(reinterpret_cast<uintptr_t>(val));
+        return static_cast<std::uint64_t>(reinterpret_cast<uintptr_t>(val));
     } else if constexpr (std::is_enum_v<T>) {
-        return static_cast<unsigned __int128>(static_cast<std::underlying_type_t<T>>(val));
+        return static_cast<std::uint64_t>(static_cast<std::underlying_type_t<T>>(val));
     } else {
-        return static_cast<unsigned __int128>(val);
+        return static_cast<std::uint64_t>(val);
     }
 }
 
 template <typename T>
 concept interpolation_compatible = requires(const T& val) {
-    { to_u128(val) } -> std::same_as<unsigned __int128>;
+    { to_u64(val) } -> std::same_as<std::uint64_t>;
 };
 
 } // namespace detail
@@ -133,15 +133,34 @@ template <std::totally_ordered T>
 
         std::size_t pos = 0;
         if (budget > 0) {
-            // Exact 128-bit unsigned integer fixed-point slope arithmetic
-            const unsigned __int128 diff_target =
-                detail::to_u128(target) - detail::to_u128(data[low]);
-            const unsigned __int128 diff_range =
-                detail::to_u128(data[high]) - detail::to_u128(data[low]);
+            // Exact 64-bit unsigned integer fixed-point slope arithmetic for distances
+            const std::uint64_t diff_target = detail::to_u64(target) - detail::to_u64(data[low]);
+            const std::uint64_t diff_range = detail::to_u64(data[high]) - detail::to_u64(data[low]);
 
-            const unsigned __int128 span_len = static_cast<unsigned __int128>(high - low);
-            const unsigned __int128 offset = (diff_target * span_len) / diff_range;
-            pos = low + static_cast<std::size_t>(offset);
+            const std::uint64_t span_len = static_cast<std::uint64_t>(high - low);
+
+            std::size_t offset = 0;
+#if defined(__SIZEOF_INT128__)
+            // Hardware 128-bit scaling if available
+            offset = static_cast<std::size_t>(
+                (static_cast<unsigned __int128>(diff_target) * span_len) / diff_range);
+#else
+            // Fallback for MSVC / unsupported 128-bit integer environments
+            if (span_len == 0 || diff_range == 0) {
+                offset = 0;
+            } else if (diff_target <= 0xFFFFFFFFULL && span_len <= 0xFFFFFFFFULL) {
+                // Fits in 64-bit natively
+                offset = static_cast<std::size_t>((diff_target * span_len) / diff_range);
+            } else {
+                // Approximate scaling. Exact distance bounds were safely computed in 64-bit integer
+                // domain above, so edge-case floating-point mantissa truncation during subtraction
+                // is completely bypassed.
+                const double pct =
+                    static_cast<double>(diff_target) / static_cast<double>(diff_range);
+                offset = static_cast<std::size_t>(pct * static_cast<double>(span_len));
+            }
+#endif
+            pos = low + offset;
             --budget;
         } else {
             // Adaptive binary fallback pivot to guarantee O(log N) worst-case
