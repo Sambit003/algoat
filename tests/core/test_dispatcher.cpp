@@ -1,4 +1,5 @@
 #include "algoat/algoat.hpp"
+#include "algoat/core/config_manager.hpp"
 #include "algoat/core/dispatcher.hpp"
 
 #include <array>
@@ -10,7 +11,8 @@ using namespace algoat::core;
 
 TEST(DispatcherTest, SortingAutoSelectsInsertionSortForSmall) {
     AlgoConfig config;
-    Dispatcher dispatcher(config);
+    ConfigManager::instance().update_config(config);
+    Dispatcher dispatcher;
     std::vector<int> data = {5, 2, 8, 1};
     dispatcher.sort(std::span{data});
     EXPECT_EQ(data[0], 1);
@@ -20,7 +22,8 @@ TEST(DispatcherTest, SortingAutoSelectsInsertionSortForSmall) {
 TEST(DispatcherTest, SortingConfigOverride) {
     AlgoConfig config;
     config.sorting.prefer = "heapsort";
-    Dispatcher dispatcher(config);
+    ConfigManager::instance().update_config(config);
+    Dispatcher dispatcher;
     std::vector<int> data = {5, 2, 8, 1};
     dispatcher.sort(std::span{data});
     EXPECT_EQ(data[0], 1);
@@ -28,7 +31,8 @@ TEST(DispatcherTest, SortingConfigOverride) {
 
 TEST(DispatcherTest, SearchingAutoSelectsLinearForUnsorted) {
     AlgoConfig config;
-    Dispatcher dispatcher(config);
+    ConfigManager::instance().update_config(config);
+    Dispatcher dispatcher;
     std::vector<int> data = {5, 2, 8, 1};
     auto res = dispatcher.search(std::span{data}, 8);
     ASSERT_TRUE(res.has_value());
@@ -37,7 +41,8 @@ TEST(DispatcherTest, SearchingAutoSelectsLinearForUnsorted) {
 
 TEST(DispatcherTest, SearchingAutoSelectsBinaryForSorted) {
     AlgoConfig config;
-    Dispatcher dispatcher(config);
+    ConfigManager::instance().update_config(config);
+    Dispatcher dispatcher;
     std::vector<int> data = {1, 2, 5, 8};
     auto res = dispatcher.search(std::span{data}, 8);
     ASSERT_TRUE(res.has_value());
@@ -47,7 +52,8 @@ TEST(DispatcherTest, SearchingAutoSelectsBinaryForSorted) {
 TEST(DispatcherTest, SearchingConfigOverride) {
     AlgoConfig config;
     config.searching.prefer = "linearsearch";
-    Dispatcher dispatcher(config);
+    ConfigManager::instance().update_config(config);
+    Dispatcher dispatcher;
     std::vector<int> data = {1, 2, 5, 8};
     auto res = dispatcher.search(std::span{data}, 8);
     ASSERT_TRUE(res.has_value());
@@ -58,14 +64,16 @@ TEST(DispatcherTest, UnknownConfigThrowsWithNoFallback) {
     AlgoConfig config;
     config.sorting.prefer = "unknown";
     config.sorting.fallback = "unknown_fallback";
-    Dispatcher dispatcher(config);
+    ConfigManager::instance().update_config(config);
+    Dispatcher dispatcher;
     std::vector<int> data = {5, 2, 8, 1};
     EXPECT_THROW(dispatcher.sort(std::span{data}), std::runtime_error);
 }
 
 TEST(DispatcherTest, SortingDomainSpecificBool) {
     AlgoConfig config;
-    Dispatcher dispatcher(config);
+    ConfigManager::instance().update_config(config);
+    Dispatcher dispatcher;
     std::array<bool, 5> data = {true, false, true, false, false};
     dispatcher.sort(std::span<bool>{data});
     std::array<bool, 5> expected = {false, false, false, true, true};
@@ -74,7 +82,8 @@ TEST(DispatcherTest, SortingDomainSpecificBool) {
 
 TEST(DispatcherTest, SortingDomainSpecificComplex) {
     AlgoConfig config;
-    Dispatcher dispatcher(config);
+    ConfigManager::instance().update_config(config);
+    Dispatcher dispatcher;
     std::vector<std::complex<float>> data = {
         {5.0f, 1.0f}, {1.0f, 0.0f}, {2.0f, 3.0f}, {0.0f, 0.0f}};
     dispatcher.sort(std::span<std::complex<float>>{data});

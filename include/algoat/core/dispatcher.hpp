@@ -9,6 +9,7 @@
 #pragma once
 
 #include "algoat/core/config.hpp"
+#include "algoat/core/config_manager.hpp"
 #include "algoat/core/registry.hpp"
 #include "algoat/core/traits.hpp"
 #include "algoat/numerics/morton.hpp"
@@ -59,15 +60,12 @@ class Dispatcher {
     Registry<sorting::SortVariant> sort_registry_; ///< Registry of available sorting algorithms.
     Registry<searching::SearchVariant>
         search_registry_; ///< Registry of available searching algorithms.
-    AlgoConfig& config_;  ///< Configuration reference; callers must hold the appropriate external
-                          ///< lock when accessing it.
+
 public:
     /**
-     * @brief Constructs a Dispatcher with the given configuration, registering default algorithms.
-     *
-     * @param config Configuration options specifying algorithm preferences and fallbacks.
+     * @brief Constructs a Dispatcher, registering default algorithms.
      */
-    explicit Dispatcher(AlgoConfig& config);
+    Dispatcher();
 
     /**
      * @brief Sorts a contiguous span using compile-time static dispatch or dynamic heuristics.
@@ -89,10 +87,11 @@ public:
             numerics::sort_complex_morton(data);
         } else {
             DataTraits traits = analyze(data);
-            std::string algo_name = config_.sorting.prefer.value_or("auto");
+            auto active_config = ConfigManager::instance().active_config();
+            std::string algo_name = active_config->sorting.prefer.value_or("auto");
 
             if (algo_name == "auto" || algo_name.empty()) {
-                if (traits.size < config_.sorting.small_threshold.value_or(32)) {
+                if (traits.size < active_config->sorting.small_threshold.value_or(32)) {
                     algo_name = "insertionsort";
                 } else if (traits.sortedness_ratio >= 0.9 || traits.sortedness_ratio <= 0.1) {
                     algo_name = "timsort";
@@ -110,7 +109,7 @@ public:
             }
 
             if (!sort_registry_.has(algo_name)) {
-                algo_name = config_.sorting.fallback.value_or("heapsort");
+                algo_name = active_config->sorting.fallback.value_or("heapsort");
                 if (!sort_registry_.has(algo_name)) {
                     throw std::runtime_error(
                         "Requested sorting algorithm not registered and fallback missing");
@@ -148,14 +147,15 @@ public:
      */
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
-        std::string algo_name = config_.searching.prefer.value_or("auto");
+        auto active_config = ConfigManager::instance().active_config();
+        std::string algo_name = active_config->searching.prefer.value_or("auto");
 
         if (algo_name == "auto" || algo_name.empty()) {
             algo_name = "adaptivebinarysearch";
         }
 
         if (!search_registry_.has(algo_name)) {
-            algo_name = config_.searching.fallback.value_or("linearsearch");
+            algo_name = active_config->searching.fallback.value_or("linearsearch");
             if (!search_registry_.has(algo_name)) {
                 throw std::runtime_error(
                     "Requested searching algorithm not registered and fallback missing");

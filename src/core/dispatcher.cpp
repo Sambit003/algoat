@@ -7,8 +7,8 @@
 
 namespace algoat::core {
 
-Dispatcher::Dispatcher(AlgoConfig& config)
+Dispatcher::Dispatcher()
     : sort_registry_(Registry<sorting::SortVariant>::global("sorting")),
-      search_registry_(Registry<searching::SearchVariant>::global("searching")), config_(config) {}
+      search_registry_(Registry<searching::SearchVariant>::global("searching")) {}
 
 } // namespace algoat::core
