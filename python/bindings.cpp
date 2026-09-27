@@ -341,8 +341,7 @@ void sort_ndarray_bool_buffer(nb::ndarray<uint8_t, nb::ndim<1>, nb::c_contig> ar
     algoat::sorting::sort_boolean(std::span<uint8_t>(array.data(), array.size()));
 }
 
-template <typename T>
-void sort_ndarray(nb::ndarray<T, nb::ndim<1>, nb::c_contig> array) {
+template <typename T> void sort_ndarray(nb::ndarray<T, nb::ndim<1>, nb::c_contig> array) {
     algoat::sort(std::span<T>(array.data(), array.size()));
 }
 
