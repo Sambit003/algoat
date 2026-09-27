@@ -73,7 +73,7 @@ struct BlockSort {
         // Sort individual sqrt(N) blocks
         for (std::size_t i = 0; i < n; i += block_size) {
             std::size_t end = std::min(i + block_size, n);
-            std::sort(data.begin() + i, data.begin() + end);
+            std::stable_sort(data.begin() + i, data.begin() + end);
         }
 
         // Iteratively merge sorted blocks
