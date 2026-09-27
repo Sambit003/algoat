@@ -24,8 +24,8 @@ jobs:
     - name: Build Fuzzer
       run: cmake --build build --target diff_sort_fuzzer diff_search_fuzzer
 
-    - name: Run Sort Fuzzer Smoke Test (10s)
-      run: ./build/tests/diff_sort_fuzzer -runs=10000000
+    - name: Run Sort Fuzzer Smoke Test (30s)
+      run: ./build/tests/diff_sort_fuzzer -max_total_time=30
 
-    - name: Run Search Fuzzer Smoke Test (10s)
-      run: ./build/tests/diff_search_fuzzer -runs=10000000
+    - name: Run Search Fuzzer Smoke Test (30s)
+      run: ./build/tests/diff_search_fuzzer -max_total_time=30
