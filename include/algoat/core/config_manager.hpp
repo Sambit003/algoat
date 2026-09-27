@@ -3,6 +3,7 @@
 #include "algoat/core/config.hpp"
 
 #include <atomic>
+#include <bitset>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -10,7 +11,7 @@
 namespace algoat::core {
 
 class ConfigManager {
-    static constexpr size_t max_threads = 128;
+    static constexpr size_t max_threads = 8192;
 
     struct alignas(64) ThreadState {
         std::shared_ptr<void> dummy;
@@ -19,7 +20,7 @@ class ConfigManager {
 
     struct RetiredNode {
         const AlgoConfig* ptr;
-        uint64_t active_threads_mask[2];
+        std::bitset<max_threads> active_threads_mask;
         RetiredNode* next;
     };
 
@@ -40,13 +41,14 @@ class ConfigManager {
     }
 
     void reclaim() {
-        uint64_t quiescent_mask[2] = {0, 0};
+        std::bitset<max_threads> quiescent_mask;
 
         std::atomic_thread_fence(std::memory_order_seq_cst);
 
-        for (size_t i = 0; i < max_threads; ++i) {
+        int current_max = thread_id_counter_.load(std::memory_order_relaxed);
+        for (int i = 0; i < current_max; ++i) {
             if (thread_states_[i].dummy.use_count() == 1) {
-                quiescent_mask[i / 64] |= (1ULL << (i % 64));
+                quiescent_mask.set(i);
             }
         }
 
@@ -56,10 +58,10 @@ class ConfigManager {
         while (current) {
             RetiredNode* next = current->next;
 
-            current->active_threads_mask[0] &= ~quiescent_mask[0];
-            current->active_threads_mask[1] &= ~quiescent_mask[1];
+            // Clear bits for threads that have passed through a quiescent state
+            current->active_threads_mask &= ~quiescent_mask;
 
-            if (current->active_threads_mask[0] == 0 && current->active_threads_mask[1] == 0) {
+            if (current->active_threads_mask.none()) {
                 delete current->ptr;
                 delete current;
             } else {
@@ -125,14 +127,15 @@ public:
         const AlgoConfig* old_ptr = active_config_.exchange(new AlgoConfig(std::move(new_config)),
                                                             std::memory_order_release);
 
-        RetiredNode* node = new RetiredNode{old_ptr, {0, 0}, nullptr};
+        RetiredNode* node = new RetiredNode{old_ptr, std::bitset<max_threads>(), nullptr};
 
         // Ensure new pointer is published before capturing active threads
         std::atomic_thread_fence(std::memory_order_seq_cst);
 
-        for (size_t i = 0; i < max_threads; ++i) {
+        int current_max = thread_id_counter_.load(std::memory_order_relaxed);
+        for (int i = 0; i < current_max; ++i) {
             if (thread_states_[i].dummy.use_count() > 1) {
-                node->active_threads_mask[i / 64] |= (1ULL << (i % 64));
+                node->active_threads_mask.set(i);
             }
         }
 
