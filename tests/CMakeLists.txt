@@ -64,6 +64,10 @@ gtest_discover_tests(test_sorting_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
+    add_executable(diff_search_fuzzer fuzzing/diff_search_fuzzer.cpp)
+    target_link_libraries(diff_search_fuzzer PRIVATE algoat)
+    target_compile_options(diff_search_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_search_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     add_executable(diff_sort_fuzzer fuzzing/diff_sort_fuzzer.cpp)
     target_link_libraries(diff_sort_fuzzer PRIVATE algoat)
     target_compile_options(diff_sort_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)

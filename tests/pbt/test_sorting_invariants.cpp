@@ -9,15 +9,6 @@
 using namespace algoat::sorting;
 using algoat::sorting::testing::StableItem;
 
-namespace rc {
-template <> struct Arbitrary<StableItem> {
-    static Gen<StableItem> arbitrary() {
-        return gen::build<StableItem>(gen::set(&StableItem::key, gen::arbitrary<int>()),
-                                      gen::set(&StableItem::original_index, gen::just(-1)));
-    }
-};
-} // namespace rc
-
 template <typename Algo> class ComparativeSortPBT : public ::testing::Test {
 protected:
     Algo algo;
@@ -91,7 +82,12 @@ TEST(BitonicSortPBT, Invariants) {
 
         auto expected = original;
         std::sort(expected.begin(), expected.end());
-        RC_ASSERT(input == expected);
+        RC_ASSERT(input.size() == expected.size());
+        RC_ASSERT(std::is_permutation(input.begin(), input.end(), original.begin()));
+        RC_ASSERT(std::is_sorted(input.begin(), input.end()));
+        auto sorted_again = input;
+        BitonicSort{}.sort(std::span{sorted_again});
+        RC_ASSERT(input == sorted_again);
     });
 }
 
@@ -114,6 +110,11 @@ TYPED_TEST(LinearSortPBT, Invariants) {
 
         auto expected = original;
         std::sort(expected.begin(), expected.end());
-        RC_ASSERT(input == expected);
+        RC_ASSERT(input.size() == expected.size());
+        RC_ASSERT(std::is_permutation(input.begin(), input.end(), original.begin()));
+        RC_ASSERT(std::is_sorted(input.begin(), input.end()));
+        auto sorted_again = input;
+        this->algo.sort(std::span{sorted_again});
+        RC_ASSERT(input == sorted_again);
     });
 }

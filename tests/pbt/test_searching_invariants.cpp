@@ -21,9 +21,6 @@ TYPED_TEST(SearchingPBT, Invariants) {
     rc::check("Searching invariants", [this](std::vector<int> data, int target) {
         if (this->algo.requires_sorted()) {
             std::sort(data.begin(), data.end());
-            auto it = std::unique(data.begin(), data.end());
-            data.erase(it, data.end()); // Interpolation search sometimes prefers unique or uniform,
-                                        // but standard sorted is fine.
         }
 
         auto result = this->algo.search(std::span<const int>{data}, target);
