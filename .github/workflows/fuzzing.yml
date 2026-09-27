@@ -1,0 +1,31 @@
+name: Differential Fuzzing Smoke Test
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang cmake ninja-build
+
+    - name: Configure CMake
+      run: |
+        CC=clang CXX=clang++ cmake -B build -S . -G Ninja \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          -DALGOAT_ENABLE_FUZZING=ON
+
+    - name: Build Fuzzer
+      run: cmake --build build --target diff_sort_fuzzer diff_search_fuzzer
+
+    - name: Run Sort Fuzzer Smoke Test (30s)
+      run: ./build/tests/diff_sort_fuzzer -max_total_time=30
+
+    - name: Run Search Fuzzer Smoke Test (30s)
+      run: ./build/tests/diff_search_fuzzer -max_total_time=30

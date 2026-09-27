@@ -6,6 +6,14 @@ FetchContent_Declare(googletest
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+set(RC_ENABLE_GTEST ON CACHE BOOL "Enable GTest support for RapidCheck" FORCE)
+set(RC_ENABLE_GMOCK ON CACHE BOOL "Enable GMock support for RapidCheck" FORCE)
+FetchContent_Declare(rapidcheck
+    GIT_REPOSITORY https://github.com/emil-e/rapidcheck.git
+    GIT_TAG        master
+)
+FetchContent_MakeAvailable(rapidcheck)
+
 include(GoogleTest)
 
 function(algoat_add_test TEST_NAME TEST_SOURCE)
@@ -45,3 +53,23 @@ algoat_add_test(test_searching_dispatch searching/test_searching_dispatch.cpp)
 
 # SIMD tests
 algoat_add_test(test_simd simd/test_simd.cpp)
+
+# Property-Based Tests
+add_executable(test_sorting_invariants pbt/test_sorting_invariants.cpp)
+add_executable(test_searching_invariants pbt/test_searching_invariants.cpp)
+target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_sorting_invariants DISCOVERY_MODE PRE_TEST)
+
+# Fuzzing Tests
+if(ALGOAT_ENABLE_FUZZING)
+    add_executable(diff_search_fuzzer fuzzing/diff_search_fuzzer.cpp)
+    target_link_libraries(diff_search_fuzzer PRIVATE algoat)
+    target_compile_options(diff_search_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_search_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_sort_fuzzer fuzzing/diff_sort_fuzzer.cpp)
+    target_link_libraries(diff_sort_fuzzer PRIVATE algoat)
+    target_compile_options(diff_sort_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_sort_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+endif()
