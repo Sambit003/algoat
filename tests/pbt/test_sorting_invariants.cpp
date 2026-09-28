@@ -118,3 +118,24 @@ TYPED_TEST(LinearSortPBT, Invariants) {
         RC_ASSERT(input == sorted_again);
     });
 }
+
+TEST(HilbertSortPBT, Invariants) {
+    rc::check("Hilbert Radix sort invariants (Complex Float)", []() {
+        auto input_pairs = *rc::gen::container<std::vector<std::pair<int, int>>>(
+            rc::gen::pair(rc::gen::inRange(-1000, 1000), rc::gen::inRange(-1000, 1000)));
+        std::vector<std::complex<float>> input;
+        for (const auto& p : input_pairs) {
+            input.emplace_back(p.first, p.second);
+        }
+
+        auto original = input;
+        HilbertSort{}.sort(std::span{input});
+
+        RC_ASSERT(input.size() == original.size());
+        RC_ASSERT(std::is_sorted(input.begin(), input.end(), algoat::numerics::HilbertCompare{}));
+
+        auto sorted_again = input;
+        HilbertSort{}.sort(std::span{sorted_again});
+        RC_ASSERT(input == sorted_again);
+    });
+}
