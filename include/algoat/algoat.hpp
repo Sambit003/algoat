@@ -12,6 +12,7 @@
 #include "algoat/core/config.hpp"
 #include "algoat/core/config_manager.hpp"
 #include "algoat/core/dispatcher.hpp"
+#include "algoat/numerics/hybrid_sfc.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -49,6 +50,12 @@ inline core::Dispatcher get_dispatcher() {
     return core::Dispatcher(*get_global_config());
 }
 
+enum class SpaceFillingCurve {
+    Morton,  // Maximum throughput (raw speed, bit-interleaving)
+    Hilbert, // Maximum spatial locality (continuous traversal)
+    Hybrid   // Balanced Pareto optimal (coarse Morton + fine Hilbert)
+};
+
 /**
  * @brief Sorts a contiguous span of data in-place using dynamic algorithm dispatch.
  *
@@ -62,6 +69,27 @@ inline core::Dispatcher get_dispatcher() {
  */
 template <typename T> void sort(std::span<T> data) {
     get_dispatcher().sort(data);
+}
+
+/**
+ * @brief Unified dispatch interface for complex spatial points.
+ *
+ * @tparam T The arithmetic type of the complex components.
+ * @param data Contiguous span of complex elements to sort in-place.
+ * @param curve The space-filling curve to use. Defaults to Morton.
+ */
+template <typename T>
+void sort(std::span<std::complex<T>> data, SpaceFillingCurve curve = SpaceFillingCurve::Morton) {
+    switch (curve) {
+    case SpaceFillingCurve::Morton:
+        numerics::sort_complex_morton(data);
+        break;
+    case SpaceFillingCurve::Hilbert:
+        throw std::invalid_argument("Pure Hilbert curve sorting is not yet implemented.");
+    case SpaceFillingCurve::Hybrid:
+        numerics::sort_complex_hybrid(data);
+        break;
+    }
 }
 
 /**

@@ -1,3 +1,4 @@
+#include "algoat/numerics/hybrid_sfc.hpp"
 #include "algoat/sorting/sorting.hpp"
 
 #include <algorithm>
@@ -152,6 +153,20 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     test_radix(RadixSortLSD{});
     test_radix(RadixSortMSD{});
     test_radix(RadixSortInPlaceMSD{});
+
+    if (size % sizeof(std::complex<float>) == 0 && size > 0) {
+        size_t complex_num_elements = size / sizeof(std::complex<float>);
+        std::vector<std::complex<float>> original_complex(complex_num_elements);
+        std::memcpy(original_complex.data(), data, size);
+
+        std::vector<std::complex<float>> test_data = original_complex;
+        algoat::numerics::sort_complex_hybrid(std::span{test_data});
+
+        if (!std::is_sorted(test_data.begin(), test_data.end(),
+                            algoat::numerics::HybridCompare{})) {
+            __builtin_trap();
+        }
+    }
 
     return 0;
 }
