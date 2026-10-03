@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(algoat VERSION 0.1.1 LANGUAGES CXX C)
+project(algoat VERSION 0.2.0 LANGUAGES CXX C)
 
 # Options
 option(ALGOAT_BUILD_TESTS      "Build unit tests"      ON)

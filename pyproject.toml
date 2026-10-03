@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "algoat"
-version = "0.1.1"
+version = "0.2.0"
 description = "A high-performance algorithm library for sorting and searching"
 readme = "README.md"
 license = { file = "LICENSE" }

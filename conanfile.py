@@ -5,7 +5,7 @@ import os
 
 class AlgoatConan(ConanFile):
     name = "algoat"
-    version = "0.1.1"
+    version = "0.2.0"
     license = "LGPL-3.0-only"
     author = "Sambit Chakraborty <smbtchakraborty@gmail.com>"
     url = "https://github.com/user/algoat"
