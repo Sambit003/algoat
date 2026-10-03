@@ -8,8 +8,7 @@
 
 using namespace algoat::searching;
 
-template <typename T>
-static std::vector<T> generate_sorted_data(std::size_t size) {
+template <typename T> static std::vector<T> generate_sorted_data(std::size_t size) {
     std::vector<T> data(size);
     std::mt19937 gen(42);
     std::uniform_int_distribution<T> dist(1, static_cast<T>(size * 10));

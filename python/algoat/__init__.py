@@ -1,8 +1,8 @@
 """Algoat: High-performance C++20 and Python algorithm library.
 
 Features smart dynamic fallback dispatch based on data profiles,
-domain-specific non-comparative sorting for Float16, boolean, and complex arrays,
-zero-copy PEP 3118 memory views, and fine-grained GIL release for multi-core parallelism.
+domain-specific non-comparative sorting for Float16, bool, and complex arrays,
+zero-copy PEP 3118 views, and fine-grained GIL release for multi-core speed.
 """
 
 from . import _algoat_impl
@@ -10,36 +10,47 @@ from ._algoat_impl import load_global_config, Rational
 import numpy as np
 from typing import Union, List, Any, Optional
 
-def sort(data: Union[np.ndarray, List[Any], Any]) -> Union[np.ndarray, List[Any], Any]:
-    """Sort an array, PEP 3118 buffer, or list using smart dynamic algorithm dispatch.
 
-    If given a standard Python list, returns a newly allocated sorted list without mutating the original.
-    If given a NumPy ndarray or PEP 3118 buffer (array.array, bytearray), operates in-place with
+def sort(
+    data: Union[np.ndarray, List[Any], Any], curve: str = "morton"
+) -> Union[np.ndarray, List[Any], Any]:
+    """Sort an array, PEP 3118 buffer, or list via smart dynamic dispatch.
+
+    If given a standard Python list, returns a newly allocated sorted list
+    without mutating the original.
+    If given a NumPy ndarray or PEP 3118 buffer, operates in-place with
     zero-copy C++ execution and GIL release, and returns the sorted object:
     - `np.float16`: Dispatches to O(N) bit-flipping counting/radix sort.
     - `np.bool_`: Dispatches to branchless O(N) counting pass and memset.
-    - `np.complex64` / `np.complex128`: Dispatches to 2D Morton Z-order curve spatial radix sort.
-    - Other numeric dtypes and native buffers: Dispatches to dynamic C++ Dispatcher.
+    - `complex64`/`complex128`: Dispatches to space-filling curve sort.
+    - Other numeric dtypes/buffers: Dispatches to dynamic C++ Dispatcher.
 
     Args:
-        data: A NumPy 1D array, PEP 3118 buffer, or Python list of comparable elements.
+        data: A NumPy 1D array, PEP 3118 buffer, or list of comparables.
+        curve: For complex arrays, sets the space-filling curve backend.
+               Supported values: "morton" (default), "hilbert", "hybrid".
 
     Returns:
         The sorted array/buffer (in-place) or a new sorted Python list.
     """
     if isinstance(data, list):
-        return _algoat_impl.sort(data)
-    sort_inplace(data)
+        return _algoat_impl.sort(data, curve=curve)
+    sort_inplace(data, curve=curve)
     return data
 
 
-def sort_inplace(data: Union[np.ndarray, List[Any], Any]) -> None:
-    """Sort a NumPy array, PEP 3118 buffer (array.array, bytearray, memoryview), or Python list in-place with zero memory allocation.
+def sort_inplace(
+    data: Union[np.ndarray, List[Any], Any], curve: str = "morton"
+) -> None:
+    """Sort a NumPy array, PEP 3118 buffer, or Python list in-place.
 
     If given a NumPy ndarray:
-    - Sorts directly in-place across the contiguous memory buffer with zero heap allocations.
-    - Releases the Python GIL during compute to enable concurrent multi-core speedup across worker threads.
-    - Requires contiguous memory (C-contiguous). Non-contiguous slices raise a ValueError.
+    - Sorts directly in-place across the contiguous memory buffer with zero
+      heap allocations.
+    - Releases the Python GIL during compute to enable concurrent multi-core
+      speedup across worker threads.
+    - Requires contiguous memory (C-contiguous). Non-contiguous slices raise
+      a ValueError.
 
     If given a PEP 3118 buffer (e.g., array.array, bytearray, memoryview):
     - Sorts directly in-place via zero-copy C++ backend with GIL release.
@@ -49,10 +60,12 @@ def sort_inplace(data: Union[np.ndarray, List[Any], Any]) -> None:
 
     Args:
         data: A mutable NumPy 1D array, PEP 3118 buffer, or Python list.
+        curve: For complex arrays, sets the space-filling curve backend.
+               Supported values: "morton" (default), "hilbert", "hybrid".
     """
     if isinstance(data, np.ndarray):
         if not data.flags.c_contiguous:
-            raise ValueError("In-place sorting requires a contiguous array buffer.")
+            raise ValueError("In-place sorting requires a contiguous buffer.")
         if data.dtype == np.float16:
             view_arr = data.view(np.uint16)
             _algoat_impl.sort_numpy_f16(view_arr)
@@ -61,30 +74,44 @@ def sort_inplace(data: Union[np.ndarray, List[Any], Any]) -> None:
             _algoat_impl.sort_numpy_bool(view_arr)
         elif data.dtype == np.complex64:
             view_arr = data.view(np.complex64)
-            _algoat_impl.sort_numpy_c64(view_arr)
+            if curve == "morton":
+                _algoat_impl.sort_numpy_c64_morton(view_arr)
+            elif curve == "hilbert":
+                _algoat_impl.sort_numpy_c64_hilbert(view_arr)
+            elif curve == "hybrid":
+                _algoat_impl.sort_numpy_c64_hybrid(view_arr)
+            else:
+                raise ValueError(f"Unknown curve type: {curve}")
         elif data.dtype == np.complex128:
             view_arr = data.view(np.complex128)
-            _algoat_impl.sort_numpy_c128(view_arr)
+            if curve == "morton":
+                _algoat_impl.sort_numpy_c128_morton(view_arr)
+            elif curve == "hilbert":
+                _algoat_impl.sort_numpy_c128_hilbert(view_arr)
+            elif curve == "hybrid":
+                _algoat_impl.sort_numpy_c128_hybrid(view_arr)
+            else:
+                raise ValueError(f"Unknown curve type: {curve}")
         else:
             _algoat_impl.sort_numpy(data)
     elif isinstance(data, list):
         _algoat_impl.sort_inplace(data)
     else:
-        # Support PEP 3118 buffer protocol types (e.g. array.array, bytearray, memoryview)
+        # Support PEP 3118 buffer protocol types (array, bytearray, etc.)
         try:
             mv = memoryview(data)
         except TypeError:
-            raise TypeError(f"sort_inplace is not supported for type {type(data).__name__}")
+            raise TypeError(f"sort_inplace unsupported for {type(data).__name__}")
 
         if mv.readonly:
-            raise TypeError(f"Cannot sort read-only buffer of type {type(data).__name__} in-place.")
+            raise TypeError(f"Cannot sort read-only buffer {type(data).__name__}")
         if not mv.c_contiguous:
             raise ValueError("In-place sorting requires a contiguous buffer.")
 
         try:
             _algoat_impl.sort_numpy(data)
         except TypeError as e:
-            raise TypeError(f"Unsupported buffer element type for {type(data).__name__}: {e}")
+            raise TypeError(f"Unsupported element type for {type(data).__name__}")
 
 
 _search_impl = _algoat_impl.search
@@ -94,9 +121,9 @@ _search_many_numpy_impl = _algoat_impl.search_many_numpy
 
 
 def search(data: Union[np.ndarray, List[Any]], target: Any) -> Optional[int]:
-    """Search for a target value within a sorted array or list using branchless bisection.
+    """Search for target within a sorted array or list via bisection.
 
-    If given a NumPy ndarray, performs zero-copy branchless C++ search directly on contiguous memory with GIL release.
+    If given a NumPy ndarray, performs zero-copy C++ search with GIL release.
     If given a standard Python list, searches using fast branchless traversal.
 
     Args:
@@ -116,7 +143,7 @@ def search(data: Union[np.ndarray, List[Any]], target: Any) -> Optional[int]:
 def search_many(
     data: Union[np.ndarray, List[Any]], targets: Union[np.ndarray, List[Any]]
 ) -> List[Optional[int]]:
-    """Batch search for multiple target values with amortized FFI overhead and GIL release.
+    """Batch search multiple target values with amortized FFI overhead.
 
     Args:
         data: A sorted array or list to search within.
@@ -135,4 +162,11 @@ def search_many(
         return _search_many_impl(list_data, list_targets)
 
 
-__all__ = ["sort", "sort_inplace", "search", "search_many", "load_global_config", "Rational"]
+__all__ = [
+    "sort",
+    "sort_inplace",
+    "search",
+    "search_many",
+    "load_global_config",
+    "Rational",
+]

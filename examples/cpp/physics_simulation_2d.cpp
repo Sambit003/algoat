@@ -1,4 +1,6 @@
 #include <algoat/algoat.hpp>
+#include <algoat/numerics/hilbert.hpp>
+#include <algoat/numerics/hybrid_sfc.hpp>
 #include <algoat/numerics/morton.hpp>
 #include <chrono>
 #include <complex>
@@ -38,6 +40,24 @@ int main() {
     auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
     std::cout << "Successfully sorted 1 Million particles in " << duration_ms.count() << " ms.\n";
+
+    // Demonstrate other curves
+    std::cout << "Sorting particles by continuous Hilbert curve for maximum cache locality...\n";
+    start_time = std::chrono::high_resolution_clock::now();
+    algoat::numerics::sort_complex_hilbert(std::span<std::complex<float>>{particle_positions});
+    end_time = std::chrono::high_resolution_clock::now();
+    duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+    std::cout << "Successfully sorted 1 Million particles with Hilbert in " << duration_ms.count()
+              << " ms.\n";
+
+    std::cout << "Sorting particles by Hybrid Morton-Hilbert curve for balanced performance...\n";
+    start_time = std::chrono::high_resolution_clock::now();
+    algoat::numerics::sort_complex_hybrid(std::span<std::complex<float>>{particle_positions});
+    end_time = std::chrono::high_resolution_clock::now();
+    duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+    std::cout << "Successfully sorted 1 Million particles with Hybrid in " << duration_ms.count()
+              << " ms.\n";
+
     std::cout << "Spatial clustering is now highly optimized for subsequent physics processing!\n";
 
     return 0;

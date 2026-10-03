@@ -22,8 +22,7 @@ namespace detail {
 /**
  * @brief Software memory prefetch instruction wrapper for GCC, Clang, and MSVC.
  */
-template <typename Ptr>
-inline void prefetch_read(const Ptr* ptr) noexcept {
+template <typename Ptr> inline void prefetch_read(const Ptr* ptr) noexcept {
 #if defined(__GNUC__) || defined(__clang__)
     __builtin_prefetch(static_cast<const void*>(ptr), 0, 0);
 #elif defined(_MSC_VER)
@@ -45,8 +44,7 @@ inline void prefetch_read(const Ptr* ptr) noexcept {
  *
  * @tparam T Element type satisfying std::totally_ordered.
  */
-template <std::totally_ordered T>
-class EytzingerSearchTree {
+template <std::totally_ordered T> class EytzingerSearchTree {
 public:
     /**
      * @brief Constructs an EytzingerSearchTree from a sorted span of data in O(N) time.
