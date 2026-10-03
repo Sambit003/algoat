@@ -23,7 +23,10 @@ Algoat implements specialized, non-comparative sorting backends to bypass the st
 
 - **Boolean Arrays (`bool`)**: Utilizes a branchless counting pass and hardware memory sets for $O(N)$ execution (**~23.9x speedup** vs `numpy.sort`).
 - **Float16 (`numpy.float16`)**: Employs an order-preserving bit-flipping technique to maintain strict weak ordering without floating-point comparisons, coupled with a cache-aligned 16-bit Counting Sort (**~2.1x speedup** vs `numpy.sort`).
-- **Complex Numbers (`complex64`, `complex128`)**: Replaces 1D lexicographical sorting with 2D spatial locality. Computes 64-bit Morton Z-order interleaved keys in $O(N)$ using hardware BMI2 `_pdep_u64` instructions, followed by a tuned 4-pass 16-bit Radix Sort (**~2.1x speedup** vs `numpy.sort`).
+- **Complex Numbers (`complex64`, `complex128`)**: Replaces 1D lexicographical sorting with 2D spatial locality. Offers three configurable space-filling curve backends:
+  - **Morton Z-order (Default)**: Computes 64-bit interleaved keys in $O(N)$ using hardware BMI2 `_pdep_u64` instructions, followed by a tuned 4-pass 16-bit Radix Sort (**~2.1x speedup** vs `numpy.sort`). Maximum throughput.
+  - **Hilbert Curve**: Continuous space-filling curve providing maximum cache locality for downstream distance/range queries.
+  - **Hybrid Curve**: A two-tier hierarchy balancing Morton's fast key generation with Hilbert's continuous locality.
 
 ---
 

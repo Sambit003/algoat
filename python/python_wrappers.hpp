@@ -11,7 +11,10 @@
 #pragma once
 
 #include <Python.h>
+#include <algoat/numerics/hilbert.hpp>
+#include <algoat/numerics/hybrid_sfc.hpp>
 #include <algoat/numerics/morton.hpp>
+#include <complex>
 #include <cstdint>
 #include <cstring>
 #include <string_view>
@@ -52,6 +55,68 @@ struct PyComplexWrapper {
         return !(*this > other);
     }
     bool operator>=(const PyComplexWrapper& other) const {
+        return !(*this < other);
+    }
+};
+
+struct PyComplexHilbertWrapper {
+    PyObject* obj;
+    std::complex<float> val;
+
+    PyComplexHilbertWrapper() : obj(nullptr), val(0.0f, 0.0f) {}
+    explicit PyComplexHilbertWrapper(PyObject* o) : obj(o) {
+        if (PyComplex_Check(o)) {
+            val = std::complex<float>(static_cast<float>(PyComplex_RealAsDouble(o)),
+                                      static_cast<float>(PyComplex_ImagAsDouble(o)));
+        } else {
+            val = std::complex<float>(0.0f, 0.0f);
+        }
+    }
+
+    bool operator<(const PyComplexHilbertWrapper& other) const {
+        return algoat::numerics::HilbertCompare{}(val, other.val);
+    }
+    bool operator==(const PyComplexHilbertWrapper& other) const {
+        return val == other.val;
+    }
+    bool operator>(const PyComplexHilbertWrapper& other) const {
+        return other < *this;
+    }
+    bool operator<=(const PyComplexHilbertWrapper& other) const {
+        return !(*this > other);
+    }
+    bool operator>=(const PyComplexHilbertWrapper& other) const {
+        return !(*this < other);
+    }
+};
+
+struct PyComplexHybridWrapper {
+    PyObject* obj;
+    std::complex<float> val;
+
+    PyComplexHybridWrapper() : obj(nullptr), val(0.0f, 0.0f) {}
+    explicit PyComplexHybridWrapper(PyObject* o) : obj(o) {
+        if (PyComplex_Check(o)) {
+            val = std::complex<float>(static_cast<float>(PyComplex_RealAsDouble(o)),
+                                      static_cast<float>(PyComplex_ImagAsDouble(o)));
+        } else {
+            val = std::complex<float>(0.0f, 0.0f);
+        }
+    }
+
+    bool operator<(const PyComplexHybridWrapper& other) const {
+        return algoat::numerics::HybridCompare{}(val, other.val);
+    }
+    bool operator==(const PyComplexHybridWrapper& other) const {
+        return val == other.val;
+    }
+    bool operator>(const PyComplexHybridWrapper& other) const {
+        return other < *this;
+    }
+    bool operator<=(const PyComplexHybridWrapper& other) const {
+        return !(*this > other);
+    }
+    bool operator>=(const PyComplexHybridWrapper& other) const {
         return !(*this < other);
     }
 };

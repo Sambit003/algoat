@@ -56,8 +56,7 @@ TEST(EytzingerSearchTreeTest, LargeArrayMatchesStdLowerBound) {
     for (int query = -5; query <= 2005; ++query) {
         auto std_it = std::lower_bound(data.begin(), data.end(), query);
         std::size_t expected_idx = static_cast<std::size_t>(std_it - data.begin());
-        EXPECT_EQ(tree.lower_bound(query), expected_idx)
-            << "Mismatch for query = " << query;
+        EXPECT_EQ(tree.lower_bound(query), expected_idx) << "Mismatch for query = " << query;
     }
 }
 

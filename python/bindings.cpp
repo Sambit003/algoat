@@ -123,7 +123,7 @@ bool try_sort_bool_list(nb::list data, nb::list& out_result) {
  *
  * Inspects the type of the first element to dispatch to specialized fast-path wrappers.
  */
-nb::list sort_dispatch(nb::list data) {
+nb::list sort_dispatch(nb::list data, const std::string& curve = "morton") {
     if (nb::len(data) == 0)
         return nb::list();
 
@@ -138,7 +138,13 @@ nb::list sort_dispatch(nb::list data) {
     } else if (PyUnicode_Check(first)) {
         return sort_list_direct<algoat::pybind::PyStringWrapper>(data);
     } else if (PyComplex_Check(first)) {
-        return sort_list_direct<algoat::pybind::PyComplexWrapper>(data);
+        if (curve == "hilbert") {
+            return sort_list_direct<algoat::pybind::PyComplexHilbertWrapper>(data);
+        } else if (curve == "hybrid") {
+            return sort_list_direct<algoat::pybind::PyComplexHybridWrapper>(data);
+        } else {
+            return sort_list_direct<algoat::pybind::PyComplexWrapper>(data);
+        }
     } else if (PyLong_Check(first)) {
         return sort_list_direct<algoat::pybind::PyBigIntWrapper>(data);
     } else {
@@ -149,7 +155,7 @@ nb::list sort_dispatch(nb::list data) {
 /**
  * @brief Primary entry point for in-place Python list sorting.
  */
-void sort_inplace_dispatch(nb::list data) {
+void sort_inplace_dispatch(nb::list data, const std::string& curve = "morton") {
     if (nb::len(data) == 0)
         return;
 
@@ -189,7 +195,13 @@ void sort_inplace_dispatch(nb::list data) {
     } else if (PyUnicode_Check(first)) {
         sort_list_inplace_impl<algoat::pybind::PyStringWrapper>(data);
     } else if (PyComplex_Check(first)) {
-        sort_list_inplace_impl<algoat::pybind::PyComplexWrapper>(data);
+        if (curve == "hilbert") {
+            sort_list_inplace_impl<algoat::pybind::PyComplexHilbertWrapper>(data);
+        } else if (curve == "hybrid") {
+            sort_list_inplace_impl<algoat::pybind::PyComplexHybridWrapper>(data);
+        } else {
+            sort_list_inplace_impl<algoat::pybind::PyComplexWrapper>(data);
+        }
     } else if (PyLong_Check(first)) {
         sort_list_inplace_impl<algoat::pybind::PyBigIntWrapper>(data);
     } else {
@@ -351,8 +363,10 @@ NB_MODULE(_algoat_impl, m) {
     m.def("load_global_config", &algoat::load_global_config, nb::arg("filepath"),
           "Load algorithm configuration from a JSON file");
 
-    m.def("sort", &sort_dispatch, nb::arg("data"), "Sort a list of mixed types");
-    m.def("sort_inplace", &sort_inplace_dispatch, nb::arg("data"), "Sort a list in-place");
+    m.def("sort", &sort_dispatch, nb::arg("data"), nb::arg("curve") = "morton",
+          "Sort a list of mixed types");
+    m.def("sort_inplace", &sort_inplace_dispatch, nb::arg("data"), nb::arg("curve") = "morton",
+          "Sort a list in-place");
     m.def("search", &search_dispatch, nb::arg("data"), nb::arg("target"),
           "Search for a target in a list");
     m.def("search_many", &search_many_dispatch, nb::arg("data"), nb::arg("targets"),
@@ -385,16 +399,46 @@ NB_MODULE(_algoat_impl, m) {
           nb::call_guard<nb::gil_scoped_release>());
 
     m.def(
-        "sort_numpy_c64",
+        "sort_numpy_c64_morton",
         [](nb::ndarray<std::complex<float>, nb::ndim<1>, nb::c_contig> array) {
             algoat::numerics::sort_complex_morton(
                 std::span<std::complex<float>>(array.data(), array.size()));
         },
         nb::arg("array").noconvert(), nb::call_guard<nb::gil_scoped_release>());
     m.def(
-        "sort_numpy_c128",
+        "sort_numpy_c128_morton",
         [](nb::ndarray<std::complex<double>, nb::ndim<1>, nb::c_contig> array) {
             algoat::numerics::sort_complex_morton(
+                std::span<std::complex<double>>(array.data(), array.size()));
+        },
+        nb::arg("array").noconvert(), nb::call_guard<nb::gil_scoped_release>());
+
+    m.def(
+        "sort_numpy_c64_hilbert",
+        [](nb::ndarray<std::complex<float>, nb::ndim<1>, nb::c_contig> array) {
+            algoat::numerics::sort_complex_hilbert(
+                std::span<std::complex<float>>(array.data(), array.size()));
+        },
+        nb::arg("array").noconvert(), nb::call_guard<nb::gil_scoped_release>());
+    m.def(
+        "sort_numpy_c128_hilbert",
+        [](nb::ndarray<std::complex<double>, nb::ndim<1>, nb::c_contig> array) {
+            algoat::numerics::sort_complex_hilbert(
+                std::span<std::complex<double>>(array.data(), array.size()));
+        },
+        nb::arg("array").noconvert(), nb::call_guard<nb::gil_scoped_release>());
+
+    m.def(
+        "sort_numpy_c64_hybrid",
+        [](nb::ndarray<std::complex<float>, nb::ndim<1>, nb::c_contig> array) {
+            algoat::numerics::sort_complex_hybrid(
+                std::span<std::complex<float>>(array.data(), array.size()));
+        },
+        nb::arg("array").noconvert(), nb::call_guard<nb::gil_scoped_release>());
+    m.def(
+        "sort_numpy_c128_hybrid",
+        [](nb::ndarray<std::complex<double>, nb::ndim<1>, nb::c_contig> array) {
+            algoat::numerics::sort_complex_hybrid(
                 std::span<std::complex<double>>(array.data(), array.size()));
         },
         nb::arg("array").noconvert(), nb::call_guard<nb::gil_scoped_release>());
