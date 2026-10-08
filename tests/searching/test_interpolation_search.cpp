@@ -73,3 +73,13 @@ TEST_F(InterpolationSearchTest, PathologicalExtrapolation) {
     auto result = algo.search(std::span{data}, 500000.0);
     EXPECT_FALSE(result.has_value());
 }
+
+TEST(InterpolationSearchFreeFunctionTest, FreeFunctionSearch) {
+    std::vector<int> data = {1, 2, 3, 5, 7, 8, 9};
+    auto result = interpolation_search(std::span{data}, 5);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(*result, 3);
+
+    auto result_not_found = interpolation_search(std::span{data}, 42);
+    EXPECT_FALSE(result_not_found.has_value());
+}

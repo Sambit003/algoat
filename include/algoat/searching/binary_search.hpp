@@ -6,11 +6,77 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string_view>
+#include <utility>
 
 namespace algoat::searching {
+
+/**
+ * @brief Searches for target using binary search with a custom comparator.
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering callable.
+ *
+ * @param data Sorted span of elements.
+ * @param target Value to locate.
+ * @param comp Strict weak ordering comparator.
+ * @return Index of a matching element if present, or @c std::nullopt.
+ */
+template <typename T, typename Compare>
+std::optional<std::size_t> binary_search(std::span<const T> data, const T& target, Compare comp) {
+    if (data.empty()) {
+        return std::nullopt;
+    }
+
+    const T* base = data.data();
+    std::size_t range_length = data.size();
+
+    while (range_length > 1) {
+        std::size_t half = range_length / 2;
+        base = comp(base[half], target) ? (base + half) : base;
+        range_length -= half;
+    }
+
+    std::size_t index = static_cast<std::size_t>(base - data.data());
+    if (!comp(*base, target) && !comp(target, *base)) {
+        return index;
+    }
+    if (index + 1 < data.size() && !comp(*(base + 1), target) && !comp(target, *(base + 1))) {
+        return index + 1;
+    }
+
+    return std::nullopt;
+}
+
+/**
+ * @brief Searches for target using binary search with overflow-safe midpoint calculation.
+ * @tparam T Element type supporting <tt>operator==</tt> and <tt>operator<</tt>.
+ *
+ * @param data Sorted span of elements.
+ * @param target Value to locate.
+ * @return Index of a matching element if present, or @c std::nullopt.
+ */
+template <typename T>
+std::optional<std::size_t> binary_search(std::span<const T> data, const T& target) {
+    return binary_search(data, target, std::less<>{});
+}
+
+/**
+ * @brief Searches for target in a mutable span using binary search.
+ */
+template <typename T> std::optional<std::size_t> binary_search(std::span<T> data, const T& target) {
+    return binary_search(std::span<const T>{data.data(), data.size()}, target);
+}
+
+/**
+ * @brief Searches for target in a mutable span using binary search with a custom comparator.
+ */
+template <typename T, typename Compare>
+std::optional<std::size_t> binary_search(std::span<T> data, const T& target, Compare comp) {
+    return binary_search(std::span<const T>{data.data(), data.size()}, target, std::move(comp));
+}
 
 /**
  * @struct BinarySearch
@@ -47,33 +113,23 @@ struct BinarySearch {
      */
     template <typename T>
     std::optional<std::size_t> search(std::span<T> data, const T& target) const {
-        return search(std::span<const T>{data.data(), data.size()}, target);
+        return binary_search(data, target);
     }
 
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
-        if (data.empty()) {
-            return std::nullopt;
-        }
+        return binary_search(data, target);
+    }
 
-        const T* base = data.data();
-        std::size_t range_length = data.size();
+    template <typename T, typename Compare>
+    std::optional<std::size_t> search(std::span<T> data, const T& target, Compare comp) const {
+        return binary_search(data, target, std::move(comp));
+    }
 
-        while (range_length > 1) {
-            std::size_t half = range_length / 2;
-            base = (base[half] < target) ? (base + half) : base;
-            range_length -= half;
-        }
-
-        std::size_t index = static_cast<std::size_t>(base - data.data());
-        if (*base == target) {
-            return index;
-        }
-        if (index + 1 < data.size() && *(base + 1) == target) {
-            return index + 1;
-        }
-
-        return std::nullopt;
+    template <typename T, typename Compare>
+    std::optional<std::size_t> search(std::span<const T> data, const T& target,
+                                      Compare comp) const {
+        return binary_search(data, target, std::move(comp));
     }
 
     /**

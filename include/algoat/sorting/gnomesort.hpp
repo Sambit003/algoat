@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <concepts>
+#include <functional>
 #include <span>
 #include <string_view>
 
@@ -31,6 +32,39 @@ namespace algoat::sorting {
  * @par Space Complexity:
  * - Auxiliary Space: @c O(1) auxiliary space
  */
+/**
+ * @brief Sorts the span in-place using Gnome Sort with a custom comparator.
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator.
+ *
+ * @param data Contiguous span of elements to sort.
+ * @param comp Strict weak ordering comparator.
+ */
+template <typename T, typename Compare> void gnomesort(std::span<T> data, Compare comp) {
+    std::size_t pos = 1;
+    std::size_t last = 1;
+
+    while (pos < data.size()) {
+        if (pos == 0 || !comp(data[pos], data[pos - 1])) {
+            pos = last;
+            last++;
+        } else {
+            std::swap(data[pos], data[pos - 1]);
+            pos--;
+        }
+    }
+}
+
+/**
+ * @brief Sorts the span in-place using Gnome Sort.
+ * @tparam T Element type supporting <tt>operator<</tt>.
+ *
+ * @param data Contiguous span of elements to sort.
+ */
+template <typename T> void gnomesort(std::span<T> data) {
+    gnomesort(data, std::less<T>{});
+}
+
 struct GnomeSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
@@ -50,23 +84,16 @@ struct GnomeSort {
 
     /**
      * @brief Sorts the span in-place using Gnome Sort with position memorization.
-     * @tparam T Type satisfying @c std::totally_ordered.
+     * @tparam T Element type.
      *
      * @param data Contiguous span of elements to sort.
      */
-    template <std::totally_ordered T> void sort(std::span<T> data) const {
-        std::size_t pos = 1;
-        std::size_t last = 1;
+    template <typename T> void sort(std::span<T> data) const {
+        gnomesort(data);
+    }
 
-        while (pos < data.size()) {
-            if (pos == 0 || data[pos - 1] <= data[pos]) {
-                pos = last;
-                last++;
-            } else {
-                std::swap(data[pos], data[pos - 1]);
-                pos--;
-            }
-        }
+    template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
+        gnomesort(data, comp);
     }
 };
 

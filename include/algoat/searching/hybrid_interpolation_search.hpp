@@ -195,12 +195,28 @@ template <std::totally_ordered T>
 }
 
 /**
+ * @brief Searches for target in a mutable span using Precision-Safe Hybrid Interpolation-Binary
+ * Search (IBS).
+ */
+template <std::totally_ordered T>
+[[nodiscard]] inline std::optional<std::size_t>
+hybrid_interpolation_search(std::span<T> data, const T& target) noexcept {
+    return hybrid_interpolation_search(std::span<const T>{data.data(), data.size()}, target);
+}
+
+/**
  * @struct HybridInterpolationSearch
  * @brief Search algorithm implementing the SearchAlgorithm concept for Registry.
  */
 struct HybridInterpolationSearch {
     [[nodiscard]] constexpr std::string_view name() const noexcept {
         return "hybridinterpolationsearch";
+    }
+
+    template <typename T, typename Target = T>
+        requires detail::interpolation_compatible<T>
+    std::optional<std::size_t> search(std::span<T> data, const Target& target) const {
+        return search(std::span<const T>{data.data(), data.size()}, target);
     }
 
     template <typename T, typename Target = T>

@@ -7,10 +7,38 @@
 
 #include <algorithm>
 #include <concepts>
+#include <functional>
 #include <span>
 #include <string_view>
 
 namespace algoat::sorting {
+
+/**
+ * @brief Sorts the span in-place using Selection Sort with a custom comparator.
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator.
+ *
+ * @param data Contiguous span of elements to sort.
+ * @param comp Strict weak ordering comparator.
+ */
+template <typename T, typename Compare> void selectionsort(std::span<T> data, Compare comp) {
+    for (auto it = data.begin(); it != data.end(); ++it) {
+        auto min_it = std::min_element(it, data.end(), comp);
+        if (min_it != it) {
+            std::iter_swap(it, min_it);
+        }
+    }
+}
+
+/**
+ * @brief Sorts the span in-place using Selection Sort.
+ * @tparam T Type supporting comparisons.
+ *
+ * @param data Contiguous span of elements to sort.
+ */
+template <typename T> void selectionsort(std::span<T> data) {
+    selectionsort(data, std::less<T>{});
+}
 
 /**
  * @struct SelectionSort
@@ -50,17 +78,16 @@ struct SelectionSort {
 
     /**
      * @brief Sorts the span in-place using Selection Sort.
-     * @tparam T Type satisfying @c std::totally_ordered.
+     * @tparam T Element type.
      *
      * @param data Contiguous span of elements to sort.
      */
-    template <std::totally_ordered T> void sort(std::span<T> data) const {
-        for (auto it = data.begin(); it != data.end(); ++it) {
-            auto min_it = std::min_element(it, data.end());
-            if (min_it != it) {
-                std::iter_swap(it, min_it);
-            }
-        }
+    template <typename T> void sort(std::span<T> data) const {
+        selectionsort(data);
+    }
+
+    template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
+        selectionsort(data, comp);
     }
 };
 

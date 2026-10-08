@@ -25,6 +25,59 @@
 namespace algoat::sorting {
 
 /**
+ * @brief Sorts an integral span using LSD Radix Sort.
+ * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
+ *
+ * @param arr Span of integers to sort in-place.
+ */
+template <typename T>
+    requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+void radixsort_lsd(std::span<T> arr) {
+    if (arr.empty())
+        return;
+
+    using U = std::make_unsigned_t<T>;
+    const int passes = sizeof(T);
+    std::vector<T> buffer(arr.size());
+    std::span<T> src = arr;
+    std::span<T> dst = buffer;
+
+    for (int shift = 0; shift < passes * 8; shift += 8) {
+        std::size_t count[256] = {0};
+
+        for (T val : src) {
+            U u_val = static_cast<U>(val);
+            if constexpr (std::is_signed_v<T>) {
+                u_val ^= (U(1) << (sizeof(T) * 8 - 1));
+            }
+            count[(u_val >> shift) & 0xFF]++;
+        }
+
+        std::size_t total = 0;
+        for (int i = 0; i < 256; ++i) {
+            std::size_t oldCount = count[i];
+            count[i] = total;
+            total += oldCount;
+        }
+
+        for (T val : src) {
+            U u_val = static_cast<U>(val);
+            if constexpr (std::is_signed_v<T>) {
+                u_val ^= (U(1) << (sizeof(T) * 8 - 1));
+            }
+            std::size_t bucket = (u_val >> shift) & 0xFF;
+            dst[count[bucket]++] = val;
+        }
+
+        std::swap(src, dst);
+    }
+
+    if (passes % 2 != 0) {
+        std::copy(buffer.begin(), buffer.end(), arr.begin());
+    }
+}
+
+/**
  * @struct RadixSortLSD
  * @brief Stable Least Significant Digit (LSD) Radix Sort for integers.
  *
@@ -60,55 +113,82 @@ struct RadixSortLSD {
      * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
      *
      * @param arr Span of integers to sort in-place.
-     * @throws std::invalid_argument If @c T is non-integral.
      */
     template <typename T>
         requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
     void sort(std::span<T> arr) const {
-        if (arr.empty())
-            return;
-
-        using U = std::make_unsigned_t<T>;
-        const int passes = sizeof(T);
-        std::vector<T> buffer(arr.size());
-        std::span<T> src = arr;
-        std::span<T> dst = buffer;
-
-        for (int shift = 0; shift < passes * 8; shift += 8) {
-            std::size_t count[256] = {0};
-
-            for (T val : src) {
-                U u_val = static_cast<U>(val);
-                if constexpr (std::is_signed_v<T>) {
-                    u_val ^= (U(1) << (sizeof(T) * 8 - 1));
-                }
-                count[(u_val >> shift) & 0xFF]++;
-            }
-
-            std::size_t total = 0;
-            for (int i = 0; i < 256; ++i) {
-                std::size_t oldCount = count[i];
-                count[i] = total;
-                total += oldCount;
-            }
-
-            for (T val : src) {
-                U u_val = static_cast<U>(val);
-                if constexpr (std::is_signed_v<T>) {
-                    u_val ^= (U(1) << (sizeof(T) * 8 - 1));
-                }
-                std::size_t bucket = (u_val >> shift) & 0xFF;
-                dst[count[bucket]++] = val;
-            }
-
-            std::swap(src, dst);
-        }
-
-        if (passes % 2 != 0) {
-            std::copy(buffer.begin(), buffer.end(), arr.begin());
-        }
+        radixsort_lsd(arr);
     }
 };
+
+namespace detail {
+
+/**
+ * @brief Recursive MSD radix sort worker on sub-buckets.
+ */
+template <typename T> static void msd_impl(std::span<T> arr, std::span<T> buffer, int shift) {
+    if (arr.size() <= 1)
+        return;
+
+    using U = std::make_unsigned_t<T>;
+    std::size_t count[256] = {0};
+
+    for (T val : arr) {
+        U u_val = static_cast<U>(val);
+        if constexpr (std::is_signed_v<T>) {
+            u_val ^= (U(1) << (sizeof(T) * 8 - 1));
+        }
+        count[(u_val >> shift) & 0xFF]++;
+    }
+
+    std::size_t boundaries[256];
+    std::size_t total = 0;
+    for (int i = 0; i < 256; ++i) {
+        boundaries[i] = total;
+        total += count[i];
+    }
+
+    std::size_t offsets[256];
+    std::copy(std::begin(boundaries), std::end(boundaries), std::begin(offsets));
+
+    for (T val : arr) {
+        U u_val = static_cast<U>(val);
+        if constexpr (std::is_signed_v<T>) {
+            u_val ^= (U(1) << (sizeof(T) * 8 - 1));
+        }
+        std::size_t bucket = (u_val >> shift) & 0xFF;
+        buffer[offsets[bucket]++] = val;
+    }
+
+    std::copy(buffer.begin(), buffer.begin() + arr.size(), arr.begin());
+
+    if (shift > 0) {
+        for (int i = 0; i < 256; ++i) {
+            std::size_t bin_size = count[i];
+            if (bin_size > 1) {
+                msd_impl<T>(arr.subspan(boundaries[i], bin_size),
+                            buffer.subspan(boundaries[i], bin_size), shift - 8);
+            }
+        }
+    }
+}
+
+} // namespace detail
+
+/**
+ * @brief Sorts an integral span using recursive MSD Radix Sort.
+ * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
+ *
+ * @param arr Span of integers to sort in-place.
+ */
+template <typename T>
+    requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+void radixsort_msd(std::span<T> arr) {
+    if (arr.size() <= 1)
+        return;
+    std::vector<T> buffer(arr.size());
+    detail::msd_impl<T>(arr, buffer, (sizeof(T) - 1) * 8);
+}
 
 /**
  * @struct RadixSortMSD
@@ -141,69 +221,15 @@ struct RadixSortMSD {
     }
 
     /**
-     * @brief Recursive MSD radix sort worker on sub-buckets.
-     */
-    template <typename T> static void msd_impl(std::span<T> arr, std::span<T> buffer, int shift) {
-        if (arr.size() <= 1)
-            return;
-
-        using U = std::make_unsigned_t<T>;
-        std::size_t count[256] = {0};
-
-        for (T val : arr) {
-            U u_val = static_cast<U>(val);
-            if constexpr (std::is_signed_v<T>) {
-                u_val ^= (U(1) << (sizeof(T) * 8 - 1));
-            }
-            count[(u_val >> shift) & 0xFF]++;
-        }
-
-        std::size_t boundaries[256];
-        std::size_t total = 0;
-        for (int i = 0; i < 256; ++i) {
-            boundaries[i] = total;
-            total += count[i];
-        }
-
-        std::size_t offsets[256];
-        std::copy(std::begin(boundaries), std::end(boundaries), std::begin(offsets));
-
-        for (T val : arr) {
-            U u_val = static_cast<U>(val);
-            if constexpr (std::is_signed_v<T>) {
-                u_val ^= (U(1) << (sizeof(T) * 8 - 1));
-            }
-            std::size_t bucket = (u_val >> shift) & 0xFF;
-            buffer[offsets[bucket]++] = val;
-        }
-
-        std::copy(buffer.begin(), buffer.begin() + arr.size(), arr.begin());
-
-        if (shift > 0) {
-            for (int i = 0; i < 256; ++i) {
-                std::size_t bin_size = count[i];
-                if (bin_size > 1) {
-                    msd_impl<T>(arr.subspan(boundaries[i], bin_size),
-                                buffer.subspan(boundaries[i], bin_size), shift - 8);
-                }
-            }
-        }
-    }
-
-    /**
      * @brief Sorts an integral span using recursive MSD Radix Sort.
      * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
      *
      * @param arr Span of integers to sort in-place.
-     * @throws std::invalid_argument If @c T is non-integral.
      */
     template <typename T>
         requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
     void sort(std::span<T> arr) const {
-        if (arr.size() <= 1)
-            return;
-        std::vector<T> buffer(arr.size());
-        msd_impl<T>(arr, buffer, (sizeof(T) - 1) * 8);
+        radixsort_msd(arr);
     }
 };
 
@@ -392,6 +418,23 @@ template <std::integral T> void inplace_radix_sort(std::span<T> data) noexcept {
  */
 template <std::floating_point T> void inplace_radix_sort(std::span<T> data) noexcept {
     inplace_radix_sort(data, std::identity{});
+}
+
+/**
+ * @brief In-place Hybrid MSD Radix Sort (Ska Sort) alias for integral or floating-point types.
+ *
+ * @tparam T Must satisfy integral or floating-point requirements (excluding bool).
+ * @param data Contiguous span of elements to sort in-place.
+ */
+template <typename T>
+    requires((std::is_integral_v<T> || std::is_floating_point_v<T>) && !std::is_same_v<T, bool>)
+void radixsort_inplace_msd(std::span<T> data) noexcept {
+    inplace_radix_sort(data);
+}
+
+template <typename T, typename Projection>
+void radixsort_inplace_msd(std::span<T> data, Projection proj) {
+    inplace_radix_sort(data, std::move(proj));
 }
 
 /**

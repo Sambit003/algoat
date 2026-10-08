@@ -15,6 +15,85 @@
 namespace algoat::searching {
 
 /**
+ * @brief Searches for target using adaptive binary search with dynamic monotonicity verification.
+ * @tparam T Element type supporting comparisons.
+ *
+ * @param data Span of elements to search.
+ * @param target Value to locate.
+ * @return Index of a matching element if present, or std::nullopt.
+ */
+template <typename T>
+std::optional<std::size_t> adaptive_binary_search(std::span<const T> data, const T& target) {
+    if (data.empty()) {
+        return std::nullopt;
+    }
+
+    const std::size_t n = data.size();
+    if (n == 1) {
+        return (data[0] == target) ? std::optional<std::size_t>{0} : std::nullopt;
+    }
+
+    // Fast endpoint check
+    if (data.front() > data.back()) {
+        return linear_search(data, target);
+    }
+
+    // Dynamic bounded bisection
+    std::size_t low = 0;
+    std::size_t high = n - 1;
+
+    bool has_lower_bound = false;
+    T lower_bound_val{};
+    bool has_upper_bound = false;
+    T upper_bound_val{};
+
+    while (low <= high) {
+        std::size_t mid = low + (high - low) / 2;
+        const T& mid_val = data[mid];
+
+        // Monotonicity invariant violation check
+        if ((has_lower_bound && mid_val < lower_bound_val) ||
+            (has_upper_bound && mid_val > upper_bound_val)) {
+            return linear_search(data, target);
+        }
+
+        // Local adjacent pair spot-check
+        if (mid + 1 < n && mid_val > data[mid + 1]) {
+            return linear_search(data, target);
+        }
+
+        if (mid_val == target) {
+            return mid;
+        }
+
+        if (mid_val < target) {
+            lower_bound_val = mid_val;
+            has_lower_bound = true;
+            low = mid + 1;
+        } else {
+            upper_bound_val = mid_val;
+            has_upper_bound = true;
+            if (mid == 0) {
+                break;
+            }
+            high = mid - 1;
+        }
+    }
+
+    // If target was not found in the bisection path:
+    // Return std::nullopt to guarantee O(log N) latency for missing elements on sorted data.
+    return std::nullopt;
+}
+
+/**
+ * @brief Searches for target in a mutable span using adaptive binary search.
+ */
+template <typename T>
+std::optional<std::size_t> adaptive_binary_search(std::span<T> data, const T& target) {
+    return adaptive_binary_search(std::span<const T>{data.data(), data.size()}, target);
+}
+
+/**
  * @struct AdaptiveBinarySearch
  * @brief Sub-linear search on potentially sorted spans with dynamic invariant verification.
  *
@@ -55,70 +134,12 @@ struct AdaptiveBinarySearch {
      */
     template <typename T>
     std::optional<std::size_t> search(std::span<T> data, const T& target) const {
-        return search(std::span<const T>{data.data(), data.size()}, target);
+        return adaptive_binary_search(data, target);
     }
 
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
-        if (data.empty()) {
-            return std::nullopt;
-        }
-
-        const std::size_t n = data.size();
-        if (n == 1) {
-            return (data[0] == target) ? std::optional<std::size_t>{0} : std::nullopt;
-        }
-
-        // Fast endpoint check
-        if (data.front() > data.back()) {
-            return LinearSearch{}.search(data, target);
-        }
-
-        // Dynamic bounded bisection
-        std::size_t low = 0;
-        std::size_t high = n - 1;
-
-        bool has_lower_bound = false;
-        T lower_bound_val{};
-        bool has_upper_bound = false;
-        T upper_bound_val{};
-
-        while (low <= high) {
-            std::size_t mid = low + (high - low) / 2;
-            const T& mid_val = data[mid];
-
-            // Monotonicity invariant violation check
-            if ((has_lower_bound && mid_val < lower_bound_val) ||
-                (has_upper_bound && mid_val > upper_bound_val)) {
-                return LinearSearch{}.search(data, target);
-            }
-
-            // Local adjacent pair spot-check
-            if (mid + 1 < n && mid_val > data[mid + 1]) {
-                return LinearSearch{}.search(data, target);
-            }
-
-            if (mid_val == target) {
-                return mid;
-            }
-
-            if (mid_val < target) {
-                lower_bound_val = mid_val;
-                has_lower_bound = true;
-                low = mid + 1;
-            } else {
-                upper_bound_val = mid_val;
-                has_upper_bound = true;
-                if (mid == 0) {
-                    break;
-                }
-                high = mid - 1;
-            }
-        }
-
-        // If target was not found in the bisection path:
-        // Return std::nullopt to guarantee O(log N) latency for missing elements on sorted data.
-        return std::nullopt;
+        return adaptive_binary_search(data, target);
     }
 
     /**

@@ -127,5 +127,69 @@ TYPED_TEST(ComparativeSortTest, StringData) {
     this->verify_sort(data);
 }
 
+TEST(FreeFunctionSortTest, DefaultComparatorOverloads) {
+    std::vector<int> sample = {5, 2, 8, 1, 9, 3, 7, 4, 6};
+
+    auto test_free = [&](auto sort_fn) {
+        auto copy = sample;
+        sort_fn(std::span{copy});
+        EXPECT_TRUE(std::is_sorted(copy.begin(), copy.end()));
+    };
+
+    test_free([](auto s) { quicksort(s); });
+    test_free([](auto s) { heapsort(s); });
+    test_free([](auto s) { mergesort(s); });
+    test_free([](auto s) { insertionsort(s); });
+    test_free([](auto s) { selectionsort(s); });
+    test_free([](auto s) { bubblesort(s); });
+    test_free([](auto s) { shellsort(s); });
+    test_free([](auto s) { combsort(s); });
+    test_free([](auto s) { gnomesort(s); });
+    test_free([](auto s) { cyclesort(s); });
+    test_free([](auto s) { introsort(s); });
+    test_free([](auto s) { timsort(s); });
+    test_free([](auto s) { blocksort(s); });
+    test_free([](auto s) { countingsort(s); });
+    test_free([](auto s) { bucketsort(s); });
+    test_free([](auto s) { radixsort_lsd(s); });
+    test_free([](auto s) { radixsort_msd(s); });
+    test_free([](auto s) { radixsort_inplace_msd(s); });
+    test_free([](auto s) { pigeonholesort(s); });
+}
+
+TEST(FreeFunctionSortTest, CustomComparatorOverloads) {
+    std::vector<int> sample = {5, 2, 8, 1, 9, 3, 7, 4, 6};
+    auto greater_comp = std::greater<int>{};
+
+    auto test_custom = [&](auto sort_fn) {
+        auto copy = sample;
+        sort_fn(std::span{copy}, greater_comp);
+        EXPECT_TRUE(std::is_sorted(copy.begin(), copy.end(), greater_comp));
+    };
+
+    test_custom([](auto s, auto c) { quicksort(s, c); });
+    test_custom([](auto s, auto c) { heapsort(s, c); });
+    test_custom([](auto s, auto c) { mergesort(s, c); });
+    test_custom([](auto s, auto c) { insertionsort(s, c); });
+    test_custom([](auto s, auto c) { selectionsort(s, c); });
+    test_custom([](auto s, auto c) { bubblesort(s, c); });
+    test_custom([](auto s, auto c) { shellsort(s, c); });
+    test_custom([](auto s, auto c) { combsort(s, c); });
+    test_custom([](auto s, auto c) { gnomesort(s, c); });
+    test_custom([](auto s, auto c) { cyclesort(s, c); });
+    test_custom([](auto s, auto c) { introsort(s, c); });
+    test_custom([](auto s, auto c) { blocksort(s, c); });
+}
+
+TEST(FreeFunctionSortTest, BitonicSortPowerOfTwo) {
+    std::vector<int> sample = {8, 3, 7, 4, 2, 9, 1, 5};
+    bitonicsort(std::span{sample});
+    EXPECT_TRUE(std::is_sorted(sample.begin(), sample.end()));
+
+    std::vector<int> bitonic_desc = {8, 3, 7, 4, 2, 9, 1, 5};
+    bitonicsort(std::span{bitonic_desc}, std::greater<int>{});
+    EXPECT_TRUE(std::is_sorted(bitonic_desc.begin(), bitonic_desc.end(), std::greater<int>{}));
+}
+
 } // namespace
 } // namespace algoat::sorting::testing

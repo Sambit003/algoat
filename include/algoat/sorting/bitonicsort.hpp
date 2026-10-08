@@ -9,6 +9,7 @@
 #include <bit>
 #include <cassert>
 #include <concepts>
+#include <functional>
 #include <span>
 #include <stdexcept>
 #include <string_view>
@@ -36,6 +37,63 @@ namespace algoat::sorting {
  * @par Space Complexity:
  * - Auxiliary Space: @c O(log^2 N) recursion stack space
  */
+namespace detail {
+
+template <typename T, typename Compare> void bitonic_merge(std::span<T> a, bool dir, Compare comp) {
+    if (a.size() > 1) {
+        std::size_t k = a.size() / 2;
+        for (std::size_t i = 0; i < k; ++i) {
+            bool greater = comp(a[i + k], a[i]);
+            if (dir == greater) {
+                std::swap(a[i], a[i + k]);
+            }
+        }
+        bitonic_merge(a.subspan(0, k), dir, comp);
+        bitonic_merge(a.subspan(k, k), dir, comp);
+    }
+}
+
+template <typename T, typename Compare>
+void bitonic_sort_impl(std::span<T> a, bool dir, Compare comp) {
+    if (a.size() > 1) {
+        std::size_t k = a.size() / 2;
+        bitonic_sort_impl(a.subspan(0, k), true, comp);
+        bitonic_sort_impl(a.subspan(k, k), false, comp);
+        bitonic_merge(a, dir, comp);
+    }
+}
+
+} // namespace detail
+
+/**
+ * @brief Sorts the span in-place using bitonic sorting network with a custom comparator.
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator.
+ *
+ * @param data Span of elements to sort (must be power of 2 size).
+ * @param comp Strict weak ordering comparator.
+ * @throws std::invalid_argument If <tt>data.size()</tt> is not a power of 2.
+ */
+template <typename T, typename Compare> void bitonicsort(std::span<T> data, Compare comp) {
+    if (data.empty())
+        return;
+    if (!std::has_single_bit(data.size())) {
+        throw std::invalid_argument("Bitonic sort requires array size to be a power of 2");
+    }
+    detail::bitonic_sort_impl(data, true, comp);
+}
+
+/**
+ * @brief Sorts the span in-place using bitonic sorting network.
+ * @tparam T Element type supporting <tt>operator<</tt>.
+ *
+ * @param data Span of elements to sort (must be power of 2 size).
+ * @throws std::invalid_argument If <tt>data.size()</tt> is not a power of 2.
+ */
+template <typename T> void bitonicsort(std::span<T> data) {
+    bitonicsort(data, std::less<T>{});
+}
+
 struct BitonicSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
@@ -54,51 +112,18 @@ struct BitonicSort {
     }
 
     /**
-     * @brief Bitonic merge worker recursively sorting bitonic subranges.
-     *
-     * @param a Span to merge.
-     *
-     * @param dir Sort direction (@c true for ascending, @c false for descending).
-     */
-    template <std::totally_ordered T> static void bitonic_merge(std::span<T> a, bool dir) {
-        if (a.size() > 1) {
-            std::size_t k = a.size() / 2;
-            for (std::size_t i = 0; i < k; ++i) {
-                if (dir == (a[i] > a[i + k])) {
-                    std::swap(a[i], a[i + k]);
-                }
-            }
-            bitonic_merge(a.subspan(0, k), dir);
-            bitonic_merge(a.subspan(k, k), dir);
-        }
-    }
-
-    /**
-     * @brief Recursive worker building ascending and descending halves before bitonic merge.
-     */
-    template <std::totally_ordered T> static void bitonic_sort_impl(std::span<T> a, bool dir) {
-        if (a.size() > 1) {
-            std::size_t k = a.size() / 2;
-            bitonic_sort_impl(a.subspan(0, k), true);
-            bitonic_sort_impl(a.subspan(k, k), false);
-            bitonic_merge(a, dir);
-        }
-    }
-
-    /**
      * @brief Sorts the span in-place using bitonic sorting network.
-     * @tparam T Type satisfying @c std::totally_ordered.
+     * @tparam T Element type.
      *
      * @param data Span of elements to sort (must be power of 2 size).
      * @throws std::invalid_argument If <tt>data.size()</tt> is not a power of 2.
      */
-    template <std::totally_ordered T> void sort(std::span<T> data) const {
-        if (data.empty())
-            return;
-        if (!std::has_single_bit(data.size())) {
-            throw std::invalid_argument("Bitonic sort requires array size to be a power of 2");
-        }
-        bitonic_sort_impl(data, true);
+    template <typename T> void sort(std::span<T> data) const {
+        bitonicsort(data);
+    }
+
+    template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
+        bitonicsort(data, comp);
     }
 };
 

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <concepts>
+#include <functional>
 #include <span>
 #include <string_view>
 
@@ -34,6 +35,56 @@ namespace algoat::sorting {
  * @par Space Complexity:
  * - Auxiliary Space: @c O(1) to @c O(N) during in-place merges
  */
+/**
+ * @brief Sorts the span in-place using block merge sort with a custom comparator.
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator.
+ *
+ * @param data Contiguous span of elements to sort.
+ * @param comp Strict weak ordering comparator.
+ */
+template <typename T, typename Compare> void blocksort(std::span<T> data, Compare comp) {
+    if (data.empty())
+        return;
+
+    std::size_t n = data.size();
+    std::size_t block_size = static_cast<std::size_t>(std::sqrt(n));
+
+    // Small block size fallback to InsertionSort
+    if (block_size < 16) {
+        insertionsort(data, comp);
+        return;
+    }
+
+    // Sort individual sqrt(N) blocks
+    for (std::size_t i = 0; i < n; i += block_size) {
+        std::size_t end = std::min(i + block_size, n);
+        std::stable_sort(data.begin() + i, data.begin() + end, comp);
+    }
+
+    // Iteratively merge sorted blocks
+    for (std::size_t size = block_size; size < n; size = 2 * size) {
+        for (std::size_t left = 0; left < n; left += 2 * size) {
+            std::size_t mid = std::min(left + size, n);
+            std::size_t right = std::min(left + 2 * size, n);
+            if (mid < right) {
+                std::inplace_merge(data.begin() + left, data.begin() + mid, data.begin() + right,
+                                   comp);
+            }
+        }
+    }
+}
+
+/**
+ * @brief Sorts the span in-place using block merge sort.
+ * @tparam T Element type supporting <tt>operator<</tt>.
+ *
+ * @param data Contiguous span of elements to sort.
+ */
+template <typename T> void blocksort(std::span<T> data) {
+    blocksort(data, std::less<T>{});
+}
+
 struct BlockSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
@@ -53,40 +104,16 @@ struct BlockSort {
 
     /**
      * @brief Sorts the span in-place using block merge sort.
-     * @tparam T Type satisfying @c std::totally_ordered.
+     * @tparam T Element type.
      *
      * @param data Contiguous span of elements to sort.
      */
-    template <std::totally_ordered T> void sort(std::span<T> data) const {
-        if (data.empty())
-            return;
+    template <typename T> void sort(std::span<T> data) const {
+        blocksort(data);
+    }
 
-        std::size_t n = data.size();
-        std::size_t block_size = static_cast<std::size_t>(std::sqrt(n));
-
-        // Small block size fallback to InsertionSort
-        if (block_size < 16) {
-            InsertionSort{}.sort(data);
-            return;
-        }
-
-        // Sort individual sqrt(N) blocks
-        for (std::size_t i = 0; i < n; i += block_size) {
-            std::size_t end = std::min(i + block_size, n);
-            std::stable_sort(data.begin() + i, data.begin() + end);
-        }
-
-        // Iteratively merge sorted blocks
-        for (std::size_t size = block_size; size < n; size = 2 * size) {
-            for (std::size_t left = 0; left < n; left += 2 * size) {
-                std::size_t mid = std::min(left + size, n);
-                std::size_t right = std::min(left + 2 * size, n);
-                if (mid < right) {
-                    std::inplace_merge(data.begin() + left, data.begin() + mid,
-                                       data.begin() + right);
-                }
-            }
-        }
+    template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
+        blocksort(data, comp);
     }
 };
 

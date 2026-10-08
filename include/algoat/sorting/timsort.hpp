@@ -504,6 +504,16 @@ private:
     }
 };
 
+/**
+ * @brief Sorts the span in-place using TimSort.
+ * @tparam T Element type satisfying @c std::totally_ordered.
+ *
+ * @param data Contiguous span of elements to sort.
+ */
+template <std::totally_ordered T> inline void timsort(std::span<T> data) {
+    TimSort{}.sort(data);
+}
+
 } // namespace algoat::sorting
 
 #include "algoat/core/registry.hpp"

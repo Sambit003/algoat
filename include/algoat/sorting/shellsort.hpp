@@ -6,6 +6,7 @@
 #pragma once
 
 #include <concepts>
+#include <functional>
 #include <iterator>
 #include <span>
 #include <string_view>
@@ -33,6 +34,53 @@ namespace algoat::sorting {
  * @par Space Complexity:
  * - Auxiliary Space: @c O(1) auxiliary space
  */
+/**
+ * @brief Sorts the span in-place using Shell Sort with Ciura gaps and a custom comparator.
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator.
+ *
+ * @param data Contiguous span of elements to sort.
+ * @param comp Strict weak ordering comparator.
+ */
+template <typename T, typename Compare> void shellsort(std::span<T> data, Compare comp) {
+    if (data.size() <= 1)
+        return;
+
+    // Ciura gap sequence (empirically derived for optimal comparison counts)
+    constexpr std::size_t gaps[] = {
+        1,       4,        10,       23,       57,        132,       301,      701,     1577,
+        3548,    7983,     17961,    40412,    90927,     204585,    460316,   1035711, 2330350,
+        5243287, 11797395, 26544138, 59724310, 134379697, 302354318, 680297215};
+
+    int gap_idx = std::size(gaps) - 1;
+    while (gap_idx >= 0 && gaps[gap_idx] >= data.size()) {
+        gap_idx--;
+    }
+
+    for (; gap_idx >= 0; gap_idx--) {
+        std::size_t g = gaps[gap_idx];
+        for (std::size_t i = g; i < data.size(); ++i) {
+            T temp = std::move(data[i]);
+            std::size_t j = i;
+            while (j >= g && comp(temp, data[j - g])) {
+                data[j] = std::move(data[j - g]);
+                j -= g;
+            }
+            data[j] = std::move(temp);
+        }
+    }
+}
+
+/**
+ * @brief Sorts the span in-place using Shell Sort with Ciura gaps.
+ * @tparam T Element type supporting <tt>operator<</tt>.
+ *
+ * @param data Contiguous span of elements to sort.
+ */
+template <typename T> void shellsort(std::span<T> data) {
+    shellsort(data, std::less<T>{});
+}
+
 struct ShellSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
@@ -52,37 +100,16 @@ struct ShellSort {
 
     /**
      * @brief Sorts the span in-place using Shell Sort with Ciura gaps.
-     * @tparam T Type satisfying @c std::totally_ordered.
+     * @tparam T Element type.
      *
      * @param data Contiguous span of elements to sort.
      */
-    template <std::totally_ordered T> void sort(std::span<T> data) const {
-        if (data.size() <= 1)
-            return;
+    template <typename T> void sort(std::span<T> data) const {
+        shellsort(data);
+    }
 
-        // Ciura gap sequence (empirically derived for optimal comparison counts)
-        constexpr std::size_t gaps[] = {
-            1,       4,        10,       23,       57,        132,       301,      701,     1577,
-            3548,    7983,     17961,    40412,    90927,     204585,    460316,   1035711, 2330350,
-            5243287, 11797395, 26544138, 59724310, 134379697, 302354318, 680297215};
-
-        int gap_idx = std::size(gaps) - 1;
-        while (gap_idx >= 0 && gaps[gap_idx] >= data.size()) {
-            gap_idx--;
-        }
-
-        for (; gap_idx >= 0; gap_idx--) {
-            std::size_t g = gaps[gap_idx];
-            for (std::size_t i = g; i < data.size(); ++i) {
-                T temp = std::move(data[i]);
-                std::size_t j = i;
-                while (j >= g && temp < data[j - g]) {
-                    data[j] = std::move(data[j - g]);
-                    j -= g;
-                }
-                data[j] = std::move(temp);
-            }
-        }
+    template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
+        shellsort(data, comp);
     }
 };
 

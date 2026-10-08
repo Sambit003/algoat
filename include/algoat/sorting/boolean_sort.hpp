@@ -90,4 +90,22 @@ template <typename T>
     requires(!detail::strict_integer<T> && !std::same_as<std::remove_cv_t<T>, bool>)
 void sort_boolean(std::span<T> data) = delete;
 
+/**
+ * @brief Canonical alias for sort_boolean on boolean spans.
+ */
+inline void boolean_sort(std::span<bool> data) noexcept {
+    sort_boolean(data);
+}
+
+/**
+ * @brief Canonical alias for sort_boolean on strict mathematical integer spans.
+ */
+template <detail::strict_integer T> inline void boolean_sort(std::span<T> data) noexcept {
+    sort_boolean(data);
+}
+
+template <typename T>
+    requires(!detail::strict_integer<T> && !std::same_as<std::remove_cv_t<T>, bool>)
+void boolean_sort(std::span<T> data) = delete;
+
 } // namespace algoat::sorting
