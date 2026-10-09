@@ -19,8 +19,8 @@
  *
  *
  * @par Sorting Strategy:
- * - For <tt>N < 256</tt>: @c std::sort with @c MortonCompare transparent comparator.
- * - For <tt>N >= 256</tt>: 4-pass 16-bit Radix Sort across 64-bit keys in <tt>O(N)</tt> time.
+ * - For @c N < 256: @c std::sort with @c MortonCompare transparent comparator.
+ * - For @c N >= 256: 4-pass 16-bit Radix Sort across 64-bit keys in @c O(N) time.
  */
 
 #pragma once
@@ -108,8 +108,8 @@ struct MortonCompare {
 /**
  * @brief Sorts a contiguous span of complex numbers along the 2D Morton Z-order curve.
  *
- * Uses a 4-pass 16-bit Radix Sort across 64-bit keys for large arrays (<tt>N >= 256</tt>),
- * achieving <tt>O(N)</tt> time complexity and preserving 2D spatial locality.
+ * Uses a 4-pass 16-bit Radix Sort across 64-bit keys for large arrays (@c N >= 256),
+ * achieving @c O(N) time complexity and preserving 2D spatial locality.
  *
  * @tparam T Floating-point or arithmetic component type of the complex numbers.
  *

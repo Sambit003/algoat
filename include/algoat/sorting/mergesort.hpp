@@ -93,7 +93,7 @@ void mergesort(std::span<T> data, Compare comp,
 
 /**
  * @brief Sorts the span in-place using top-down merge sort with an optional memory resource.
- * @tparam T Element type supporting <tt>operator<=</tt> and move operations.
+ * @tparam T Element type supporting @c operator<= and move operations.
  *
  * @param data Span of elements to sort.
  * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
@@ -110,7 +110,7 @@ void mergesort(std::span<T> data,
  *
  * @par Characteristics:
  * - <b>Category:</b> Comparison-based, Divide & Conquer.
- * - <b>Stability:</b> Stable (preserves order of equivalent keys via <tt><=</tt> merge comparison).
+ * - <b>Stability:</b> Stable (preserves order of equivalent keys via @c <= merge comparison).
  *
  * @par Time Complexity:
  * - Best Case: @c O(N log N)
@@ -131,7 +131,7 @@ struct MergeSort {
 
     /**
      * @brief Sorts the span in-place using top-down merge sort.
-     * @tparam T Element type supporting <tt>operator<=</tt> and move operations.
+     * @tparam T Element type supporting @c operator<= and move operations.
      *
      * @param data Span of elements to sort.
      */

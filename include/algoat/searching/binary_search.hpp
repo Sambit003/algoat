@@ -52,8 +52,8 @@ std::optional<std::size_t> binary_search(std::span<const T> data, const T& targe
 
 /**
  * @brief Searches for target using binary search with overflow-safe midpoint calculation.
- * @tparam T Element type supporting <tt>operator==</tt> and <tt>operator<</tt>.
  *
+ * @tparam T Element type supporting @c operator== and @c operator<.
  * @param data Sorted span of elements.
  * @param target Value to locate.
  * @return Index of a matching element if present, or @c std::nullopt.
@@ -65,6 +65,11 @@ std::optional<std::size_t> binary_search(std::span<const T> data, const T& targe
 
 /**
  * @brief Searches for target in a mutable span using binary search.
+ *
+ * @tparam T Element type supporting @c operator== and @c operator<.
+ * @param data Mutable span of elements to search.
+ * @param target Value to locate.
+ * @return Index of a matching element if present, or @c std::nullopt.
  */
 template <typename T> std::optional<std::size_t> binary_search(std::span<T> data, const T& target) {
     return binary_search(std::span<const T>{data.data(), data.size()}, target);
@@ -72,6 +77,13 @@ template <typename T> std::optional<std::size_t> binary_search(std::span<T> data
 
 /**
  * @brief Searches for target in a mutable span using binary search with a custom comparator.
+ *
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering callable.
+ * @param data Mutable span of elements to search.
+ * @param target Value to locate.
+ * @param comp Strict weak ordering comparator.
+ * @return Index of a matching element if present, or @c std::nullopt.
  */
 template <typename T, typename Compare>
 std::optional<std::size_t> binary_search(std::span<T> data, const T& target, Compare comp) {
@@ -96,6 +108,7 @@ std::optional<std::size_t> binary_search(std::span<T> data, const T& target, Com
 struct BinarySearch {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "binarysearch"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -104,10 +117,9 @@ struct BinarySearch {
 
     /**
      * @brief Searches for target using binary search with overflow-safe midpoint calculation.
-     * @tparam T Element type supporting <tt>operator==</tt> and <tt>operator<</tt>.
      *
-     * @param data Sorted span of elements.
-     *
+     * @tparam T Element type supporting @c operator== and @c operator<.
+     * @param data Sorted mutable span of elements.
      * @param target Value to locate.
      * @return Index of a matching element if present, or @c std::nullopt.
      */
@@ -116,16 +128,44 @@ struct BinarySearch {
         return binary_search(data, target);
     }
 
+    /**
+     * @brief Searches for target using binary search with overflow-safe midpoint calculation.
+     *
+     * @tparam T Element type supporting @c operator== and @c operator<.
+     * @param data Sorted const span of elements.
+     * @param target Value to locate.
+     * @return Index of a matching element if present, or @c std::nullopt.
+     */
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
         return binary_search(data, target);
     }
 
+    /**
+     * @brief Searches for target using binary search with a custom comparator.
+     *
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering callable.
+     * @param data Sorted mutable span of elements.
+     * @param target Value to locate.
+     * @param comp Strict weak ordering comparator.
+     * @return Index of a matching element if present, or @c std::nullopt.
+     */
     template <typename T, typename Compare>
     std::optional<std::size_t> search(std::span<T> data, const T& target, Compare comp) const {
         return binary_search(data, target, std::move(comp));
     }
 
+    /**
+     * @brief Searches for target using binary search with a custom comparator.
+     *
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering callable.
+     * @param data Sorted const span of elements.
+     * @param target Value to locate.
+     * @param comp Strict weak ordering comparator.
+     * @return Index of a matching element if present, or @c std::nullopt.
+     */
     template <typename T, typename Compare>
     std::optional<std::size_t> search(std::span<const T> data, const T& target,
                                       Compare comp) const {

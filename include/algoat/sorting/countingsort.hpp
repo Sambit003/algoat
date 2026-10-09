@@ -16,23 +16,9 @@
 namespace algoat::sorting {
 
 /**
- * @struct CountingSort
- * @brief Stable non-comparative integer sorting algorithm.
- *
- * Computes frequency histogram of keys, calculates cumulative prefix sums,
- * and distributes elements into their stable positions.
- *
- * @par Characteristics:
- * - <b>Category:</b> Non-comparative, Integer Key Distribution.
- * - <b>Stability:</b> Stable.
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(N + K) auxiliary buffer
- */
-/**
  * @brief Sorts an integral span using stable Counting Sort.
- * @tparam T Must satisfy <tt>std::is_integral_v<T></tt> and not bool.
  *
+ * @tparam T Must satisfy @c std::is_integral_v<T> and not bool.
  * @param arr Contiguous span of integers to sort.
  */
 template <typename T>
@@ -68,9 +54,24 @@ void countingsort(std::span<T> arr) {
     std::copy(output.begin(), output.end(), arr.begin());
 }
 
+/**
+ * @struct CountingSort
+ * @brief Stable non-comparative integer sorting algorithm.
+ *
+ * Computes frequency histogram of keys, calculates cumulative prefix sums,
+ * and distributes elements into their stable positions.
+ *
+ * @par Characteristics:
+ * - <b>Category:</b> Non-comparative, Integer Key Distribution.
+ * - <b>Stability:</b> Stable.
+ *
+ * @par Space Complexity:
+ * - Auxiliary Space: @c O(N + K) auxiliary buffer
+ */
 struct CountingSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "countingsort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -79,6 +80,7 @@ struct CountingSort {
 
     /**
      * @brief Preferred minimum size threshold.
+     *
      * @return 0
      */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
@@ -87,8 +89,8 @@ struct CountingSort {
 
     /**
      * @brief Sorts an integral span using stable Counting Sort.
-     * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
      *
+     * @tparam T Must satisfy @c std::is_integral_v<T>.
      * @param arr Contiguous span of integers to sort.
      */
     template <typename T>

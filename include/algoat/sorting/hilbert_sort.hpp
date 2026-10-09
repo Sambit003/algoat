@@ -1,3 +1,8 @@
+/**
+ * @file hilbert_sort.hpp
+ * @brief Hilbert curve sorting for 2D/3D complex points.
+ */
+
 #pragma once
 
 #include "algoat/numerics/hilbert.hpp"
@@ -11,6 +16,8 @@ namespace algoat::sorting {
 /**
  * @brief Sorts a span using Hilbert space-filling curve sort for complex numbers or falls back to
  * introsort.
+ *
+ * @tparam T Element type.
  * @param data Contiguous span of elements to sort in-place.
  */
 template <typename T> void hilbert_sort(std::span<T> data) {
@@ -28,15 +35,35 @@ template <typename T> void hilbert_sort(std::span<T> data) {
     }
 }
 
+/**
+ * @struct HilbertSort
+ * @brief Space-filling curve sort mapping 2D complex numbers along a 1D Hilbert curve.
+ */
 struct HilbertSort {
+    /**
+     * @brief Returns the unique identifier for this algorithm.
+     *
+     * @return "hilbertsort"
+     */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
         return "hilbertsort";
     }
 
+    /**
+     * @brief Preferred minimum size threshold.
+     *
+     * @return 256
+     */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
         return 256;
     }
 
+    /**
+     * @brief Sorts a span using Hilbert space-filling curve sort.
+     *
+     * @tparam T Element type.
+     * @param data Contiguous span of elements to sort in-place.
+     */
     template <typename T> void sort(std::span<T> data) const {
         hilbert_sort(data);
     }

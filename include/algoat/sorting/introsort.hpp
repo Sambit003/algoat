@@ -17,27 +17,6 @@
 
 namespace algoat::sorting {
 
-/**
- * @struct IntroSort
- * @brief Hybrid sorting algorithm combining QuickSort, HeapSort, and InsertionSort.
- *
- * Developed by David Musser (1997), IntroSort begins with QuickSort and monitors
- * recursion depth. If the recursion depth exceeds <tt>2 * floor(log2(N))</tt>, it
- * switches to HeapSort to prevent quadratic worst-case degradation. Small partitions
- * (<tt><= 32</tt> elements) are sorted using InsertionSort.
- *
- * @par Characteristics:
- * - <b>Category:</b> Hybrid (QuickSort + HeapSort + InsertionSort).
- * - <b>Stability:</b> Unstable
- *
- * @par Time Complexity:
- * - Best Case: @c O(N log N)
- * - Average Case: @c O(N log N)
- * - Worst Case: @c O(N log N) (guaranteed by HeapSort fallback)
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(log N) recursion stack space
- */
 namespace detail {
 
 template <typename T, typename Compare> T min_val(const T& a, const T& b, Compare comp) {
@@ -109,8 +88,8 @@ template <typename T, typename Compare> void introsort(std::span<T> data, Compar
 
 /**
  * @brief Sorts the span in-place using introsort.
- * @tparam T Element type supporting <tt>operator<</tt>.
  *
+ * @tparam T Element type supporting @c operator<.
  * @param data Contiguous span of elements to sort.
  */
 template <typename T> void introsort(std::span<T> data) {
@@ -122,9 +101,9 @@ template <typename T> void introsort(std::span<T> data) {
  * @brief Hybrid sorting algorithm combining QuickSort, HeapSort, and InsertionSort.
  *
  * Developed by David Musser (1997), IntroSort begins with QuickSort and monitors
- * recursion depth. If the recursion depth exceeds <tt>2 * floor(log2(N))</tt>, it
+ * recursion depth. If the recursion depth exceeds @c 2 * floor(log2(N)), it
  * switches to HeapSort to prevent quadratic worst-case degradation. Small partitions
- * (<tt><= 32</tt> elements) are sorted using InsertionSort.
+ * (@c <= 32 elements) are sorted using InsertionSort.
  *
  * @par Characteristics:
  * - <b>Category:</b> Hybrid (QuickSort + HeapSort + InsertionSort).
@@ -141,6 +120,7 @@ template <typename T> void introsort(std::span<T> data) {
 struct IntroSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "introsort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -149,14 +129,22 @@ struct IntroSort {
 
     /**
      * @brief Sorts the span in-place using introsort.
-     * @tparam T Element type.
      *
+     * @tparam T Element type supporting @c operator<.
      * @param data Contiguous span of elements to sort.
      */
     template <typename T> void sort(std::span<T> data) const {
         introsort(data);
     }
 
+    /**
+     * @brief Sorts the span in-place using introsort with a custom comparator.
+     *
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering comparator callable.
+     * @param data Contiguous span of elements to sort.
+     * @param comp Strict weak ordering comparator.
+     */
     template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
         introsort(data, comp);
     }

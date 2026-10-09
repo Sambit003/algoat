@@ -78,6 +78,11 @@ std::optional<std::size_t> interpolation_search(std::span<const T> data, const T
 
 /**
  * @brief Searches for target in a mutable span using arithmetic interpolation.
+ * @tparam T Element type.
+ *
+ * @param data Sorted span of elements.
+ * @param target Value to locate.
+ * @return Index of a matching element if present, or @c std::nullopt.
  */
 template <typename T>
 std::optional<std::size_t> interpolation_search(std::span<T> data, const T& target) {
@@ -101,7 +106,7 @@ std::optional<std::size_t> interpolation_search(std::span<T> data, const T& targ
  * - Worst Case: @c O(N) (for exponentially distributed data)
  *
  * @par Space Complexity:
- * - Auxiliary Space: * - Auxiliary Space: @c O(1)
+ * - Auxiliary Space: @c O(1)
  */
 struct InterpolationSearch {
     /**
@@ -125,6 +130,14 @@ struct InterpolationSearch {
         return interpolation_search(data, target);
     }
 
+    /**
+     * @brief Searches for target using arithmetic interpolation (or binary search fallback).
+     * @tparam T Element type.
+     *
+     * @param[in] data Sorted span of elements.
+     * @param[in] target Value to locate.
+     * @return Index of a matching element if present, or @c std::nullopt.
+     */
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
         return interpolation_search(data, target);

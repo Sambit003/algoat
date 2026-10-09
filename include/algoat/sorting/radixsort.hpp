@@ -4,7 +4,7 @@
  *
  * Provides non-comparative linear-time sorting for integral types by processing
  * byte-by-byte (8-bit radix = 256 buckets). Signed integers are seamlessly supported
- * by flipping the most significant sign bit via XOR with <tt>1 << (sizeof(T)*8 - 1)</tt>.
+ * by flipping the most significant sign bit via XOR with @c 1 << (sizeof(T)*8 - 1).
  */
 
 #pragma once
@@ -26,7 +26,7 @@ namespace algoat::sorting {
 
 /**
  * @brief Sorts an integral span using LSD Radix Sort.
- * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
+ * @tparam T Must satisfy @c std::is_integral_v<T>.
  *
  * @param arr Span of integers to sort in-place.
  */
@@ -82,7 +82,7 @@ void radixsort_lsd(std::span<T> arr) {
  * @brief Stable Least Significant Digit (LSD) Radix Sort for integers.
  *
  * Iterates through digits from least significant byte (LSB) to most significant byte (MSB),
- * maintaining stability across <tt>sizeof(T)</tt> passes.
+ * maintaining stability across @c sizeof(T) passes.
  *
  * @par Characteristics:
  * - <b>Category:</b> Non-comparative, Distribution.
@@ -110,7 +110,7 @@ struct RadixSortLSD {
 
     /**
      * @brief Sorts an integral span using LSD Radix Sort.
-     * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
+     * @tparam T Must satisfy @c std::is_integral_v<T>.
      *
      * @param arr Span of integers to sort in-place.
      */
@@ -177,7 +177,7 @@ template <typename T> static void msd_impl(std::span<T> arr, std::span<T> buffer
 
 /**
  * @brief Sorts an integral span using recursive MSD Radix Sort.
- * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
+ * @tparam T Must satisfy @c std::is_integral_v<T>.
  *
  * @param arr Span of integers to sort in-place.
  */
@@ -222,7 +222,7 @@ struct RadixSortMSD {
 
     /**
      * @brief Sorts an integral span using recursive MSD Radix Sort.
-     * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
+     * @tparam T Must satisfy @c std::is_integral_v<T>.
      *
      * @param arr Span of integers to sort in-place.
      */
@@ -432,6 +432,14 @@ void radixsort_inplace_msd(std::span<T> data) noexcept {
     inplace_radix_sort(data);
 }
 
+/**
+ * @brief In-place Hybrid MSD Radix Sort (Ska Sort) with custom projection.
+ *
+ * @tparam T Element type.
+ * @tparam Projection Callable projection mapping element to a sortable key.
+ * @param data Contiguous span of elements to sort in-place.
+ * @param proj Projection callable.
+ */
 template <typename T, typename Projection>
 void radixsort_inplace_msd(std::span<T> data, Projection proj) {
     inplace_radix_sort(data, std::move(proj));

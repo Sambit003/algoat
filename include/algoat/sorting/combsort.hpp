@@ -14,29 +14,10 @@
 namespace algoat::sorting {
 
 /**
- * @struct CombSort
- * @brief Improvement over Bubble Sort using a geometric shrink factor of 1.3.
- *
- * Eliminates "turtles" (small values near the end of the array) by starting with a large
- * comparison gap and shrinking by ~1.3 each pass until .
- *
- * @par Characteristics:
- * - <b>Category:</b> Comparison-based, Exchange.
- * - <b>Stability:</b> Unstable.
- *
- * @par Time Complexity:
- * - Best Case: @c O(N log N)
- * - Average Case: @c O(N^2 / 2^p) where @c p is the number of increments
- * - Worst Case: @c O(N^2)
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(1) auxiliary space
- */
-/**
  * @brief Sorts the span in-place using Comb Sort with a custom comparator.
- * @tparam T Element type.
- * @tparam Compare Strict weak ordering comparator.
  *
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator callable.
  * @param data Contiguous span of elements to sort.
  * @param comp Strict weak ordering comparator.
  */
@@ -61,17 +42,37 @@ template <typename T, typename Compare> void combsort(std::span<T> data, Compare
 
 /**
  * @brief Sorts the span in-place using Comb Sort.
- * @tparam T Element type supporting <tt>operator<</tt>.
  *
+ * @tparam T Element type supporting @c operator<.
  * @param data Contiguous span of elements to sort.
  */
 template <typename T> void combsort(std::span<T> data) {
     combsort(data, std::less<T>{});
 }
 
+/**
+ * @struct CombSort
+ * @brief Improvement over Bubble Sort using a geometric shrink factor of 1.3.
+ *
+ * Eliminates "turtles" (small values near the end of the array) by starting with a large
+ * comparison gap and shrinking by ~1.3 each pass until gap is 1.
+ *
+ * @par Characteristics:
+ * - <b>Category:</b> Comparison-based, Exchange.
+ * - <b>Stability:</b> Unstable.
+ *
+ * @par Time Complexity:
+ * - Best Case: @c O(N log N)
+ * - Average Case: @c O(N^2 / 2^p) where @c p is the number of increments
+ * - Worst Case: @c O(N^2)
+ *
+ * @par Space Complexity:
+ * - Auxiliary Space: @c O(1) auxiliary space
+ */
 struct CombSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "combsort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -80,6 +81,7 @@ struct CombSort {
 
     /**
      * @brief Preferred minimum size threshold.
+     *
      * @return 0
      */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
@@ -88,14 +90,22 @@ struct CombSort {
 
     /**
      * @brief Sorts the span in-place using Comb Sort.
-     * @tparam T Element type.
      *
+     * @tparam T Element type supporting @c operator<.
      * @param data Contiguous span of elements to sort.
      */
     template <typename T> void sort(std::span<T> data) const {
         combsort(data);
     }
 
+    /**
+     * @brief Sorts the span in-place using Comb Sort with a custom comparator.
+     *
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering comparator callable.
+     * @param data Contiguous span of elements to sort.
+     * @param comp Strict weak ordering comparator.
+     */
     template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
         combsort(data, comp);
     }

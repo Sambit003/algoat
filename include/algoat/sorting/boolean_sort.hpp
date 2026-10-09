@@ -92,6 +92,8 @@ void sort_boolean(std::span<T> data) = delete;
 
 /**
  * @brief Canonical alias for sort_boolean on boolean spans.
+ *
+ * @param data Contiguous span of boolean elements to sort in-place.
  */
 inline void boolean_sort(std::span<bool> data) noexcept {
     sort_boolean(data);
@@ -99,6 +101,9 @@ inline void boolean_sort(std::span<bool> data) noexcept {
 
 /**
  * @brief Canonical alias for sort_boolean on strict mathematical integer spans.
+ *
+ * @tparam T Mathematical integer type.
+ * @param data Contiguous span of elements to sort in-place.
  */
 template <detail::strict_integer T> inline void boolean_sort(std::span<T> data) noexcept {
     sort_boolean(data);

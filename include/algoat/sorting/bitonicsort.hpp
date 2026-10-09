@@ -16,27 +16,6 @@
 
 namespace algoat::sorting {
 
-/**
- * @struct BitonicSort
- * @brief Parallel sorting network algorithm designed for power-of-two dataset sizes.
- *
- * Recursively creates bitonic sequences (sequences that first monotonically increase,
- * then monotonically decrease) and merges them. Requires the input span size to be a
- * power of 2 (<tt>N = 2^k</tt>).
- *
- * @par Characteristics:
- * - <b>Category:</b> Comparison-based, Sorting Network.
- * - <b>Stability:</b> Unstable.
- * - <b>Constraint:</b> Input size must satisfy <tt>std::has_single_bit(N)</tt>.
- *
- * @par Time Complexity:
- * - Best Case: @c O(N log^2 N)
- * - Average Case: @c O(N log^2 N)
- * - Worst Case: @c O(N log^2 N)
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(log^2 N) recursion stack space
- */
 namespace detail {
 
 template <typename T, typename Compare> void bitonic_merge(std::span<T> a, bool dir, Compare comp) {
@@ -72,7 +51,7 @@ void bitonic_sort_impl(std::span<T> a, bool dir, Compare comp) {
  *
  * @param data Span of elements to sort (must be power of 2 size).
  * @param comp Strict weak ordering comparator.
- * @throws std::invalid_argument If <tt>data.size()</tt> is not a power of 2.
+ * @throws std::invalid_argument If @c data.size() is not a power of 2.
  */
 template <typename T, typename Compare> void bitonicsort(std::span<T> data, Compare comp) {
     if (data.empty())
@@ -85,18 +64,40 @@ template <typename T, typename Compare> void bitonicsort(std::span<T> data, Comp
 
 /**
  * @brief Sorts the span in-place using bitonic sorting network.
- * @tparam T Element type supporting <tt>operator<</tt>.
  *
+ * @tparam T Element type supporting @c operator<.
  * @param data Span of elements to sort (must be power of 2 size).
- * @throws std::invalid_argument If <tt>data.size()</tt> is not a power of 2.
+ * @throws std::invalid_argument If @c data.size() is not a power of 2.
  */
 template <typename T> void bitonicsort(std::span<T> data) {
     bitonicsort(data, std::less<T>{});
 }
 
+/**
+ * @struct BitonicSort
+ * @brief Parallel sorting network algorithm designed for power-of-two dataset sizes.
+ *
+ * Recursively creates bitonic sequences (sequences that first monotonically increase,
+ * then monotonically decrease) and merges them. Requires the input span size to be a
+ * power of 2 (@c N = 2^k).
+ *
+ * @par Characteristics:
+ * - <b>Category:</b> Comparison-based, Sorting Network.
+ * - <b>Stability:</b> Unstable.
+ * - <b>Constraint:</b> Input size must satisfy @c std::has_single_bit(N).
+ *
+ * @par Time Complexity:
+ * - Best Case: @c O(N log^2 N)
+ * - Average Case: @c O(N log^2 N)
+ * - Worst Case: @c O(N log^2 N)
+ *
+ * @par Space Complexity:
+ * - Auxiliary Space: @c O(log^2 N) recursion stack space
+ */
 struct BitonicSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "bitonicsort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -105,6 +106,7 @@ struct BitonicSort {
 
     /**
      * @brief Preferred minimum size threshold.
+     *
      * @return 0
      */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
@@ -113,15 +115,24 @@ struct BitonicSort {
 
     /**
      * @brief Sorts the span in-place using bitonic sorting network.
-     * @tparam T Element type.
      *
+     * @tparam T Element type supporting @c operator<.
      * @param data Span of elements to sort (must be power of 2 size).
-     * @throws std::invalid_argument If <tt>data.size()</tt> is not a power of 2.
+     * @throws std::invalid_argument If @c data.size() is not a power of 2.
      */
     template <typename T> void sort(std::span<T> data) const {
         bitonicsort(data);
     }
 
+    /**
+     * @brief Sorts the span in-place using bitonic sorting network with a custom comparator.
+     *
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering comparator callable.
+     * @param data Span of elements to sort (must be power of 2 size).
+     * @param comp Strict weak ordering comparator.
+     * @throws std::invalid_argument If @c data.size() is not a power of 2.
+     */
     template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
         bitonicsort(data, comp);
     }

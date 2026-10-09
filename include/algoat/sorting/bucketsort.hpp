@@ -16,28 +16,9 @@
 namespace algoat::sorting {
 
 /**
- * @struct BucketSort
- * @brief Distribution sorting algorithm partitioning elements across sub-buckets.
- *
- * Divides the input range uniformly across ~N / 10 buckets, sorts each
- * bucket with @c std::sort, and concatenates the results.
- *
- * @par Characteristics:
- * - <b>Category:</b> Distribution.
- * - <b>Stability:</b> Dependent on bucket sort stability.
- *
- * @par Time Complexity:
- * - Best Case: @c O(N + K) (uniform distribution)
- * - Average Case: @c O(N + K)
- * - Worst Case: @c O(N^2) (all elements cluster in a single bucket)
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(N + K) auxiliary space for buckets
- */
-/**
  * @brief Sorts an integral span using Bucket Sort.
- * @tparam T Must satisfy <tt>std::is_integral_v<T></tt> and not bool.
  *
+ * @tparam T Must satisfy @c std::is_integral_v<T> and not bool.
  * @param arr Contiguous span of integers to sort.
  */
 template <typename T>
@@ -73,9 +54,29 @@ void bucketsort(std::span<T> arr) {
     }
 }
 
+/**
+ * @struct BucketSort
+ * @brief Distribution sorting algorithm partitioning elements across sub-buckets.
+ *
+ * Divides the input range uniformly across ~N / 10 buckets, sorts each
+ * bucket with @c std::sort, and concatenates the results.
+ *
+ * @par Characteristics:
+ * - <b>Category:</b> Distribution.
+ * - <b>Stability:</b> Dependent on bucket sort stability.
+ *
+ * @par Time Complexity:
+ * - Best Case: @c O(N + K) (uniform distribution)
+ * - Average Case: @c O(N + K)
+ * - Worst Case: @c O(N^2) (all elements cluster in a single bucket)
+ *
+ * @par Space Complexity:
+ * - Auxiliary Space: @c O(N + K) auxiliary space for buckets
+ */
 struct BucketSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "bucketsort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -84,6 +85,7 @@ struct BucketSort {
 
     /**
      * @brief Preferred minimum size threshold.
+     *
      * @return 0
      */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
@@ -92,8 +94,8 @@ struct BucketSort {
 
     /**
      * @brief Sorts an integral span using Bucket Sort.
-     * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
      *
+     * @tparam T Must satisfy @c std::is_integral_v<T>.
      * @param arr Contiguous span of integers to sort.
      */
     template <typename T>

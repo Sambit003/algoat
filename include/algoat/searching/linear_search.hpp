@@ -37,8 +37,8 @@ std::optional<std::size_t> linear_search(std::span<const T> data, const T& targe
 
 /**
  * @brief Linearly searches for target in the span.
- * @tparam T Element type supporting <tt>operator==</tt>.
  *
+ * @tparam T Element type supporting @c operator==.
  * @param data Span of elements to search.
  * @param target Value to locate.
  * @return Index of the first matching element, or @c std::nullopt.
@@ -50,6 +50,11 @@ std::optional<std::size_t> linear_search(std::span<const T> data, const T& targe
 
 /**
  * @brief Linearly searches for target in a mutable span.
+ *
+ * @tparam T Element type supporting @c operator==.
+ * @param data Mutable span of elements to search.
+ * @param target Value to locate.
+ * @return Index of the first matching element, or @c std::nullopt.
  */
 template <typename T> std::optional<std::size_t> linear_search(std::span<T> data, const T& target) {
     return linear_search(std::span<const T>{data.data(), data.size()}, target);
@@ -57,6 +62,13 @@ template <typename T> std::optional<std::size_t> linear_search(std::span<T> data
 
 /**
  * @brief Linearly searches for target in a mutable span using a custom binary predicate.
+ *
+ * @tparam T Element type.
+ * @tparam BinaryPredicate Binary predicate callable testing equivalence.
+ * @param data Mutable span of elements to search.
+ * @param target Value to locate.
+ * @param pred Binary predicate callable.
+ * @return Index of the first matching element, or @c std::nullopt.
  */
 template <typename T, typename BinaryPredicate>
 std::optional<std::size_t> linear_search(std::span<T> data, const T& target, BinaryPredicate pred) {
@@ -83,6 +95,7 @@ std::optional<std::size_t> linear_search(std::span<T> data, const T& target, Bin
 struct LinearSearch {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "linearsearch"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -91,9 +104,9 @@ struct LinearSearch {
 
     /**
      * @brief Linearly searches for target in the span.
-     * @tparam T Element type supporting <tt>operator==</tt>.
      *
-     * @param data Span of elements to search.
+     * @tparam T Element type supporting @c operator==.
+     * @param data Mutable span of elements to search.
      * @param target Value to locate.
      * @return Index of the first matching element, or @c std::nullopt.
      */
@@ -102,17 +115,45 @@ struct LinearSearch {
         return linear_search(data, target);
     }
 
+    /**
+     * @brief Linearly searches for target in the span.
+     *
+     * @tparam T Element type supporting @c operator==.
+     * @param data Const span of elements to search.
+     * @param target Value to locate.
+     * @return Index of the first matching element, or @c std::nullopt.
+     */
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
         return linear_search(data, target);
     }
 
+    /**
+     * @brief Linearly searches for target in the span using a custom binary predicate.
+     *
+     * @tparam T Element type.
+     * @tparam BinaryPredicate Binary predicate callable testing equivalence.
+     * @param data Mutable span of elements to search.
+     * @param target Value to locate.
+     * @param pred Binary predicate callable.
+     * @return Index of the first matching element, or @c std::nullopt.
+     */
     template <typename T, typename BinaryPredicate>
     std::optional<std::size_t> search(std::span<T> data, const T& target,
                                       BinaryPredicate pred) const {
         return linear_search(data, target, std::move(pred));
     }
 
+    /**
+     * @brief Linearly searches for target in the span using a custom binary predicate.
+     *
+     * @tparam T Element type.
+     * @tparam BinaryPredicate Binary predicate callable testing equivalence.
+     * @param data Const span of elements to search.
+     * @param target Value to locate.
+     * @param pred Binary predicate callable.
+     * @return Index of the first matching element, or @c std::nullopt.
+     */
     template <typename T, typename BinaryPredicate>
     std::optional<std::size_t> search(std::span<const T> data, const T& target,
                                       BinaryPredicate pred) const {

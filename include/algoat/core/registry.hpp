@@ -107,7 +107,7 @@ public:
     /**
      * @brief Returns a list of all registered algorithm names.
      *
-     * @return <tt>std::vector<std::string></tt> List of registered algorithm identifiers.
+     * @return List of registered algorithm identifiers.
      */
     std::vector<std::string> list_registered() const {
         std::vector<std::string> names;
@@ -126,7 +126,7 @@ protected:
  * @class Registry
  * @brief Dynamic factory registry mapping algorithm names to instance creators.
  *
- * Uses <tt>std::function<AlgoVariant()></tt> to construct algorithm objects held within a
+ * Uses @c std::function<AlgoVariant()> to construct algorithm objects held within a
  * @c std::variant. This enables dynamic string-based selection with zero virtual function
  * dispatch overhead via @c std::visit.
  *

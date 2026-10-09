@@ -13,25 +13,6 @@
 
 namespace algoat::sorting {
 
-/**
- * @brief In-place sorting algorithm utilizing a binary max-heap.
- *
- * Guaranteed @c O(N log N) worst-case performance with zero dynamic allocation.
- * Serves as the primary guaranteed fallback in @c algoat::core::Dispatcher and the
- * worst-case recursion safeguard in @c algoat::sorting::IntroSort.
- *
- * @par Characteristics:
- * - <b>Category:</b> Comparison-based, Selection/Heap.
- * - <b>Stability:</b> Unstable.
- *
- * @par Time Complexity:
- * - Best Case: @c O(N log N)
- * - Average Case: @c O(N log N)
- * - Worst Case: @c O(N log N)
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(1) auxiliary space (strictly in-place)
- */
 namespace detail {
 
 /**
@@ -86,8 +67,8 @@ template <typename T, typename Compare> void heapsort(std::span<T> data, Compare
 
 /**
  * @brief Sorts the span in-place using a binary max-heap.
- * @tparam T Element type supporting <tt>operator<</tt>.
  *
+ * @tparam T Element type supporting @c operator<.
  * @param data Contiguous span of elements to sort.
  */
 template <typename T> void heapsort(std::span<T> data) {
@@ -117,6 +98,7 @@ template <typename T> void heapsort(std::span<T> data) {
 struct HeapSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "heapsort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -125,14 +107,22 @@ struct HeapSort {
 
     /**
      * @brief Sorts the span in-place using a binary max-heap.
-     * @tparam T Element type supporting <tt>operator<</tt>.
      *
+     * @tparam T Element type supporting @c operator<.
      * @param data Contiguous span of elements to sort.
      */
     template <typename T> void sort(std::span<T> data) const {
         heapsort(data);
     }
 
+    /**
+     * @brief Sorts the span in-place using a binary max-heap with a custom comparator.
+     *
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering comparator callable.
+     * @param data Contiguous span of elements to sort.
+     * @param comp Strict weak ordering comparator.
+     */
     template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
         heapsort(data, comp);
     }

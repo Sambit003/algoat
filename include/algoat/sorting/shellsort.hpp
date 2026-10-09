@@ -15,30 +15,10 @@
 namespace algoat::sorting {
 
 /**
- * @struct ShellSort
- * @brief Diminishing increment sorting algorithm utilizing the optimal Ciura gap sequence.
- *
- * Generalizes insertion sort by comparing elements separated by decreasing gaps.
- * Uses Marcin Ciura's empirically optimal gap sequence (<tt>1, 4, 10, 23, 57, 132, 301, 701,
- * ...</tt>), providing superior practical runtime among comparison sorts.
- *
- * @par Characteristics:
- * - <b>Category:</b> Comparison-based, Insertion with Gaps.
- * - <b>Stability:</b> Unstable.
- *
- * @par Time Complexity:
- * - Best Case: @c O(N log N)
- * - Average Case: @c O(N^(4/3)) or @c O(N log^2 N) with Ciura gaps
- * - Worst Case: @c O(N^(3/2))
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(1) auxiliary space
- */
-/**
  * @brief Sorts the span in-place using Shell Sort with Ciura gaps and a custom comparator.
- * @tparam T Element type.
- * @tparam Compare Strict weak ordering comparator.
  *
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator callable.
  * @param data Contiguous span of elements to sort.
  * @param comp Strict weak ordering comparator.
  */
@@ -73,17 +53,38 @@ template <typename T, typename Compare> void shellsort(std::span<T> data, Compar
 
 /**
  * @brief Sorts the span in-place using Shell Sort with Ciura gaps.
- * @tparam T Element type supporting <tt>operator<</tt>.
  *
+ * @tparam T Element type supporting @c operator<.
  * @param data Contiguous span of elements to sort.
  */
 template <typename T> void shellsort(std::span<T> data) {
     shellsort(data, std::less<T>{});
 }
 
+/**
+ * @struct ShellSort
+ * @brief Diminishing increment sorting algorithm utilizing the optimal Ciura gap sequence.
+ *
+ * Generalizes insertion sort by comparing elements separated by decreasing gaps.
+ * Uses Marcin Ciura's empirically optimal gap sequence (@c 1, 4, 10, 23, 57, 132, 301, 701, ...),
+ * providing superior practical runtime among comparison sorts.
+ *
+ * @par Characteristics:
+ * - <b>Category:</b> Comparison-based, Insertion with Gaps.
+ * - <b>Stability:</b> Unstable.
+ *
+ * @par Time Complexity:
+ * - Best Case: @c O(N log N)
+ * - Average Case: @c O(N^(4/3)) or @c O(N log^2 N) with Ciura gaps
+ * - Worst Case: @c O(N^(3/2))
+ *
+ * @par Space Complexity:
+ * - Auxiliary Space: @c O(1) auxiliary space
+ */
 struct ShellSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "shellsort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -92,6 +93,7 @@ struct ShellSort {
 
     /**
      * @brief Preferred minimum size threshold.
+     *
      * @return 0
      */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
@@ -100,14 +102,22 @@ struct ShellSort {
 
     /**
      * @brief Sorts the span in-place using Shell Sort with Ciura gaps.
-     * @tparam T Element type.
      *
+     * @tparam T Element type supporting @c operator<.
      * @param data Contiguous span of elements to sort.
      */
     template <typename T> void sort(std::span<T> data) const {
         shellsort(data);
     }
 
+    /**
+     * @brief Sorts the span in-place using Shell Sort with Ciura gaps and a custom comparator.
+     *
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering comparator callable.
+     * @param data Contiguous span of elements to sort.
+     * @param comp Strict weak ordering comparator.
+     */
     template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
         shellsort(data, comp);
     }

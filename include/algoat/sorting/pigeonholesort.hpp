@@ -17,7 +17,7 @@ namespace algoat::sorting {
 
 /**
  * @brief Sorts an integral span using Pigeonhole Sort.
- * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
+ * @tparam T Must satisfy @c std::is_integral_v<T>.
  *
  * @param arr Contiguous span of integers to sort.
  */
@@ -51,7 +51,7 @@ void pigeonholesort(std::span<T> arr) {
  * @brief Non-comparative sorting algorithm for integers where range is approximately equal to
  * length.
  *
- * Sets up an array of "pigeonholes" indexed by <tt>(x - min_val)</tt> and populates them by
+ * Sets up an array of "pigeonholes" indexed by @c (x - min_val) and populates them by
  * frequency, then writes values sequentially back into the array.
  *
  * @par Characteristics:
@@ -80,7 +80,7 @@ struct PigeonholeSort {
 
     /**
      * @brief Sorts an integral span using Pigeonhole Sort.
-     * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
+     * @tparam T Must satisfy @c std::is_integral_v<T>.
      *
      * @param arr Contiguous span of integers to sort.
      */

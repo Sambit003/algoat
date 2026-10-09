@@ -12,9 +12,9 @@
  * - Negative floats: 1 | Exponent | Mantissa (reversed magnitude relative to integer order)
  *
  * To map floats to an ordered @c uint16_t domain:
- * - If negative (<tt>u & 0x8000 != 0</tt>): invert all bits (@c ~u), converting @c -inf to lowest
+ * - If negative (@c (u & 0x8000) != 0): invert all bits (@c ~u), converting @c -inf to lowest
  * unsigned values.
- * - If positive (<tt>u & 0x8000 == 0</tt>): flip the sign bit (<tt>u | 0x8000</tt>), placing them
+ * - If positive (@c (u & 0x8000) == 0): flip the sign bit (@c (u | 0x8000)), placing them
  * above negative numbers.
  *
  * @code{.text}
@@ -29,12 +29,12 @@
  *
  *
  * @par Multi-Tier Sorting Strategy:
- * 1. **Small arrays (<tt>N < 256</tt>)**: @c std::sort with @c Float16Compare transparent
+ * 1. **Small arrays (@c N < 256)**: @c std::sort with @c Float16Compare transparent
  * comparator.
- * 2. **Medium arrays (<tt>256 <= N < 65,536</tt>)**: 2-pass 8-bit Radix Sort (L1/L2 cache friendly
+ * 2. **Medium arrays (@c 256 <= N < 65,536)**: 2-pass 8-bit Radix Sort (L1/L2 cache friendly
  * with 256-entry histograms).
- * 3. **Large arrays (<tt>N >= 65,536</tt>)**: Single-pass 16-bit Counting Sort (65,536 buckets in
- * <tt>O(N)</tt>).
+ * 3. **Large arrays (@c N >= 65,536)**: Single-pass 16-bit Counting Sort (65,536 buckets in
+ * @c O(N)).
  */
 
 #pragma once
@@ -110,10 +110,9 @@ struct Float16Compare {
  * @brief High-performance multi-tier sort for 16-bit float and integer sequences.
  *
  *
- * @par Time Complexity: <tt>O(N)</tt> for <tt>N >= 256</tt>; <tt>O(N log N)</tt> for <tt>N <
- * 256</tt>.
+ * @par Time Complexity: @c O(N) for @c N >= 256; @c O(N log N) for @c N < 256.
  *
- * @par Space Complexity: <tt>O(N)</tt> auxiliary buffer for radix/counting passes.
+ * @par Space Complexity: @c O(N) auxiliary buffer for radix/counting passes.
  *
  * @tparam T 16-bit numeric type satisfying @c concepts::Float16OrInt16.
  *

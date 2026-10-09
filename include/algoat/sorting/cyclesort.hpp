@@ -15,29 +15,10 @@
 namespace algoat::sorting {
 
 /**
- * @brief Comparison sort that is theoretically optimal in total memory writes.
- *
- * Each element is either written zero times (if already in place) or exactly once
- * into its correct cyclic position. Ideal for Flash or EEPROM memory where write
- * operations degrade memory longevity.
- *
- * @par Characteristics:
- * - <b>Category:</b> Comparison-based, Selection/Cycle.
- * - <b>Stability:</b> Unstable.
- *
- * @par Time Complexity:
- * - Best Case: @c O(N^2)
- * - Average Case: @c O(N^2)
- * - Worst Case: @c O(N^2)
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(1) auxiliary space (strictly in-place)
- */
-/**
  * @brief Sorts the span in-place using cycle sort with a custom comparator.
- * @tparam T Element type.
- * @tparam Compare Strict weak ordering comparator.
  *
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator callable.
  * @param data Contiguous span of elements to sort.
  * @param comp Strict weak ordering comparator.
  */
@@ -96,8 +77,8 @@ template <typename T, typename Compare> void cyclesort(std::span<T> data, Compar
 
 /**
  * @brief Sorts the span in-place using cycle sort.
- * @tparam T Element type supporting <tt>operator<</tt> and <tt>operator==</tt>.
  *
+ * @tparam T Element type supporting @c operator< and @c operator==.
  * @param data Contiguous span of elements to sort.
  */
 template <typename T> void cyclesort(std::span<T> data) {
@@ -106,11 +87,28 @@ template <typename T> void cyclesort(std::span<T> data) {
 
 /**
  * @struct CycleSort
- * @brief Adapter struct for cycle sort satisfying SortAlgorithm concept.
+ * @brief Comparison sort that is theoretically optimal in total memory writes.
+ *
+ * Each element is either written zero times (if already in place) or exactly once
+ * into its correct cyclic position. Ideal for Flash or EEPROM memory where write
+ * operations degrade memory longevity.
+ *
+ * @par Characteristics:
+ * - <b>Category:</b> Comparison-based, Selection/Cycle.
+ * - <b>Stability:</b> Unstable.
+ *
+ * @par Time Complexity:
+ * - Best Case: @c O(N^2)
+ * - Average Case: @c O(N^2)
+ * - Worst Case: @c O(N^2)
+ *
+ * @par Space Complexity:
+ * - Auxiliary Space: @c O(1) auxiliary space (strictly in-place)
  */
 struct CycleSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "cyclesort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -119,6 +117,7 @@ struct CycleSort {
 
     /**
      * @brief Preferred minimum size threshold.
+     *
      * @return 0
      */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
@@ -127,14 +126,22 @@ struct CycleSort {
 
     /**
      * @brief Sorts the span in-place using cycle sort.
-     * @tparam T Element type.
      *
+     * @tparam T Element type supporting @c operator< and @c operator==.
      * @param data Contiguous span of elements to sort.
      */
     template <typename T> void sort(std::span<T> data) const {
         cyclesort(data);
     }
 
+    /**
+     * @brief Sorts the span in-place using cycle sort with a custom comparator.
+     *
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering comparator callable.
+     * @param data Contiguous span of elements to sort.
+     * @param comp Strict weak ordering comparator.
+     */
     template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
         cyclesort(data, comp);
     }

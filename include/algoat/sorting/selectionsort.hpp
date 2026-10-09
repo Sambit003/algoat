@@ -86,6 +86,14 @@ struct SelectionSort {
         selectionsort(data);
     }
 
+    /**
+     * @brief Sorts the span in-place using Selection Sort with a custom comparator.
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering comparator callable.
+     *
+     * @param data Contiguous span of elements to sort.
+     * @param comp Strict weak ordering comparator.
+     */
     template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
         selectionsort(data, comp);
     }

@@ -36,7 +36,7 @@ template <typename T, typename Compare> void insertionsort(std::span<T> data, Co
 
 /**
  * @brief Sorts the given span using insertion sort.
- * @tparam T Element type supporting <tt>operator<</tt> and move construction/assignment.
+ * @tparam T Element type supporting @c operator< and move construction/assignment.
  *
  * @param data Span of elements to sort in-place.
  */
@@ -48,7 +48,7 @@ template <typename T> void insertionsort(std::span<T> data) {
  * @struct InsertionSort
  * @brief Standard stable Insertion Sort implementation with move semantics.
  *
- * Efficient for small sequences (<tt>N < 32</tt>) and nearly sorted data. Used as
+ * Efficient for small sequences (@c N < 32) and nearly sorted data. Used as
  * the default base-case sort in hybrid algorithms (IntroSort, TimSort, BlockSort).
  *
  * @par Characteristics:
@@ -74,7 +74,7 @@ struct InsertionSort {
 
     /**
      * @brief Sorts the given span using insertion sort.
-     * @tparam T Element type supporting <tt>operator></tt> and move construction/assignment.
+     * @tparam T Element type supporting @c operator< and move construction/assignment.
      *
      * @param data Span of elements to sort in-place.
      */
@@ -82,6 +82,14 @@ struct InsertionSort {
         insertionsort(data);
     }
 
+    /**
+     * @brief Sorts the given span using insertion sort with a custom comparator.
+     * @tparam T Element type supporting move construction/assignment.
+     * @tparam Compare Strict weak ordering comparator callable.
+     *
+     * @param data Span of elements to sort in-place.
+     * @param comp Comparator callable.
+     */
     template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
         insertionsort(data, comp);
     }

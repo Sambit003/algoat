@@ -17,29 +17,10 @@
 namespace algoat::sorting {
 
 /**
- * @struct BlockSort
- * @brief Block Merge Sort utilizing  block decomposition.
- *
- * Partitions the data into blocks of size ~sqrt(N), sorts each block
- * using @c std::sort, and merges adjacent blocks using in-place merge passes.
- *
- * @par Characteristics:
- * - <b>Category:</b> Hybrid, Block-based Merge Sort.
- * - <b>Stability:</b> Dependent on merge stability.
- *
- * @par Time Complexity:
- * - Best Case: @c O(N log N)
- * - Average Case: @c O(N log N)
- * - Worst Case: @c O(N log N)
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(1) to @c O(N) during in-place merges
- */
-/**
  * @brief Sorts the span in-place using block merge sort with a custom comparator.
- * @tparam T Element type.
- * @tparam Compare Strict weak ordering comparator.
  *
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator callable.
  * @param data Contiguous span of elements to sort.
  * @param comp Strict weak ordering comparator.
  */
@@ -77,17 +58,37 @@ template <typename T, typename Compare> void blocksort(std::span<T> data, Compar
 
 /**
  * @brief Sorts the span in-place using block merge sort.
- * @tparam T Element type supporting <tt>operator<</tt>.
  *
+ * @tparam T Element type supporting @c operator<.
  * @param data Contiguous span of elements to sort.
  */
 template <typename T> void blocksort(std::span<T> data) {
     blocksort(data, std::less<T>{});
 }
 
+/**
+ * @struct BlockSort
+ * @brief Block Merge Sort utilizing block decomposition.
+ *
+ * Partitions the data into blocks of size ~sqrt(N), sorts each block
+ * using @c std::sort, and merges adjacent blocks using in-place merge passes.
+ *
+ * @par Characteristics:
+ * - <b>Category:</b> Hybrid, Block-based Merge Sort.
+ * - <b>Stability:</b> Dependent on merge stability.
+ *
+ * @par Time Complexity:
+ * - Best Case: @c O(N log N)
+ * - Average Case: @c O(N log N)
+ * - Worst Case: @c O(N log N)
+ *
+ * @par Space Complexity:
+ * - Auxiliary Space: @c O(1) to @c O(N) during in-place merges
+ */
 struct BlockSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "blocksort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -96,6 +97,7 @@ struct BlockSort {
 
     /**
      * @brief Preferred minimum size threshold.
+     *
      * @return 0
      */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
@@ -104,14 +106,22 @@ struct BlockSort {
 
     /**
      * @brief Sorts the span in-place using block merge sort.
-     * @tparam T Element type.
      *
+     * @tparam T Element type supporting @c operator<.
      * @param data Contiguous span of elements to sort.
      */
     template <typename T> void sort(std::span<T> data) const {
         blocksort(data);
     }
 
+    /**
+     * @brief Sorts the span in-place using block merge sort with a custom comparator.
+     *
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering comparator callable.
+     * @param data Contiguous span of elements to sort.
+     * @param comp Strict weak ordering comparator.
+     */
     template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
         blocksort(data, comp);
     }

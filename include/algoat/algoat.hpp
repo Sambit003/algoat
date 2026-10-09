@@ -46,6 +46,10 @@ inline void load_global_config(const std::string& filepath) {
     core::ConfigManager::instance().update_config(std::move(config));
 }
 
+/**
+ * @brief Constructs a Dispatcher configured with the active global settings.
+ * @return Configured core::Dispatcher instance.
+ */
 inline core::Dispatcher get_dispatcher() {
     return core::Dispatcher(*get_global_config());
 }
@@ -101,15 +105,22 @@ void sort(std::span<std::complex<T>> data, SpaceFillingCurve curve = SpaceFillin
  * @tparam T The element type in the span.
  *
  * @param data Contiguous span of elements to search.
- *
  * @param target The value to locate.
- * @return <tt>std::optional<std::size_t></tt> Index of the matching element if found, or @c
- * std::nullopt.
+ * @return Index of the matching element if found, or @c std::nullopt.
  */
 template <typename T> std::optional<std::size_t> search(std::span<const T> data, const T& target) {
     return get_dispatcher().search(data, target);
 }
 
+/**
+ * @brief Searches for a target value within a mutable span using dynamic algorithm dispatch.
+ *
+ * @tparam T The element type in the span.
+ *
+ * @param data Contiguous span of elements to search.
+ * @param target The value to locate.
+ * @return Index of the matching element if found, or @c std::nullopt.
+ */
 template <typename T> std::optional<std::size_t> search(std::span<T> data, const T& target) {
     return search(std::span<const T>{data.data(), data.size()}, target);
 }

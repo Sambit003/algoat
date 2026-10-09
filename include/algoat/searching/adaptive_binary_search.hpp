@@ -87,6 +87,11 @@ std::optional<std::size_t> adaptive_binary_search(std::span<const T> data, const
 
 /**
  * @brief Searches for target in a mutable span using adaptive binary search.
+ * @tparam T Element type supporting comparisons.
+ *
+ * @param data Span of elements to search.
+ * @param target Value to locate.
+ * @return Index of a matching element if present, or @c std::nullopt.
  */
 template <typename T>
 std::optional<std::size_t> adaptive_binary_search(std::span<T> data, const T& target) {
@@ -130,13 +135,21 @@ struct AdaptiveBinarySearch {
      *
      * @param data Span of elements to search.
      * @param target Value to locate.
-     * @return Index of a matching element if present, or std::nullopt.
+     * @return Index of a matching element if present, or @c std::nullopt.
      */
     template <typename T>
     std::optional<std::size_t> search(std::span<T> data, const T& target) const {
         return adaptive_binary_search(data, target);
     }
 
+    /**
+     * @brief Searches for target using adaptive binary search with monotonicity verification.
+     * @tparam T Element type supporting comparisons.
+     *
+     * @param data Span of elements to search.
+     * @param target Value to locate.
+     * @return Index of a matching element if present, or @c std::nullopt.
+     */
     template <typename T>
     std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
         return adaptive_binary_search(data, target);

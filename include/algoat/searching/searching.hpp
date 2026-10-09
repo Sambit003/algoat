@@ -26,9 +26,9 @@ namespace algoat::searching {
  * @brief Specifies the compile-time contract for searching algorithms.
  *
  * Requires:
- * 1. <tt>name()</tt>: String identifier convertible to @c std::string_view.
- * 2. <tt>search(std::span<T>, const T&)</tt>: Returns index in <tt>std::optional<std::size_t></tt>.
- * 3. <tt>requires_sorted()</tt>: Returns boolean indicating whether input data must be sorted.
+ * 1. @c name(): String identifier convertible to @c std::string_view.
+ * 2. @c search(std::span<T>, const T&): Returns index in @c std::optional<std::size_t>.
+ * 3. @c requires_sorted(): Returns boolean indicating whether input data must be sorted.
  *
  * @tparam Algo Searching algorithm struct.
  * @tparam T Element type.
@@ -43,7 +43,7 @@ concept SearchAlgorithm = requires(Algo algo, std::span<T> data, const T& target
 /**
  * @brief Variant type encapsulating all supported searching algorithm implementations.
  *
- * Used by <tt>algoat::core::Registry<SearchVariant></tt> for static dispatch without virtual table
+ * Used by @c algoat::core::Registry<SearchVariant> for static dispatch without virtual table
  * overhead.
  */
 using SearchVariant = std::variant<LinearSearch, BinarySearch, InterpolationSearch,

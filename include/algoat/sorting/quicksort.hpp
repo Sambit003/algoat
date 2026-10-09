@@ -16,30 +16,6 @@
 
 namespace algoat::sorting {
 
-/**
- * @struct QuickSort
- * @brief Divide-and-conquer sorting algorithm using Dijkstra 3-Way Fat Partitioning (Dutch National
- * Flag).
- *
- * Partitions array ranges into three contiguous slices: <tt>[ < pivot | == pivot | > pivot ]</tt>.
- * Duplicate keys equal to the pivot are finalized in place during the current partitioning pass,
- * reducing duplicate-heavy and low-entropy inputs to optimal @c O(N) linear time and preventing
- * Lomuto quadratic degradation. Employs median-of-three pivot selection and tail-call recursion
- * depth bounding to guarantee @c O(log N) stack depth.
- *
- * @par Characteristics:
- * - <b>Category:</b> Comparison-based, Divide & Conquer (3-Way Partitioning).
- * - <b>Stability:</b> Unstable.
- *
- * @par Time Complexity:
- * - Best Case: @c O(N) (all duplicate keys / low entropy) or @c O(N log N)
- * - Average Case: @c O(N log N)
- * - Worst Case: @c O(N^2) (mitigated by median-of-three and 3-way partitioning; see IntroSort for
- * guaranteed O(N log N))
- *
- * @par Space Complexity:
- * - Auxiliary Space: @c O(log N) recursion stack space (guaranteed by tail-call elimination)
- */
 namespace detail {
 
 /**
@@ -51,8 +27,8 @@ struct PartitionResult {
 };
 
 /**
- * @brief Selects the median of <tt>arr[low]</tt>, <tt>arr[mid]</tt>, and <tt>arr[high]</tt>
- * and places it at <tt>arr[high]</tt>.
+ * @brief Selects the median of @c arr[low], @c arr[mid], and @c arr[high]
+ * and places it at @c arr[high].
  */
 template <typename T, typename Compare>
 void median_of_three(T* arr, std::size_t low, std::size_t high, Compare comp) {
@@ -188,8 +164,8 @@ template <typename T, typename Compare> void quicksort(std::span<T> data, Compar
 
 /**
  * @brief Sorts the span in-place using 3-way partitioning quicksort.
- * @tparam T Element type supporting <tt>operator<</tt>.
  *
+ * @tparam T Element type supporting @c operator<.
  * @param data Contiguous span of elements to sort.
  */
 template <typename T> void quicksort(std::span<T> data) {
@@ -201,7 +177,7 @@ template <typename T> void quicksort(std::span<T> data) {
  * @brief Divide-and-conquer sorting algorithm using Dijkstra 3-Way Fat Partitioning (Dutch National
  * Flag).
  *
- * Partitions array ranges into three contiguous slices: <tt>[ < pivot | == pivot | > pivot ]</tt>.
+ * Partitions array ranges into three contiguous slices: @c [ < pivot | == pivot | > pivot ].
  * Duplicate keys equal to the pivot are finalized in place during the current partitioning pass,
  * reducing duplicate-heavy and low-entropy inputs to optimal @c O(N) linear time and preventing
  * Lomuto quadratic degradation. Employs median-of-three pivot selection and tail-call recursion
@@ -223,6 +199,7 @@ template <typename T> void quicksort(std::span<T> data) {
 struct QuickSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "quicksort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -231,14 +208,22 @@ struct QuickSort {
 
     /**
      * @brief Sorts the span in-place using 3-way partitioning quicksort.
-     * @tparam T Element type supporting <tt>operator<</tt> and <tt>operator></tt>.
      *
+     * @tparam T Element type supporting @c operator<.
      * @param data Contiguous span of elements to sort.
      */
     template <typename T> void sort(std::span<T> data) const {
         quicksort(data);
     }
 
+    /**
+     * @brief Sorts the span in-place using 3-way partitioning quicksort with a custom comparator.
+     *
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering comparator callable.
+     * @param data Contiguous span of elements to sort.
+     * @param comp Strict weak ordering comparator.
+     */
     template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
         quicksort(data, comp);
     }

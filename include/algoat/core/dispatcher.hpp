@@ -41,19 +41,19 @@ concept CanSearchData = requires(Algo a, std::span<const T> arr, const T& t) { a
  *
  *
  * @par Sorting Heuristics (@c "auto"):
- * - <b>Small Arrays</b> (<tt>N < small_threshold</tt>, default 32): @c InsertionSort
- * (<tt>O(N^2)</tt>, zero overhead).
- * - <b>Nearly Sorted</b> (sortedness ratio <tt>>= 0.90</tt> or <tt><= 0.10</tt>): @c TimSort
- * (<tt>O(N)</tt> best case on partially ordered data).
- * - <b>Large Integral Arrays</b> (<tt>N > 10,000</tt> & integral type): @c RadixSortLSD (<tt>O(N *
- * k)</tt> linear time).
- * - <b>General / Default:</b> @c IntroSort (<tt>O(N log N)</tt> hybrid
+ * - <b>Small Arrays</b> (@c N < small_threshold, default 32): @c InsertionSort
+ * (@c O(N^2), zero overhead).
+ * - <b>Nearly Sorted</b> (sortedness ratio @c >= 0.90 or @c <= 0.10): @c TimSort
+ * (@c O(N) best case on partially ordered data).
+ * - <b>Large Integral Arrays</b> (@c N > 10,000 & integral type): @c RadixSortLSD (@c O(N * k)
+ * linear time).
+ * - <b>General / Default:</b> @c IntroSort (@c O(N log N) hybrid
  * quicksort/heapsort/insertionsort).
  *
  *
  * @par Searching Heuristics (@c "auto"):
- * - <b>Default:</b> @c AdaptiveBinarySearch (dynamic <tt>O(log N)</tt> with automatic
- * invariant verification and <tt>O(N)</tt> fallback if monotonicity violations are detected).
+ * - <b>Default:</b> @c AdaptiveBinarySearch (dynamic @c O(log N) with automatic
+ * invariant verification and @c O(N) fallback if monotonicity violations are detected).
  */
 class Dispatcher {
     Registry<sorting::SortVariant> sort_registry_; ///< Registry of available sorting algorithms.
@@ -74,7 +74,7 @@ public:
      *
      * Statically routes domain-specific types (e.g. @c bool via @c sort_boolean, @c std::complex
      * via @c sort_complex_morton) at compile time without runtime profiling overhead.
-     * For general types, profiles @c data via <tt>analyze()</tt> in O(n) time, selects an optimal
+     * For general types, profiles @c data via @c analyze() in O(n) time, selects an optimal
      * algorithm, checks the registry (with fallback on missing algorithms), and executes the sort.
      *
      * @tparam T The element type in the span.
@@ -141,7 +141,7 @@ public:
      *
      * @param data Contiguous span of elements to search.
      * @param target The value to locate.
-     * @return <tt>std::optional<std::size_t></tt> Index of the matching element if found.
+     * @return Index of the matching element if found.
      * @throws std::runtime_error If algorithms are unavailable.
      */
     template <typename T>
@@ -180,7 +180,7 @@ public:
      *
      * @param data Contiguous span of elements to search.
      * @param target The value to locate.
-     * @return <tt>std::optional<std::size_t></tt> Index of the matching element if found.
+     * @return Index of the matching element if found.
      */
     template <typename T>
     std::optional<std::size_t> search(std::span<T> data, const T& target) const {
