@@ -49,3 +49,18 @@ TEST_F(LinearSearchTest, DuplicatesReturnsFirst) {
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(result.value(), 1);
 }
+
+TEST(LinearSearchFreeFunctionTest, FreeFunctionAndPredicate) {
+    std::vector<int> data = {5, 3, 8, 1, 9, 2, 7};
+    auto result = linear_search(std::span{data}, 1);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(*result, 3);
+
+    auto result_not_found = linear_search(std::span{data}, 99);
+    EXPECT_FALSE(result_not_found.has_value());
+
+    // Custom predicate
+    auto result_pred = linear_search(std::span{data}, 8, [](int a, int b) { return a == b; });
+    ASSERT_TRUE(result_pred.has_value());
+    EXPECT_EQ(*result_pred, 2);
+}

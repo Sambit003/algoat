@@ -169,3 +169,21 @@ TEST_F(BinarySearchTest, ExhaustiveSizeBounds1To64) {
         }
     }
 }
+
+TEST(BinarySearchFreeFunctionTest, DefaultAndCustomComparator) {
+    std::vector<int> asc = {10, 20, 30, 40, 50};
+    auto found = binary_search(std::span{asc}, 30);
+    ASSERT_TRUE(found.has_value());
+    EXPECT_EQ(*found, 2);
+
+    auto not_found = binary_search(std::span{asc}, 25);
+    EXPECT_FALSE(not_found.has_value());
+
+    std::vector<int> desc = {50, 40, 30, 20, 10};
+    auto found_desc = binary_search(std::span{desc}, 30, std::greater<int>{});
+    ASSERT_TRUE(found_desc.has_value());
+    EXPECT_EQ(*found_desc, 2);
+
+    auto not_found_desc = binary_search(std::span{desc}, 35, std::greater<int>{});
+    EXPECT_FALSE(not_found_desc.has_value());
+}

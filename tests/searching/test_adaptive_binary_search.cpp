@@ -62,3 +62,13 @@ TEST(AdaptiveBinarySearchTest, OLogNReturnForMissingInSorted) {
     auto res = abs.search(std::span{data}, 8);
     EXPECT_FALSE(res.has_value());
 }
+
+TEST(AdaptiveBinarySearchFreeFunctionTest, FreeFunctionSearch) {
+    std::vector<int> data = {1, 3, 5, 7, 9, 11, 13, 15};
+    auto res = adaptive_binary_search(std::span{data}, 7);
+    ASSERT_TRUE(res.has_value());
+    EXPECT_EQ(*res, 3);
+
+    auto res_not_found = adaptive_binary_search(std::span{data}, 8);
+    EXPECT_FALSE(res_not_found.has_value());
+}

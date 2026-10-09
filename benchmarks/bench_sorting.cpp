@@ -40,34 +40,47 @@ static void BM_StdSort(benchmark::State& state) {
 }
 BENCHMARK(BM_StdSort)->RangeMultiplier(2)->Range(8, 8 << 12)->Complexity();
 
-#define DECLARE_SORT_BENCHMARK(AlgoClass)                                                          \
-    static void BM_##AlgoClass(benchmark::State& state) {                                          \
+#define DECLARE_SORT_BENCHMARK(Name, FuncCall)                                                     \
+    static void BM_##Name(benchmark::State& state) {                                               \
         auto data = generate_random_data(state.range(0));                                          \
-        AlgoClass algo;                                                                            \
         for (auto _ : state) {                                                                     \
             state.PauseTiming();                                                                   \
             auto copy = data;                                                                      \
             state.ResumeTiming();                                                                  \
-            algo.sort(std::span{copy});                                                            \
+            FuncCall;                                                                              \
         }                                                                                          \
         state.SetComplexityN(state.range(0));                                                      \
     }                                                                                              \
-    BENCHMARK(BM_##AlgoClass)->RangeMultiplier(2)->Range(8, 8 << 12)->Complexity();
+    BENCHMARK(BM_##Name)->RangeMultiplier(2)->Range(8, 8 << 12)->Complexity();
 
-DECLARE_SORT_BENCHMARK(InsertionSort)
-DECLARE_SORT_BENCHMARK(QuickSort)
-DECLARE_SORT_BENCHMARK(MergeSort)
-DECLARE_SORT_BENCHMARK(HeapSort)
-DECLARE_SORT_BENCHMARK(TimSort)
-DECLARE_SORT_BENCHMARK(IntroSort)
-DECLARE_SORT_BENCHMARK(BlockSort)
-DECLARE_SORT_BENCHMARK(RadixSortLSD)
-DECLARE_SORT_BENCHMARK(RadixSortMSD)
-DECLARE_SORT_BENCHMARK(RadixSortInPlaceMSD)
-DECLARE_SORT_BENCHMARK(CountingSort)
-DECLARE_SORT_BENCHMARK(BucketSort)
-DECLARE_SORT_BENCHMARK(ShellSort)
-DECLARE_SORT_BENCHMARK(CombSort)
+DECLARE_SORT_BENCHMARK(InsertionSort, algoat::sorting::insertionsort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(QuickSort, algoat::sorting::quicksort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(MergeSort, algoat::sorting::mergesort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(HeapSort, algoat::sorting::heapsort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(TimSort, algoat::sorting::timsort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(IntroSort, algoat::sorting::introsort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(BlockSort, algoat::sorting::blocksort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(RadixSortLSD, algoat::sorting::radixsort_lsd(std::span{copy}))
+DECLARE_SORT_BENCHMARK(RadixSortMSD, algoat::sorting::radixsort_msd(std::span{copy}))
+DECLARE_SORT_BENCHMARK(RadixSortInPlaceMSD, algoat::sorting::inplace_radix_sort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(CountingSort, algoat::sorting::countingsort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(BucketSort, algoat::sorting::bucketsort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(ShellSort, algoat::sorting::shellsort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(CombSort, algoat::sorting::combsort(std::span{copy}))
+
+// Backward-compatibility adapter zero-overhead verification benchmark
+static void BM_Adapter_QuickSort(benchmark::State& state) {
+    auto data = generate_random_data(state.range(0));
+    QuickSort algo;
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        algo.sort(std::span{copy});
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_Adapter_QuickSort)->RangeMultiplier(2)->Range(8, 8 << 12)->Complexity();
 
 #define DECLARE_LARGE_SORT_BENCHMARK(Name, SortCall)                                               \
     static void BM_##Name##_Large(benchmark::State& state) {                                       \
@@ -85,7 +98,7 @@ DECLARE_SORT_BENCHMARK(CombSort)
 DECLARE_LARGE_SORT_BENCHMARK(StdSort, std::sort(copy.begin(), copy.end()))
 DECLARE_LARGE_SORT_BENCHMARK(RadixSortInPlaceMSD,
                              algoat::sorting::inplace_radix_sort(std::span{copy}))
-DECLARE_LARGE_SORT_BENCHMARK(MergeSort, algoat::sorting::MergeSort{}.sort(std::span{copy}))
+DECLARE_LARGE_SORT_BENCHMARK(MergeSort, algoat::sorting::mergesort(std::span{copy}))
 
 static void BM_MergeSort_Large_PMR(benchmark::State& state) {
     auto data = generate_random_data(state.range(0));

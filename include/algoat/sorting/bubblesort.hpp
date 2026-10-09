@@ -6,11 +6,45 @@
 #pragma once
 
 #include <concepts>
+#include <functional>
 #include <span>
 #include <string_view>
 #include <utility>
 
 namespace algoat::sorting {
+
+/**
+ * @brief Sorts the span in-place using Bubble Sort with a custom comparator.
+ *
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator callable.
+ * @param data Contiguous span of elements to sort.
+ * @param comp Strict weak ordering comparator.
+ */
+template <typename T, typename Compare> void bubblesort(std::span<T> data, Compare comp) {
+    if (data.empty())
+        return;
+    bool swapped = true;
+    for (std::size_t i = 0; i < data.size() - 1 && swapped; ++i) {
+        swapped = false;
+        for (std::size_t j = 0; j < data.size() - i - 1; ++j) {
+            if (comp(data[j + 1], data[j])) {
+                std::swap(data[j], data[j + 1]);
+                swapped = true;
+            }
+        }
+    }
+}
+
+/**
+ * @brief Sorts the span in-place using Bubble Sort.
+ *
+ * @tparam T Element type supporting @c operator<.
+ * @param data Contiguous span of elements to sort.
+ */
+template <typename T> void bubblesort(std::span<T> data) {
+    bubblesort(data, std::less<T>{});
+}
 
 /**
  * @struct BubbleSort
@@ -35,6 +69,7 @@ namespace algoat::sorting {
 struct BubbleSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "bubblesort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -43,6 +78,7 @@ struct BubbleSort {
 
     /**
      * @brief Preferred minimum size threshold.
+     *
      * @return 0
      */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
@@ -51,23 +87,24 @@ struct BubbleSort {
 
     /**
      * @brief Sorts the span in-place using Bubble Sort.
-     * @tparam T Type satisfying @c std::totally_ordered.
      *
+     * @tparam T Element type supporting @c operator<.
      * @param data Contiguous span of elements to sort.
      */
-    template <std::totally_ordered T> void sort(std::span<T> data) const {
-        if (data.empty())
-            return;
-        bool swapped = true;
-        for (std::size_t i = 0; i < data.size() - 1 && swapped; ++i) {
-            swapped = false;
-            for (std::size_t j = 0; j < data.size() - i - 1; ++j) {
-                if (data[j + 1] < data[j]) {
-                    std::swap(data[j], data[j + 1]);
-                    swapped = true;
-                }
-            }
-        }
+    template <typename T> void sort(std::span<T> data) const {
+        bubblesort(data);
+    }
+
+    /**
+     * @brief Sorts the span in-place using Bubble Sort with a custom comparator.
+     *
+     * @tparam T Element type.
+     * @tparam Compare Strict weak ordering comparator callable.
+     * @param data Contiguous span of elements to sort.
+     * @param comp Strict weak ordering comparator.
+     */
+    template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
+        bubblesort(data, comp);
     }
 };
 

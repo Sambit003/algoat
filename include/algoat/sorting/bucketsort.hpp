@@ -16,6 +16,45 @@
 namespace algoat::sorting {
 
 /**
+ * @brief Sorts an integral span using Bucket Sort.
+ *
+ * @tparam T Must satisfy @c std::is_integral_v<T> and not bool.
+ * @param arr Contiguous span of integers to sort.
+ */
+template <typename T>
+    requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+void bucketsort(std::span<T> arr) {
+    if (arr.empty())
+        return;
+
+    auto [min_it, max_it] = std::minmax_element(arr.begin(), arr.end());
+    T min_val = *min_it;
+
+    std::size_t range = static_cast<std::size_t>(*max_it) - static_cast<std::size_t>(min_val);
+
+    if (range == 0)
+        return;
+
+    std::size_t num_buckets = std::max<std::size_t>(1, arr.size() / 10);
+    std::vector<std::vector<T>> buckets(num_buckets);
+
+    for (T x : arr) {
+        std::size_t diff = static_cast<std::size_t>(x) - static_cast<std::size_t>(min_val);
+        std::size_t b_idx =
+            static_cast<std::size_t>((static_cast<double>(diff) / range) * (num_buckets - 1));
+        buckets[b_idx].push_back(x);
+    }
+
+    std::size_t idx = 0;
+    for (auto& bucket : buckets) {
+        std::sort(bucket.begin(), bucket.end());
+        for (T x : bucket) {
+            arr[idx++] = x;
+        }
+    }
+}
+
+/**
  * @struct BucketSort
  * @brief Distribution sorting algorithm partitioning elements across sub-buckets.
  *
@@ -37,6 +76,7 @@ namespace algoat::sorting {
 struct BucketSort {
     /**
      * @brief Returns the unique identifier for this algorithm.
+     *
      * @return "bucketsort"
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
@@ -45,6 +85,7 @@ struct BucketSort {
 
     /**
      * @brief Preferred minimum size threshold.
+     *
      * @return 0
      */
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
@@ -53,42 +94,14 @@ struct BucketSort {
 
     /**
      * @brief Sorts an integral span using Bucket Sort.
-     * @tparam T Must satisfy <tt>std::is_integral_v<T></tt>.
      *
+     * @tparam T Must satisfy @c std::is_integral_v<T>.
      * @param arr Contiguous span of integers to sort.
-     * @throws std::invalid_argument If @c T is non-integral.
      */
     template <typename T>
         requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
     void sort(std::span<T> arr) const {
-        if (arr.empty())
-            return;
-
-        auto [min_it, max_it] = std::minmax_element(arr.begin(), arr.end());
-        T min_val = *min_it;
-
-        std::size_t range = static_cast<std::size_t>(*max_it) - static_cast<std::size_t>(min_val);
-
-        if (range == 0)
-            return;
-
-        std::size_t num_buckets = std::max<std::size_t>(1, arr.size() / 10);
-        std::vector<std::vector<T>> buckets(num_buckets);
-
-        for (T x : arr) {
-            std::size_t diff = static_cast<std::size_t>(x) - static_cast<std::size_t>(min_val);
-            std::size_t b_idx =
-                static_cast<std::size_t>((static_cast<double>(diff) / range) * (num_buckets - 1));
-            buckets[b_idx].push_back(x);
-        }
-
-        std::size_t idx = 0;
-        for (auto& bucket : buckets) {
-            std::sort(bucket.begin(), bucket.end());
-            for (T x : bucket) {
-                arr[idx++] = x;
-            }
-        }
+        bucketsort(arr);
     }
 };
 

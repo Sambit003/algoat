@@ -13,8 +13,8 @@
  *   curve to form a 32-bit fine key.
  *
  * @par Sorting Strategy:
- * - For <tt>N < 256</tt>: @c std::sort with a transparent comparator.
- * - For <tt>N >= 256</tt>: 4-pass 16-bit Radix Sort across the 64-bit hybrid keys.
+ * - For @c N < 256: @c std::sort with a transparent comparator.
+ * - For @c N >= 256: 4-pass 16-bit Radix Sort across the 64-bit hybrid keys.
  */
 
 #pragma once

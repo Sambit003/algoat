@@ -96,16 +96,30 @@ Rather than sorting complex numbers along a single 1D axis (lexicographically by
 To contribute a new sorting algorithm to Algoat, follow these 4 steps *(unless it is a domain-specific static dispatch optimization for a single type, in which case it is intercepted via `if constexpr` in `Dispatcher::sort` directly)*:
 
 ### Step 1: Implement the Header
-Create `include/algoat/sorting/my_new_sort.hpp`. Your struct must satisfy the `algoat::sorting::SortAlgorithm` concept:
+Create `include/algoat/sorting/my_new_sort.hpp`. Expose idiomatic overloaded free function templates (`my_new_sort(span)` and `my_new_sort(span, comp)`), alongside a lightweight adapter struct satisfying `algoat::sorting::SortAlgorithm`:
 
 ```cpp
 #pragma once
-#include <string_view>
-#include <span>
 #include <concepts>
+#include <functional>
+#include <span>
+#include <string_view>
+#include <utility>
 
 namespace algoat::sorting {
 
+// 1. Idiomatic C++20 Free Function Templates
+template <typename T, typename Compare>
+void my_new_sort(std::span<T> data, Compare comp) {
+    // Core algorithm implementation using comparator...
+}
+
+template <typename T>
+void my_new_sort(std::span<T> data) {
+    my_new_sort(data, std::less<T>{});
+}
+
+// 2. Zero-Overhead Adapter Struct for Registry / Dispatcher Static Polymorphism
 struct MyNewSort {
     [[nodiscard]] constexpr std::string_view name() const noexcept {
         return "mynewsort";
@@ -115,9 +129,14 @@ struct MyNewSort {
         return 0;
     }
 
-    template<std::totally_ordered T>
+    template <typename T>
     void sort(std::span<T> data) const {
-        // Implement algorithm here...
+        my_new_sort(data);
+    }
+
+    template <typename T, typename Compare>
+    void sort(std::span<T> data, Compare comp) const {
+        my_new_sort(data, std::move(comp));
     }
 };
 
@@ -140,12 +159,21 @@ In [`src/core/dispatcher.cpp`](src/core/dispatcher.cpp):
    ```
 
 ### Step 4: Add Unit Tests
-Add a test in [`tests/sorting/`](tests/sorting/):
+Add tests in [`tests/sorting/`](tests/sorting/) testing both the direct free function template and the adapter:
 ```cpp
 #include <gtest/gtest.h>
 #include "algoat/sorting/my_new_sort.hpp"
 
-TEST(MyNewSortTest, HandlesRandomVector) {
+TEST(MyNewSortTest, FreeFunctionSortsAscendingAndDescending) {
+    std::vector<int> data = {9, 3, 1, 5, 2};
+    algoat::sorting::my_new_sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+
+    algoat::sorting::my_new_sort(std::span{data}, std::greater<int>{});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end(), std::greater<int>{}));
+}
+
+TEST(MyNewSortTest, AdapterSortsVector) {
     std::vector<int> data = {9, 3, 1, 5, 2};
     algoat::sorting::MyNewSort{}.sort(std::span{data});
     EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
