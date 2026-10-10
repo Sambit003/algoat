@@ -5,13 +5,45 @@
 
 #pragma once
 
+#include "algoat/core/traits.hpp"
+
+#include <concepts>
 #include <cstddef>
 #include <functional>
+#include <iterator>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <utility>
 
 namespace algoat::sorting {
+
+/**
+ * @brief Sorts a C++20 random-access range using insertion sort with custom comparator and
+ * projection.
+ *
+ * @tparam R Random-access range type.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ *
+ * @param data Range of elements to sort in-place.
+ * @param comp Comparator callable.
+ * @param proj Projection callable.
+ * @return Iterator pointing to the end of the range.
+ */
+template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+    requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+constexpr std::ranges::borrowed_iterator_t<R> insertionsort(R&& data, Comp comp = {},
+                                                            Proj proj = {}) {
+    auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
+    for (auto i = std::ranges::begin(data); i != std::ranges::end(data); ++i) {
+        for (auto j = i; j != std::ranges::begin(data) && comp_proj(*j, *(j - 1)); --j) {
+            std::ranges::iter_swap(j, j - 1);
+        }
+    }
+    return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+}
 
 /**
  * @brief Sorts the given span using insertion sort with a custom comparator.

@@ -5,14 +5,47 @@
 
 #pragma once
 
+#include <concepts>
 #include <cstddef>
 #include <functional>
+#include <iterator>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <utility>
 
 namespace algoat::searching {
+
+/**
+ * @brief Linearly searches for target in a C++20 input range using a custom binary predicate and
+ * projection.
+ *
+ * @tparam R Input range type.
+ * @tparam T Target value type.
+ * @tparam Proj Projection callable.
+ * @tparam Pred Binary predicate callable testing equivalence.
+ *
+ * @param range Input range of elements to search.
+ * @param target Value to locate.
+ * @param pred Binary predicate callable.
+ * @param proj Element projection callable.
+ * @return Index of the first matching element, or @c std::nullopt.
+ */
+template <std::ranges::input_range R, typename T = std::ranges::range_value_t<R>,
+          typename Proj = std::identity, typename Pred = std::ranges::equal_to>
+    requires std::indirect_binary_predicate<Pred, const T*,
+                                            std::projected<std::ranges::iterator_t<R>, Proj>>
+std::optional<std::size_t> linear_search(R&& range, const T& target, Pred pred = {},
+                                         Proj proj = {}) {
+    std::size_t idx = 0;
+    for (auto it = std::ranges::begin(range); it != std::ranges::end(range); ++it, ++idx) {
+        if (std::invoke(pred, target, std::invoke(proj, *it))) {
+            return idx;
+        }
+    }
+    return std::nullopt;
+}
 
 /**
  * @brief Linearly searches for target in the span using a custom binary predicate.

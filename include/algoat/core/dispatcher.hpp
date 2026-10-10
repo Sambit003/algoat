@@ -16,8 +16,12 @@
 #include "algoat/sorting/boolean_sort.hpp"
 #include "algoat/sorting/sorting.hpp"
 
+#include <algorithm>
 #include <cstddef>
+#include <functional>
+#include <iterator>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -70,17 +74,110 @@ public:
     explicit Dispatcher(const AlgoConfig& config);
 
     /**
-     * @brief Sorts a contiguous span using compile-time static dispatch or dynamic heuristics.
+     * @brief Sorts a C++20 random-access range using compile-time static dispatch or dynamic
+     * heuristics.
      *
      * Statically routes domain-specific types (e.g. @c bool via @c sort_boolean, @c std::complex
-     * via @c sort_complex_morton) at compile time without runtime profiling overhead.
+     * via @c sort_complex_morton) at compile time without runtime profiling overhead when default
+     * comparator and projection are used.
      * For general types, profiles @c data via @c analyze() in O(n) time, selects an optimal
      * algorithm, checks the registry (with fallback on missing algorithms), and executes the sort.
      *
-     * @tparam T The element type in the span.
+     * @tparam R Type satisfying @c std::ranges::random_access_range.
+     * @tparam Comp Comparator callable defining strict weak ordering.
+     * @tparam Proj Projection callable.
      *
-     * @param data The contiguous span of elements to sort in-place.
+     * @param data The range of elements to sort in-place.
+     * @param comp Strict weak ordering comparator.
+     * @param proj Element projection callable.
+     * @return Iterator to the end of the range, or @c std::ranges::dangling if an rvalue
+     * non-borrowed range was passed.
      * @throws std::runtime_error If the selected algorithm and its fallback are unregistered.
+     */
+    template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
+              typename Proj = std::identity>
+        requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+    constexpr std::ranges::borrowed_iterator_t<R> sort(R&& data, Comp comp = {},
+                                                       Proj proj = {}) const {
+        using ElementType = std::remove_reference_t<std::ranges::range_reference_t<R>>;
+
+        if constexpr (std::ranges::contiguous_range<R> && std::ranges::sized_range<R>) {
+            auto span_view = ::algoat::detail::to_span(data);
+
+            if constexpr (IsBoolean<ElementType> && std::is_same_v<Comp, std::ranges::less> &&
+                          std::is_same_v<Proj, std::identity>) {
+                sorting::sort_boolean(span_view);
+                return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+            } else if constexpr (IsComplex<ElementType> &&
+                                 std::is_same_v<Comp, std::ranges::less> &&
+                                 std::is_same_v<Proj, std::identity>) {
+                numerics::sort_complex_morton(span_view);
+                return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+            } else if constexpr (std::is_same_v<Comp, std::ranges::less> &&
+                                 std::is_same_v<Proj, std::identity>) {
+                DataTraits traits = analyze(data, comp, proj);
+                std::string algo_name = config_.sorting.prefer.value_or("auto");
+
+                if (algo_name == "auto" || algo_name.empty()) {
+                    if (traits.size < config_.sorting.small_threshold.value_or(32)) {
+                        algo_name = "insertionsort";
+                    } else if (traits.sortedness_ratio >= 0.9 || traits.sortedness_ratio <= 0.1) {
+                        algo_name = "timsort";
+                    } else {
+                        if constexpr (std::is_integral_v<ElementType>) {
+                            if (traits.size > 10000) {
+                                algo_name = "radixsortlsd";
+                            } else {
+                                algo_name = "introsort";
+                            }
+                        } else {
+                            algo_name = "introsort";
+                        }
+                    }
+                }
+
+                if (!sort_registry_.has(algo_name)) {
+                    algo_name = config_.sorting.fallback.value_or("heapsort");
+                    if (!sort_registry_.has(algo_name)) {
+                        throw std::runtime_error(
+                            "Requested sorting algorithm not registered and fallback missing");
+                    }
+                }
+
+                auto algo_variant = sort_registry_.create(algo_name);
+                std::visit(
+                    [span_view](auto&& algo) {
+                        using AlgoType = std::remove_cvref_t<decltype(algo)>;
+                        if constexpr (CanSortData<AlgoType, ElementType>) {
+                            algo.sort(span_view);
+                        } else {
+                            throw std::invalid_argument(
+                                "Algorithm does not support this data type.");
+                        }
+                    },
+                    algo_variant);
+                return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+            } else {
+                auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
+                DataTraits traits = analyze(data, comp, proj);
+                if (traits.size < config_.sorting.small_threshold.value_or(32)) {
+                    sorting::insertionsort(span_view, comp_proj);
+                } else if (traits.sortedness_ratio >= 0.9 || traits.sortedness_ratio <= 0.1) {
+                    sorting::timsort(span_view, comp_proj);
+                } else {
+                    sorting::introsort(span_view, comp_proj);
+                }
+                return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+            }
+        } else {
+            return ::algoat::detail::fallback_sort(data, std::move(comp), std::move(proj));
+        }
+    }
+
+    /**
+     * @brief Sorts a contiguous span using dynamic heuristics (backward-compatibility overload).
+     * @tparam T The element type in the span.
+     * @param data The contiguous span of elements to sort in-place.
      */
     template <typename T> void sort(std::span<T> data) const {
         if constexpr (IsBoolean<T>) {
@@ -88,46 +185,41 @@ public:
         } else if constexpr (IsComplex<T>) {
             numerics::sort_complex_morton(data);
         } else {
-            DataTraits traits = analyze(data);
-            std::string algo_name = config_.sorting.prefer.value_or("auto");
+            this->sort(data, std::ranges::less{}, std::identity{});
+        }
+    }
 
-            if (algo_name == "auto" || algo_name.empty()) {
-                if (traits.size < config_.sorting.small_threshold.value_or(32)) {
-                    algo_name = "insertionsort";
-                } else if (traits.sortedness_ratio >= 0.9 || traits.sortedness_ratio <= 0.1) {
-                    algo_name = "timsort";
-                } else {
-                    if constexpr (std::is_integral_v<T>) {
-                        if (traits.size > 10000) {
-                            algo_name = "radixsortlsd";
-                        } else {
-                            algo_name = "introsort";
-                        }
-                    } else {
-                        algo_name = "introsort";
-                    }
-                }
-            }
+    /**
+     * @brief Searches for a target value within a C++20 random-access range.
+     *
+     * @tparam R Type satisfying @c std::ranges::random_access_range.
+     * @tparam T Target value type.
+     * @tparam Comp Strict weak ordering comparator.
+     * @tparam Proj Projection callable.
+     *
+     * @param data Range of elements to search.
+     * @param target The value to locate.
+     * @param comp Strict weak ordering comparator.
+     * @param proj Element projection callable.
+     * @return Index of the matching element if found, or @c std::nullopt.
+     */
+    template <std::ranges::random_access_range R, typename T = std::ranges::range_value_t<R>,
+              typename Comp = std::ranges::less, typename Proj = std::identity>
+        requires std::indirect_strict_weak_order<Comp, const T*,
+                                                 std::projected<std::ranges::iterator_t<R>, Proj>>
+    std::optional<std::size_t> search(R&& data, const T& target, Comp comp = {},
+                                      Proj proj = {}) const {
+        using ElementType = std::remove_reference_t<std::ranges::range_reference_t<R>>;
 
-            if (!sort_registry_.has(algo_name)) {
-                algo_name = config_.sorting.fallback.value_or("heapsort");
-                if (!sort_registry_.has(algo_name)) {
-                    throw std::runtime_error(
-                        "Requested sorting algorithm not registered and fallback missing");
-                }
-            }
-
-            auto algo_variant = sort_registry_.create(algo_name);
-            std::visit(
-                [data](auto&& algo) {
-                    using AlgoType = std::remove_cvref_t<decltype(algo)>;
-                    if constexpr (CanSortData<AlgoType, T>) {
-                        algo.sort(data);
-                    } else {
-                        throw std::invalid_argument("Algorithm does not support this data type.");
-                    }
-                },
-                algo_variant);
+        if constexpr (std::is_same_v<Comp, std::ranges::less> &&
+                      std::is_same_v<Proj, std::identity> && std::ranges::contiguous_range<R> &&
+                      std::ranges::sized_range<R>) {
+            auto span_view =
+                std::span<const ElementType>{std::ranges::data(data), std::ranges::size(data)};
+            return this->search(span_view, target);
+        } else {
+            return searching::binary_search(std::forward<R>(data), target, std::move(comp),
+                                            std::move(proj));
         }
     }
 
