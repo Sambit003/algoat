@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "algoat/core/traits.hpp"
 #include "algoat/sorting/heapsort.hpp"
 #include "algoat/sorting/insertionsort.hpp"
 
@@ -12,6 +13,8 @@
 #include <bit>
 #include <concepts>
 #include <functional>
+#include <iterator>
+#include <ranges>
 #include <span>
 #include <string_view>
 
@@ -70,6 +73,37 @@ void introsort_impl(std::span<T> data, int depth_limit, Compare comp) {
 }
 
 } // namespace detail
+
+/**
+ * @brief Sorts a C++20 random-access range in-place using introsort with custom comparator and
+ * projection.
+ *
+ * @tparam R Random-access range type.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ *
+ * @param data Range of elements to sort in-place.
+ * @param comp Strict weak ordering comparator.
+ * @param proj Projection callable.
+ * @return Iterator pointing to the end of the range.
+ */
+template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+    requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+constexpr std::ranges::borrowed_iterator_t<R> introsort(R&& data, Comp comp = {}, Proj proj = {}) {
+    if constexpr (std::ranges::contiguous_range<R> && std::ranges::sized_range<R>) {
+        auto span_data = ::algoat::detail::to_span(data);
+        if (span_data.empty()) {
+            return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+        }
+        int depth_limit = 2 * std::bit_width(span_data.size());
+        auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
+        detail::introsort_impl(span_data, depth_limit, comp_proj);
+        return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+    } else {
+        return ::algoat::detail::fallback_sort(data, std::move(comp), std::move(proj));
+    }
+}
 
 /**
  * @brief Sorts the span in-place using introsort with a custom comparator.

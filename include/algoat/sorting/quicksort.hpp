@@ -5,11 +5,16 @@
 
 #pragma once
 
+#include "algoat/core/traits.hpp"
 #include "algoat/simd/partition.hpp"
 #include "algoat/sorting/insertionsort.hpp"
 
+#include <algorithm>
+#include <concepts>
 #include <cstddef>
 #include <functional>
+#include <iterator>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <utility>
@@ -147,6 +152,40 @@ void quicksort_impl(T* arr, std::size_t low, std::size_t high, Compare comp) {
 }
 
 } // namespace detail
+
+/**
+ * @brief Sorts a C++20 random-access range in-place using 3-way partitioning quicksort with custom
+ * comparator and projection.
+ *
+ * @tparam R Random-access range type.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ *
+ * @param data Range of elements to sort in-place.
+ * @param comp Strict weak ordering comparator.
+ * @param proj Projection callable.
+ * @return Iterator pointing to the end of the range.
+ */
+template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+    requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+constexpr std::ranges::borrowed_iterator_t<R> quicksort(R&& data, Comp comp = {}, Proj proj = {}) {
+    if constexpr (std::ranges::contiguous_range<R> && std::ranges::sized_range<R>) {
+        auto span_data = ::algoat::detail::to_span(data);
+        if (span_data.size() <= 1) {
+            return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+        }
+        if constexpr (std::is_same_v<Proj, std::identity>) {
+            detail::quicksort_impl(span_data.data(), 0, span_data.size() - 1, comp);
+        } else {
+            auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
+            detail::quicksort_impl(span_data.data(), 0, span_data.size() - 1, comp_proj);
+        }
+        return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+    } else {
+        return ::algoat::detail::fallback_sort(data, std::move(comp), std::move(proj));
+    }
+}
 
 /**
  * @brief Sorts the span in-place using 3-way partitioning quicksort with a custom comparator.

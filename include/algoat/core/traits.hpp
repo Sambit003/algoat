@@ -13,8 +13,61 @@
 #include <complex>
 #include <concepts>
 #include <cstddef>
+#include <functional>
+#include <iterator>
 #include <ranges>
+#include <span>
 #include <type_traits>
+#include <utility>
+
+namespace algoat::detail {
+
+/**
+ * @brief Composes a comparator and a projection into a single binary predicate callable.
+ */
+template <typename Comp, typename Proj>
+[[nodiscard]] constexpr auto make_comp_proj(Comp comp, Proj proj) {
+    return [comp = std::move(comp), proj = std::move(proj)](auto&& a, auto&& b) -> bool {
+        return std::invoke(comp, std::invoke(proj, std::forward<decltype(a)>(a)),
+                           std::invoke(proj, std::forward<decltype(b)>(b)));
+    };
+}
+
+/**
+ * @brief Concept matching ranges that are both contiguous and sized.
+ */
+template <typename R>
+concept contiguous_sized_range = std::ranges::contiguous_range<R> && std::ranges::sized_range<R>;
+
+/**
+ * @brief Zero-overhead adapter converting any contiguous sized range to std::span<T>.
+ */
+template <contiguous_sized_range R> [[nodiscard]] constexpr auto to_span(R&& r) noexcept {
+    using Element = std::remove_reference_t<std::ranges::range_reference_t<R>>;
+    return std::span<Element>{std::ranges::data(r), std::ranges::size(r)};
+}
+
+/**
+ * @brief Zero-allocation fallback sort for non-contiguous random-access ranges.
+ */
+template <typename R, typename Comp, typename Proj>
+inline auto fallback_sort(R&& data, Comp comp, Proj proj) {
+    auto comp_proj = make_comp_proj(std::move(comp), std::move(proj));
+    std::ranges::sort(data, comp_proj);
+    return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+}
+
+/**
+ * @brief Zero-allocation fallback stable sort for non-contiguous random-access ranges.
+ */
+template <typename R, typename Comp, typename Proj>
+inline auto fallback_stable_sort(R&& data, Comp comp, Proj proj) {
+    auto comp_proj = make_comp_proj(std::move(comp), std::move(proj));
+    std::ranges::stable_sort(data, comp_proj);
+    return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+}
+
+} // namespace algoat::detail
 
 namespace algoat::core {
 
@@ -67,12 +120,18 @@ struct DataTraits {
  * stratified SIMD profiler with high statistical confidence.
  *
  * @tparam R A type satisfying @c std::ranges::random_access_range.
+ * @tparam Comp Comparator callable defining strict weak ordering.
+ * @tparam Proj Projection callable.
  *
  * @param data The range of elements to analyze.
+ * @param comp Strict weak ordering comparator.
+ * @param proj Projection callable.
  * @return @c DataTraits Computed traits (@c size, @c sortedness_ratio, @c has_duplicates, @c
  * is_exact).
  */
-template <std::ranges::random_access_range R> DataTraits analyze(const R& data) {
+template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+DataTraits analyze(const R& data, Comp comp = {}, Proj proj = {}) {
     const std::size_t size = std::ranges::size(data);
     if (size <= 1) {
         return {size, 1.0, false, true};
@@ -80,9 +139,11 @@ template <std::ranges::random_access_range R> DataTraits analyze(const R& data) 
 
     using ElementType = std::remove_cvref_t<std::ranges::range_value_t<R>>;
 
-    // Sub-linear fast path for large contiguous primitive sequences
+    // Sub-linear fast path for large contiguous primitive sequences with default comparator and
+    // projection
     if constexpr (std::ranges::contiguous_range<R> &&
-                  (std::is_arithmetic_v<ElementType> || std::is_pointer_v<ElementType>)) {
+                  (std::is_arithmetic_v<ElementType> || std::is_pointer_v<ElementType>) &&
+                  std::is_same_v<Comp, std::ranges::less> && std::is_same_v<Proj, std::identity>) {
         if (size > detail::kSublinearThreshold) {
             double ratio = 1.0;
             bool has_duplicates = false;
@@ -101,10 +162,12 @@ template <std::ranges::random_access_range R> DataTraits analyze(const R& data) 
     ++it;
 
     for (; it != std::ranges::end(data); ++it, ++prev) {
-        if (*prev <= *it) {
+        auto&& prev_proj = std::invoke(proj, *prev);
+        auto&& curr_proj = std::invoke(proj, *it);
+        if (!std::invoke(comp, curr_proj, prev_proj)) {
             sorted_pairs++;
         }
-        if (*prev == *it) {
+        if (!std::invoke(comp, prev_proj, curr_proj) && !std::invoke(comp, curr_proj, prev_proj)) {
             has_duplicates = true;
         }
     }

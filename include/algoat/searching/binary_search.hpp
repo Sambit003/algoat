@@ -5,14 +5,69 @@
 
 #pragma once
 
+#include <concepts>
 #include <cstddef>
 #include <functional>
+#include <iterator>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <utility>
 
 namespace algoat::searching {
+
+/**
+ * @brief Searches for target within a C++20 random-access range using binary search with custom
+ * comparator and projection.
+ *
+ * @tparam R Random-access range type.
+ * @tparam T Target value type.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ *
+ * @param range Sorted range of elements to search.
+ * @param target Value to locate.
+ * @param comp Strict weak ordering comparator.
+ * @param proj Element projection callable.
+ * @return Index of a matching element if present, or @c std::nullopt.
+ */
+template <std::ranges::random_access_range R, typename T = std::ranges::range_value_t<R>,
+          typename Comp = std::ranges::less, typename Proj = std::identity>
+    requires std::indirect_strict_weak_order<Comp, const T*,
+                                             std::projected<std::ranges::iterator_t<R>, Proj>>
+std::optional<std::size_t> binary_search(R&& range, const T& target, Comp comp = {},
+                                         Proj proj = {}) {
+    auto len = std::ranges::distance(range);
+    if (len <= 0) {
+        return std::nullopt;
+    }
+
+    auto first = std::ranges::begin(range);
+    auto base = first;
+    auto range_length = len;
+
+    while (range_length > 1) {
+        auto half = range_length / 2;
+        auto mid = base + half;
+        base = std::invoke(comp, std::invoke(proj, *mid), target) ? mid : base;
+        range_length -= half;
+    }
+
+    auto index = static_cast<std::size_t>(base - first);
+    auto&& base_proj = std::invoke(proj, *base);
+    if (!std::invoke(comp, base_proj, target) && !std::invoke(comp, target, base_proj)) {
+        return index;
+    }
+    if (index + 1 < static_cast<std::size_t>(len)) {
+        auto&& next_proj = std::invoke(proj, *(base + 1));
+        if (!std::invoke(comp, next_proj, target) && !std::invoke(comp, target, next_proj)) {
+            return index + 1;
+        }
+    }
+
+    return std::nullopt;
+}
 
 /**
  * @brief Searches for target using binary search with a custom comparator.
