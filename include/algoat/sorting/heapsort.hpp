@@ -23,28 +23,86 @@ namespace detail {
 
 /**
  * @brief Sifts down the subtree rooted at index @c i to maintain max-heap property.
+ *
+ * @tparam I Random-access iterator type.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ * @param first Beginning of the range.
+ * @param n Total number of elements in the heap.
+ * @param i Root index of the subtree to sift down.
+ * @param comp Strict weak ordering comparator.
+ * @param proj Projection callable.
  */
-template <typename T, typename Compare>
-void heapify(T* arr, std::size_t n, std::size_t i, Compare comp) {
+template <std::random_access_iterator I, typename Comp, typename Proj>
+constexpr void heapify(I first, std::size_t n, std::size_t i, Comp comp, Proj proj) {
     std::size_t largest = i;
     std::size_t left = 2 * i + 1;
     std::size_t right = 2 * i + 2;
 
-    if (left < n && comp(arr[largest], arr[left])) {
+    if (left < n && std::invoke(comp, std::invoke(proj, *(first + largest)),
+                                std::invoke(proj, *(first + left)))) {
         largest = left;
     }
 
-    if (right < n && comp(arr[largest], arr[right])) {
+    if (right < n && std::invoke(comp, std::invoke(proj, *(first + largest)),
+                                 std::invoke(proj, *(first + right)))) {
         largest = right;
     }
 
     if (largest != i) {
-        std::swap(arr[i], arr[largest]);
-        heapify(arr, n, largest, comp);
+        std::ranges::iter_swap(first + i, first + largest);
+        heapify(first, n, largest, comp, proj);
     }
 }
 
+/**
+ * @brief Sifts down the subtree rooted at index @c i for raw pointer spans.
+ *
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator callable.
+ * @param arr Pointer to the start of the array.
+ * @param n Total number of elements in the heap.
+ * @param i Root index of the subtree to sift down.
+ * @param comp Strict weak ordering comparator.
+ */
+template <typename T, typename Compare>
+constexpr void heapify(T* arr, std::size_t n, std::size_t i, Compare comp) {
+    heapify(arr, n, i, comp, std::identity{});
+}
+
 } // namespace detail
+
+/**
+ * @brief Sorts a range delimited by iterators [first, last) in-place using a binary max-heap with
+ * custom comparator and projection.
+ *
+ * @tparam I Random-access iterator type.
+ * @tparam S Sentinel type for iterator I.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ *
+ * @param first Beginning of the range to sort in-place.
+ * @param last Sentinel or end of the range.
+ * @param comp Strict weak ordering comparator.
+ * @param proj Projection callable.
+ */
+template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+    requires std::sortable<I, Comp, Proj>
+constexpr void heapsort(I first, S last, Comp comp = {}, Proj proj = {}) {
+    auto last_it = std::ranges::next(first, last);
+    const std::size_t n = static_cast<std::size_t>(last_it - first);
+    if (n <= 1) {
+        return;
+    }
+    for (std::size_t i = n / 2; i > 0; --i) {
+        detail::heapify(first, n, i - 1, comp, proj);
+    }
+    for (std::size_t i = n - 1; i > 0; --i) {
+        std::ranges::iter_swap(first, first + i);
+        detail::heapify(first, i, 0, comp, proj);
+    }
+}
 
 /**
  * @brief Sorts a C++20 random-access range in-place using a binary max-heap with custom comparator
@@ -63,24 +121,8 @@ template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
           typename Proj = std::identity>
     requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
 constexpr std::ranges::borrowed_iterator_t<R> heapsort(R&& data, Comp comp = {}, Proj proj = {}) {
-    if constexpr (std::ranges::contiguous_range<R> && std::ranges::sized_range<R>) {
-        auto span_data = ::algoat::detail::to_span(data);
-        const std::size_t n = span_data.size();
-        if (n <= 1) {
-            return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
-        }
-        auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
-        for (std::size_t i = n / 2; i > 0; --i) {
-            detail::heapify(span_data.data(), n, i - 1, comp_proj);
-        }
-        for (std::size_t i = n - 1; i > 0; --i) {
-            std::swap(span_data[0], span_data[i]);
-            detail::heapify(span_data.data(), i, 0, comp_proj);
-        }
-        return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
-    } else {
-        return ::algoat::detail::fallback_sort(data, std::move(comp), std::move(proj));
-    }
+    heapsort(std::ranges::begin(data), std::ranges::end(data), comp, proj);
+    return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
 }
 
 /**
@@ -91,21 +133,8 @@ constexpr std::ranges::borrowed_iterator_t<R> heapsort(R&& data, Comp comp = {},
  * @param data Contiguous span of elements to sort.
  * @param comp Strict weak ordering comparator.
  */
-template <typename T, typename Compare> void heapsort(std::span<T> data, Compare comp) {
-    const std::size_t n = data.size();
-    if (n <= 1)
-        return;
-
-    // Build max-heap (bottom-up heap construction in O(n))
-    for (std::size_t i = n / 2; i > 0; --i) {
-        detail::heapify(data.data(), n, i - 1, comp);
-    }
-
-    // Extract maximum element one by one from root to the end
-    for (std::size_t i = n - 1; i > 0; --i) {
-        std::swap(data[0], data[i]);
-        detail::heapify(data.data(), i, 0, comp);
-    }
+template <typename T, typename Compare> constexpr void heapsort(std::span<T> data, Compare comp) {
+    heapsort(data.begin(), data.end(), comp);
 }
 
 /**
@@ -114,8 +143,8 @@ template <typename T, typename Compare> void heapsort(std::span<T> data, Compare
  * @tparam T Element type supporting @c operator<.
  * @param data Contiguous span of elements to sort.
  */
-template <typename T> void heapsort(std::span<T> data) {
-    heapsort(data, std::less<T>{});
+template <typename T> constexpr void heapsort(std::span<T> data) {
+    heapsort(data.begin(), data.end(), std::less<T>{});
 }
 
 /**
@@ -154,7 +183,7 @@ struct HeapSort {
      * @tparam T Element type supporting @c operator<.
      * @param data Contiguous span of elements to sort.
      */
-    template <typename T> void sort(std::span<T> data) const {
+    template <typename T> constexpr void sort(std::span<T> data) const {
         heapsort(data);
     }
 
@@ -166,7 +195,8 @@ struct HeapSort {
      * @param data Contiguous span of elements to sort.
      * @param comp Strict weak ordering comparator.
      */
-    template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
+    template <typename T, typename Compare>
+    constexpr void sort(std::span<T> data, Compare comp) const {
         heapsort(data, comp);
     }
 

@@ -17,62 +17,176 @@
 #include <ranges>
 #include <span>
 #include <string_view>
+#include <utility>
 
 namespace algoat::sorting {
 
 namespace detail {
 
-template <typename T, typename Compare> T min_val(const T& a, const T& b, Compare comp) {
+/**
+ * @brief Returns the minimum of two values according to the comparator.
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator callable.
+ * @param a First value.
+ * @param b Second value.
+ * @param comp Strict weak ordering comparator.
+ * @return Smaller of a or b.
+ */
+template <typename T, typename Compare> constexpr T min_val(const T& a, const T& b, Compare comp) {
     return comp(b, a) ? b : a;
 }
 
-template <typename T, typename Compare> T max_val(const T& a, const T& b, Compare comp) {
+/**
+ * @brief Returns the maximum of two values according to the comparator.
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator callable.
+ * @param a First value.
+ * @param b Second value.
+ * @param comp Strict weak ordering comparator.
+ * @return Larger of a or b.
+ */
+template <typename T, typename Compare> constexpr T max_val(const T& a, const T& b, Compare comp) {
     return comp(a, b) ? b : a;
 }
 
+/**
+ * @brief Computes the median of three values according to the comparator.
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator callable.
+ * @param a First value.
+ * @param b Second value.
+ * @param c Third value.
+ * @param comp Strict weak ordering comparator.
+ * @return Median of a, b, and c.
+ */
 template <typename T, typename Compare>
-T get_pivot(const T& a, const T& b, const T& c, Compare comp) {
+constexpr T get_pivot(const T& a, const T& b, const T& c, Compare comp) {
     return max_val(min_val(a, b, comp), min_val(max_val(a, b, comp), c, comp), comp);
 }
 
-template <typename T, typename Compare>
-void introsort_impl(std::span<T> data, int depth_limit, Compare comp) {
-    if (data.size() <= 32) {
-        insertionsort(data, comp);
-        return;
+/**
+ * @brief Bounds-safe ISO C++20 Hoare partitioning algorithm.
+ *
+ * Guarantees all iterator increments and decrements remain strictly within
+ * the valid object range [first, last], eliminating undefined pointer arithmetic
+ * (ISO/IEC 14882:2020 §7.6.6 [expr.add]).
+ *
+ * @tparam I Random-access iterator type.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ * @param first Beginning of the range to partition.
+ * @param last Sentinel or end of the range.
+ * @param comp Strict weak ordering comparator.
+ * @param proj Projection callable.
+ * @return Iterator pointing to the partition cut point strictly in (first, last).
+ */
+template <std::random_access_iterator I, typename Comp, typename Proj>
+constexpr I hoare_partition(I first, I last, Comp comp, Proj proj) {
+    auto len = last - first;
+    auto mid = first + len / 2;
+
+    if (std::invoke(comp, std::invoke(proj, *mid), std::invoke(proj, *first))) {
+        std::ranges::iter_swap(first, mid);
     }
-
-    if (depth_limit == 0) {
-        heapsort(data, comp);
-        return;
+    if (std::invoke(comp, std::invoke(proj, *(last - 1)), std::invoke(proj, *first))) {
+        std::ranges::iter_swap(first, last - 1);
     }
+    if (std::invoke(comp, std::invoke(proj, *(last - 1)), std::invoke(proj, *mid))) {
+        std::ranges::iter_swap(mid, last - 1);
+    }
+    std::ranges::iter_swap(first, mid);
 
-    // Median-of-three pivot selection
-    auto pivot = get_pivot(data[0], data[data.size() / 2], data[data.size() - 1], comp);
-
-    // Hoare partition scheme
-    auto* left = data.data() - 1;
-    auto* right = data.data() + data.size();
+    auto pivot = std::invoke(proj, *first);
+    I left = first;
+    I right = last;
 
     while (true) {
+        while (left < last && std::invoke(comp, std::invoke(proj, *left), pivot)) {
+            ++left;
+        }
         do {
-            left++;
-        } while (comp(*left, pivot));
-        do {
-            right--;
-        } while (comp(pivot, *right));
-        if (left >= right)
-            break;
-        std::swap(*left, *right);
+            --right;
+        } while (right > first && std::invoke(comp, pivot, std::invoke(proj, *right)));
+        if (left >= right) {
+            return right + 1;
+        }
+        std::ranges::iter_swap(left, right);
+        ++left;
     }
+}
 
-    std::size_t pivot_idx = right - data.data() + 1;
+/**
+ * @brief Recursive introsort driver loop bounding recursion depth.
+ *
+ * @tparam I Random-access iterator type.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ * @param first Beginning of the subrange.
+ * @param last Sentinel or end of the subrange.
+ * @param depth_limit Remaining recursion depth before fallback to heapsort.
+ * @param comp Strict weak ordering comparator.
+ * @param proj Projection callable.
+ */
+template <std::random_access_iterator I, typename Comp, typename Proj>
+constexpr void introsort_loop(I first, I last, int depth_limit, Comp comp, Proj proj) {
+    while (last - first > 32) {
+        if (depth_limit == 0) {
+            heapsort(first, last, comp, proj);
+            return;
+        }
+        --depth_limit;
+        I cut = hoare_partition(first, last, comp, proj);
+        introsort_loop(cut, last, depth_limit, comp, proj);
+        last = cut;
+    }
+    insertion_sort(first, last, comp, proj);
+}
 
-    introsort_impl(data.subspan(0, pivot_idx), depth_limit - 1, comp);
-    introsort_impl(data.subspan(pivot_idx, data.size() - pivot_idx), depth_limit - 1, comp);
+/**
+ * @brief Implementation bridge for span-based introsort.
+ *
+ * @tparam T Element type.
+ * @tparam Compare Strict weak ordering comparator callable.
+ * @param data Contiguous span of elements.
+ * @param depth_limit Recursion depth limit.
+ * @param comp Strict weak ordering comparator.
+ */
+template <typename T, typename Compare>
+constexpr void introsort_impl(std::span<T> data, int depth_limit, Compare comp) {
+    if (data.empty()) {
+        return;
+    }
+    introsort_loop(data.begin(), data.end(), depth_limit, comp, std::identity{});
 }
 
 } // namespace detail
+
+/**
+ * @brief Sorts a range delimited by iterators [first, last) in-place using introsort with custom
+ * comparator and projection.
+ *
+ * @tparam I Random-access iterator type.
+ * @tparam S Sentinel type for iterator I.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ *
+ * @param first Beginning of the range to sort in-place.
+ * @param last Sentinel or end of the range.
+ * @param comp Strict weak ordering comparator.
+ * @param proj Projection callable.
+ */
+template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+    requires std::sortable<I, Comp, Proj>
+constexpr void introsort(I first, S last, Comp comp = {}, Proj proj = {}) {
+    auto last_it = std::ranges::next(first, last);
+    auto len = last_it - first;
+    if (len <= 1) {
+        return;
+    }
+    int depth_limit = 2 * std::bit_width(static_cast<std::size_t>(len));
+    detail::introsort_loop(first, last_it, depth_limit, comp, proj);
+}
 
 /**
  * @brief Sorts a C++20 random-access range in-place using introsort with custom comparator and
@@ -91,18 +205,8 @@ template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
           typename Proj = std::identity>
     requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
 constexpr std::ranges::borrowed_iterator_t<R> introsort(R&& data, Comp comp = {}, Proj proj = {}) {
-    if constexpr (std::ranges::contiguous_range<R> && std::ranges::sized_range<R>) {
-        auto span_data = ::algoat::detail::to_span(data);
-        if (span_data.empty()) {
-            return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
-        }
-        int depth_limit = 2 * std::bit_width(span_data.size());
-        auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
-        detail::introsort_impl(span_data, depth_limit, comp_proj);
-        return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
-    } else {
-        return ::algoat::detail::fallback_sort(data, std::move(comp), std::move(proj));
-    }
+    introsort(std::ranges::begin(data), std::ranges::end(data), comp, proj);
+    return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
 }
 
 /**
@@ -113,7 +217,7 @@ constexpr std::ranges::borrowed_iterator_t<R> introsort(R&& data, Comp comp = {}
  * @param data Contiguous span of elements to sort.
  * @param comp Strict weak ordering comparator.
  */
-template <typename T, typename Compare> void introsort(std::span<T> data, Compare comp) {
+template <typename T, typename Compare> constexpr void introsort(std::span<T> data, Compare comp) {
     if (data.empty())
         return;
     int depth_limit = 2 * std::bit_width(data.size());
@@ -126,7 +230,7 @@ template <typename T, typename Compare> void introsort(std::span<T> data, Compar
  * @tparam T Element type supporting @c operator<.
  * @param data Contiguous span of elements to sort.
  */
-template <typename T> void introsort(std::span<T> data) {
+template <typename T> constexpr void introsort(std::span<T> data) {
     introsort(data, std::less<T>{});
 }
 
@@ -167,7 +271,7 @@ struct IntroSort {
      * @tparam T Element type supporting @c operator<.
      * @param data Contiguous span of elements to sort.
      */
-    template <typename T> void sort(std::span<T> data) const {
+    template <typename T> constexpr void sort(std::span<T> data) const {
         introsort(data);
     }
 
@@ -179,7 +283,8 @@ struct IntroSort {
      * @param data Contiguous span of elements to sort.
      * @param comp Strict weak ordering comparator.
      */
-    template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
+    template <typename T, typename Compare>
+    constexpr void sort(std::span<T> data, Compare comp) const {
         introsort(data, comp);
     }
 
