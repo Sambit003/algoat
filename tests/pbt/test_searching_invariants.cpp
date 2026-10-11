@@ -1,3 +1,4 @@
+#include "algoat/searching/eytzinger_search_tree.hpp"
 #include "algoat/searching/searching.hpp"
 
 #include <algorithm>
@@ -35,5 +36,18 @@ TYPED_TEST(SearchingPBT, Invariants) {
             }
             RC_ASSERT(!found);
         }
+    });
+}
+
+TEST(EytzingerSearchPBT, LowerBoundMatchesStdLowerBound) {
+    rc::check("EytzingerSearchTree lower_bound invariants", [](std::vector<int> data, int target) {
+        std::sort(data.begin(), data.end());
+        EytzingerSearchTree<int> tree(std::span<const int>{data});
+
+        auto std_it = std::lower_bound(data.begin(), data.end(), target);
+        std::size_t expected_idx = static_cast<std::size_t>(std_it - data.begin());
+
+        RC_ASSERT(tree.size() == data.size());
+        RC_ASSERT(tree.lower_bound(target) == expected_idx);
     });
 }
