@@ -36,12 +36,19 @@ template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp =
           typename Proj = std::identity>
     requires std::sortable<I, Comp, Proj>
 constexpr void insertion_sort(I first, S last, Comp comp = {}, Proj proj = {}) {
-    auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
     auto last_it = std::ranges::next(first, last);
-    for (auto i = first; i != last_it; ++i) {
-        for (auto j = i; j != first && comp_proj(*j, *(j - 1)); --j) {
-            std::ranges::iter_swap(j, j - 1);
+    if (first == last_it) {
+        return;
+    }
+    for (auto i = first + 1; i != last_it; ++i) {
+        auto val = std::move(*i);
+        const auto& val_proj = std::invoke(proj, val);
+        auto j = i;
+        while (j != first && std::invoke(comp, val_proj, std::invoke(proj, *(j - 1)))) {
+            *j = std::move(*(j - 1));
+            --j;
         }
+        *j = std::move(val);
     }
 }
 
