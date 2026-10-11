@@ -53,7 +53,8 @@ constexpr std::ranges::borrowed_iterator_t<R> insertionsort(R&& data, Comp comp 
  * @param data Span of elements to sort in-place.
  * @param comp Comparator callable.
  */
-template <typename T, typename Compare> void insertionsort(std::span<T> data, Compare comp) {
+template <typename T, typename Compare>
+constexpr void insertionsort(std::span<T> data, Compare comp) {
     const std::size_t n = data.size();
     for (std::size_t i = 1; i < n; ++i) {
         T key = std::move(data[i]);
@@ -72,7 +73,7 @@ template <typename T, typename Compare> void insertionsort(std::span<T> data, Co
  *
  * @param data Span of elements to sort in-place.
  */
-template <typename T> void insertionsort(std::span<T> data) {
+template <typename T> constexpr void insertionsort(std::span<T> data) {
     insertionsort(data, std::less<T>{});
 }
 

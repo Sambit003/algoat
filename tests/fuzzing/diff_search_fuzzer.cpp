@@ -1,3 +1,4 @@
+#include "algoat/searching/eytzinger_search_tree.hpp"
 #include "algoat/searching/searching.hpp"
 
 #include <algorithm>
@@ -55,6 +56,16 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     test_sorted_algo(InterpolationSearch{});
     test_sorted_algo(AdaptiveBinarySearch{});
     test_sorted_algo(HybridInterpolationSearch{});
+
+    // Test EytzingerSearchTree on sorted unique data
+    if (!sorted_data.empty()) {
+        EytzingerSearchTree<int> tree(std::span<const int>{sorted_data});
+        auto lower_idx = tree.lower_bound(target);
+        auto std_lb = std::lower_bound(sorted_data.begin(), sorted_data.end(), target);
+        size_t expected_lb = static_cast<size_t>(std_lb - sorted_data.begin());
+        if (lower_idx != expected_lb)
+            __builtin_trap();
+    }
 
     return 0;
 }

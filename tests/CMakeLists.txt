@@ -29,6 +29,8 @@ algoat_add_test(test_config core/test_config.cpp)
 algoat_add_test(test_registry core/test_registry.cpp)
 algoat_add_test(test_dispatcher core/test_dispatcher.cpp)
 algoat_add_test(test_ranges_api core/test_ranges_api.cpp)
+algoat_add_test(test_policy_chain core/test_policy_chain.cpp)
+algoat_add_test(test_assembly_verification core/test_assembly_verification.cpp)
 
 # Sorting tests
 algoat_add_test(test_hilbert_sort sorting/test_hilbert_sort.cpp)
@@ -44,6 +46,8 @@ algoat_add_test(test_hybrid_sorts sorting/test_hybrid_sorts.cpp)
 algoat_add_test(test_sorting_dispatch sorting/test_sorting_dispatch.cpp)
 algoat_add_test(test_boolean_sort sorting/test_boolean_sort.cpp)
 algoat_add_test(test_inplace_radixsort sorting/test_inplace_radixsort.cpp)
+algoat_add_test(test_sorting_network sorting/test_sorting_network.cpp)
+algoat_add_test(test_float16_sort sorting/test_float16_sort.cpp)
 
 # Searching tests
 algoat_add_test(test_linear_search searching/test_linear_search.cpp)
@@ -76,3 +80,16 @@ if(ALGOAT_ENABLE_FUZZING)
     target_compile_options(diff_sort_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_sort_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
+
+# Negative compilation tests (static_assert failure verification)
+function(algoat_add_compile_fail_test TEST_NAME SOURCE_FILE)
+    add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${SOURCE_FILE})
+    target_link_libraries(${TEST_NAME} PRIVATE algoat)
+    add_test(NAME ${TEST_NAME}
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target ${TEST_NAME})
+    set_tests_properties(${TEST_NAME} PROPERTIES WILL_FAIL TRUE)
+endfunction()
+
+algoat_add_compile_fail_test(StaticAssert_RadixNonIntegral compile_fail/test_radix_non_integral.cpp)
+algoat_add_compile_fail_test(StaticAssert_ConflictingStabilityPolicies compile_fail/test_conflicting_stability_policies.cpp)
+algoat_add_compile_fail_test(StaticAssert_DuplicatePolicies compile_fail/test_duplicate_policies.cpp)

@@ -12,6 +12,8 @@
 #include "algoat/core/config.hpp"
 #include "algoat/core/config_manager.hpp"
 #include "algoat/core/dispatcher.hpp"
+#include "algoat/meta/policy.hpp"
+#include "algoat/meta/static_sort.hpp"
 #include "algoat/numerics/hybrid_sfc.hpp"
 
 #include <concepts>

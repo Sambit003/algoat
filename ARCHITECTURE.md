@@ -6,27 +6,33 @@ Welcome to the internal architectural documentation for **Algoat**. This guide i
 
 ## 1. High-Level Architecture Overview
 
-Algoat is built on a **Registry + Dispatcher** architecture that avoids virtual method table (`vtable`) overhead by leveraging C++20 concepts, `std::variant`, and `std::visit`.
+Algoat provides a **dual-dispatch paradigm** catering to both runtime and compile-time data invariants:
+1. **Dynamic Heuristic Dispatch (`algoat::sort`, `algoat::search`)**: Built on a **Registry + Dispatcher** architecture that avoids virtual method table (`vtable`) overhead by leveraging C++20 concepts, `std::variant`, and `std::visit`.
+2. **Zero-Overhead Static Dispatch (`algoat::meta::static_sort`)**: Complete compile-time resolution with $O(0)$ dispatch cycles, direct kernel inlining, and dead-code elimination (DCE) via ISO C++20 structural NTTP policies and declarative tag chains (`operator|`).
 
 ```mermaid
 graph TD
-    UserCode["Client Code (C++ / Python)"] --> Entry["Public API (algoat::sort, algoat::search)"]
-    Entry --> Dispatcher["algoat::core::Dispatcher"]
+    UserCode["Client Code (C++ / Python)"] --> Mode{"Dispatch Route"}
+    Mode -- "Dynamic Dispatch" --> Entry["Public API (algoat::sort, algoat::search)"]
+    Mode -- "Compile-Time Static Sort" --> StaticEntry["algoat::meta::static_sort&lt;Desc&gt;(span, policy)"]
 
-    subgraph "Core Profiling & Heuristics"
+    subgraph "Dynamic Dispatch Engine"
+        Entry --> Dispatcher["algoat::core::Dispatcher"]
         Dispatcher --> Traits["DataTraits analyze(span)"]
         Dispatcher --> Config["AlgoConfig (JSON overrides)"]
-    end
-
-    subgraph "Static Polymorphism via std::variant"
         Dispatcher --> Registry["Registry&lt;SortVariant&gt;"]
         Registry --> Visit["std::visit(lambda, variant)"]
+        Visit --> SortAlgos["Sorting Algorithms (IntroSort, TimSort, etc.)"]
+        Visit --> SearchAlgos["Searching Algorithms (Binary, Interpolation, etc.)"]
     end
 
-    subgraph "Algorithm Execution"
-        Visit --> SortAlgos["19 Sorting Algorithms<br/>(IntroSort, TimSort, RadixSort, etc.)"]
-        Visit --> SearchAlgos["Searching Algorithms<br/>(Binary, Interpolation, Linear)"]
-        Visit --> Numerics["Numerics Domain Sorts<br/>(Float16, Morton Complex, Bool)"]
+    subgraph "Zero-Overhead Static Dispatch Engine"
+        StaticEntry --> StaticRules{"Compile-Time Rules (NTTP Desc + Extent N)"}
+        StaticRules -- "N <= 16" --> Network["Inlined Batcher Sorting Network"]
+        StaticRules -- "stable & in_place" --> Block["Direct Inlined BlockSort"]
+        StaticRules -- "force_radix" --> Radix["Direct Inlined RadixSort"]
+        StaticRules -- "nearly_sorted" --> Tim["Direct Inlined TimSort"]
+        StaticRules -- "default" --> Intro["Direct Inlined IntroSort"]
     end
 ```
 
@@ -71,62 +77,217 @@ flowchart TD
 
 ---
 
-## 3. Domain-Specific Numerics & Hardware Acceleration
+## 3. Compile-Time Algorithm Selector & Policy Chains
 
-Located in [`include/algoat/numerics/`](include/algoat/numerics/).
+Located in [`include/algoat/meta/`](include/algoat/meta/).
 
-### 3.1 Float16 Bit-Flip Sort (`float16_sort.hpp`)
+When data properties (such as stability requirements, fixed buffer extent, or known distribution) are established at compile time, `algoat::meta::static_sort` completely bypasses runtime dynamic profiling, registry lookups, and branch table jumps.
+
+### 3.1 C++20 Structural Class NTTP (`PolicyDescriptor`)
+ISO C++20 §13.2 [temp.param]p7 allows classes with public, non-mutable data members and defaulted equality comparisons to serve as Non-Type Template Parameters:
+
+```cpp
+struct PolicyDescriptor {
+    bool stable = false;
+    bool in_place = true;
+    bool nearly_sorted = false;
+    bool force_radix = false;
+
+    constexpr bool operator==(const PolicyDescriptor&) const = default;
+};
+```
+
+Callers can pass descriptors directly as template arguments:
+```cpp
+algoat::meta::static_sort<PolicyDescriptor{.stable = true, .in_place = true}>(span);
+```
+
+### 3.2 Declarative Policy Tag Algebra (`PolicyChain`)
+To provide intuitive, ergonomic syntax at call sites, Algoat defines declarative singleton tags composed via bitwise OR (`operator|`):
+* `algoat::meta::policy::stable` vs `unstable` (`stability_facet`)
+* `algoat::meta::policy::in_place` vs `out_of_place` (`memory_facet`)
+* `algoat::meta::policy::nearly_sorted` (`order_facet`)
+* `algoat::meta::policy::force_radix` (`kernel_facet`)
+
+The resulting `PolicyChain<Tags...>` type validates policy invariants at compile-time:
+* **Duplicate Tag Rejection**: Fold expressions detect duplicate occurrences (e.g. `p::stable | p::stable`).
+* **Facet Conflict Rejection**: Conflicting tags (e.g. `p::stable | p::unstable`) trigger clean `static_assert` compiler diagnostics.
+* **Semantic Constraints**: Conflicting constraints (e.g. `p::force_radix` requiring integral types) are enforced via concepts and `static_assert`.
+* **Zero-Overhead Conversion**: `PolicyChain` implicitly and `constexpr` converts to `PolicyDescriptor` for static dispatch.
+
+### 3.3 Compile-Time Algorithm Selection Hierarchy
+`algoat::meta::static_sort(span, policy)` statically routes to the optimal algorithm using compile-time branching (`if constexpr`):
+
+1. **$N \le 1$ Base Case**: Compile-time no-op.
+2. **Fixed-Extent Small Arrays ($2 \le N \le 16$)**:
+   * If non-stable and scalar/trivial: Inlines optimal Batcher odd-even sorting networks (`SortingNetworkTable<N>`) with branchless conditional swaps.
+   * If stable: Inlines `algoat::sorting::insertionsort(span)`.
+3. **Forced Radix (`force_radix == true`)**:
+   * Statically asserts `std::is_integral_v<T> && !std::is_same_v<T, bool>`.
+   * Inlines `algoat::sorting::radixsort_lsd(span)` (stable) or `radixsort_msd(span)` (unstable).
+4. **Adaptive / Nearly Sorted (`nearly_sorted == true`)**:
+   * Dispatches to `algoat::sorting::timsort(span)`.
+5. **Stable Sort (`stable == true`)**:
+   * If `in_place`: Inlines `algoat::sorting::blocksort(span)` (O(1) memory).
+   * If `out_of_place`: Inlines `algoat::sorting::mergesort(span)` (O(N) memory).
+6. **General Unstable Default**:
+   * If fixed extent $N \le 32$: Inlines `algoat::sorting::insertionsort(span)`.
+   * Otherwise: Inlines `algoat::sorting::introsort(span)`.
+
+---
+
+## 4. Domain-Specific Numerics & Hardware Acceleration
+
+Located in [`include/algoat/numerics/`](include/algoat/numerics/) and [`include/algoat/searching/`](include/algoat/searching/).
+
+### 4.1 Float16 Bit-Flip Sort (`float16_sort.hpp`)
 Standard floating-point comparisons involve costly floating-point comparison instructions and branch mispredictions. Algoat transforms IEEE-754 16-bit floating-point values into order-preserving unsigned integers:
 - **Negative floats** (`u & 0x8000 != 0`): Invert all bits (`~u`).
 - **Positive floats** (`u & 0x8000 == 0`): Set sign bit (`u | 0x8000`).
 
 This maps floating point numbers from $- \infty \dots +\infty$ into a strictly monotonic unsigned domain $[0\text{x}0000 \dots 0\text{xFFFF}]$. Large arrays ($\ge 65,536$ elements) are then sorted in a single $O(N)$ counting pass with $65,536$ buckets.
 
-### 3.2 Complex Number Morton Z-Order Sort (`morton.hpp`)
+### 4.2 Complex Number Morton Z-Order Sort (`morton.hpp`)
 Rather than sorting complex numbers along a single 1D axis (lexicographically by real then imaginary part), Algoat sorts complex numbers along the **2D Morton Z-Order Space-Filling Curve**.
 - Interleaves bits of the 32-bit real coordinate with the 32-bit imaginary coordinate into a single 64-bit spatial key.
 - Uses x86-64 BMI2 hardware acceleration (`_pdep_u64`) when available.
 - Sorts 64-bit Morton keys with an ultra-fast 4-pass 16-bit Radix Sort.
 - Preserves 2D spatial locality in cache for spatial indexing and nearest-neighbor applications.
 
+### 4.3 Cache-Oblivious Eytzinger Search Engine (`eytzinger_search_tree.hpp`)
+Located in [`include/algoat/searching/eytzinger_search_tree.hpp`](include/algoat/searching/eytzinger_search_tree.hpp).
+- Rearranges sorted elements into a 1-indexed breadth-first complete binary search tree layout (Eytzinger array layout).
+- Top tree levels reside contiguously in L1 cache lines, eliminating pointer indirection.
+- Incorporates deterministic software lookahead prefetching (`__builtin_prefetch` / `_mm_prefetch`) to overlap DRAM memory access latency with branchless index calculations.
+- Yields a **2x to 3x query speedup** over `std::lower_bound` for cache-sized datasets.
+
 ---
 
-## 4. How to Add a New Sorting Algorithm
+## 5. Adding New Algorithms: Extensible Domain Architecture Guide
 
-To contribute a new sorting algorithm to Algoat, follow these 4 steps *(unless it is a domain-specific static dispatch optimization for a single type, in which case it is intercepted via `if constexpr` in `Dispatcher::sort` directly)*:
+Algoat structures its algorithmic portfolio across distinct domains (`"sorting"`, `"searching"`). Rather than using intrusive monolithic dispatch tables or traditional object-oriented virtual inheritance, every domain follows a uniform, decentralized lifecycle built on compile-time C++20 concepts, static polymorphism via closed variants (`std::variant`), and automatic static registry binding.
 
-### Step 1: Implement the Header
-Create `include/algoat/sorting/my_new_sort.hpp`. Expose idiomatic overloaded free function templates (`my_new_sort(span)` and `my_new_sort(span, comp)`), alongside a lightweight adapter struct satisfying `algoat::sorting::SortAlgorithm`:
+```mermaid
+flowchart TD
+    subgraph Specification ["Compile-Time Specification"]
+        Concept["C++20 Domain Concepts<br/>(SortAlgorithm / SearchAlgorithm)"]
+        Tier1["Tier 1: Ranges Core Algorithm<br/>my_algo(Range, Comp, Proj)"]
+        Tier2["Tier 2: Zero-Overhead Adapter Struct<br/>MyAlgo::name(), MyAlgo::sort() / search()"]
+        Concept --> Tier1
+        Concept --> Tier2
+    end
 
+    subgraph Registration ["Decentralized Registration"]
+        Macro["Automated Static Self-Registry<br/>ALGOAT_REGISTER_ALGORITHM(Domain, Name, Type)"]
+        BaseRegistry["BaseRegistry::global(Domain)<br/>Type-Erased Factory Storage"]
+        Tier2 --> Macro
+        Macro --> BaseRegistry
+    end
+
+    subgraph Dispatch ["Static Polymorphism & Dispatch"]
+        Variant["Closed Domain Variant<br/>(SortVariant / SearchVariant)"]
+        Dispatcher["Dynamic Dispatcher<br/>Registry&lt;DomainVariant&gt;"]
+        Execution["std::visit Dispatch<br/>(with if constexpr Fast-Paths)"]
+        Tier2 --> Variant
+        Variant --> Dispatcher
+        BaseRegistry --> Dispatcher
+        Dispatcher --> Execution
+    end
+
+    subgraph Verification ["Tripartite Verification Pipeline"]
+        UnitTests["Deterministic Unit Tests<br/>(Ranges, Projections, Spans)"]
+        PBT["Invariant PBT (RapidCheck)<br/>(Conservation, Monotonicity, Parity)"]
+        Fuzzing["Continuous Differential Fuzzing<br/>(libFuzzer vs std Reference)"]
+        Tier1 --> UnitTests
+        Execution --> PBT
+        Execution --> Fuzzing
+    end
+```
+
+---
+
+### 5.1 Domain Concept Contracts
+
+Every algorithm in Algoat must satisfy the compile-time contract defined in its domain umbrella header:
+
+#### Sorting Domain (`include/algoat/sorting/sorting.hpp`)
+```cpp
+template <typename Algo, typename T>
+concept SortAlgorithm = requires(Algo algo, std::span<T> data) {
+    { algo.name() } -> std::convertible_to<std::string_view>;
+    { algo.sort(data) } -> std::same_as<void>;
+    { algo.preferred_min_size() } -> std::convertible_to<std::size_t>;
+};
+```
+
+#### Searching Domain (`include/algoat/searching/searching.hpp`)
+```cpp
+template <typename Algo, typename T>
+concept SearchAlgorithm = requires(Algo algo, std::span<T> data, const T& target) {
+    { algo.name() } -> std::convertible_to<std::string_view>;
+    { algo.search(data, target) } -> std::same_as<std::optional<std::size_t>>;
+    { algo.requires_sorted() } -> std::same_as<bool>;
+};
+```
+
+---
+
+### 5.2 Step-by-Step Implementation Workflow
+
+Adding an algorithm to any domain follows four standardized steps:
+
+#### Step 1: Implement the Header and Adapter
+Create the header under `include/algoat/<domain>/my_new_<algo>.hpp`. Expose:
+1. **Tier 1 (Direct C++20 Ranges Interface)**: A range-based algorithm constrained with standard concepts (`std::ranges::random_access_range`, `std::sortable`, or `std::indirect_strict_weak_order`), supporting projection forwarding via `::algoat::detail::make_comp_proj`.
+2. **Tier 2 (Span Convenience Overloads & Adapter Struct)**: An adapter struct conforming to the domain concept (`SortAlgorithm` or `SearchAlgorithm`).
+3. **Automated Static Registration**: Call `ALGOAT_REGISTER_ALGORITHM(Domain, Name, Type)` at file scope to register the constructor with `BaseRegistry::global(Domain)`.
+
+##### Example A: Sorting Domain (`include/algoat/sorting/my_new_sort.hpp`)
 ```cpp
 #pragma once
+
+#include "algoat/core/traits.hpp" // for make_comp_proj
 #include <concepts>
 #include <functional>
+#include <iterator>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <utility>
 
 namespace algoat::sorting {
 
-// 1. Idiomatic C++20 Free Function Templates
+// Tier 1: C++20 Ranges Free Function with Comparator and Projection
+template <std::ranges::random_access_range R,
+          typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+    requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+constexpr std::ranges::borrowed_iterator_t<R> my_new_sort(R&& data, Comp comp = {},
+                                                            Proj proj = {}) {
+    auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
+    // Algorithm core using comp_proj...
+    return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+}
+
+// Span Overloads
 template <typename T, typename Compare>
-void my_new_sort(std::span<T> data, Compare comp) {
-    // Core algorithm implementation using comparator...
+constexpr void my_new_sort(std::span<T> data, Compare comp) {
+    my_new_sort(data, std::move(comp), std::identity{});
 }
 
 template <typename T>
-void my_new_sort(std::span<T> data) {
-    my_new_sort(data, std::less<T>{});
+constexpr void my_new_sort(std::span<T> data) {
+    my_new_sort(data, std::ranges::less{});
 }
 
-// 2. Zero-Overhead Adapter Struct for Registry / Dispatcher Static Polymorphism
+// Tier 2: Zero-Overhead Adapter Conforming to SortAlgorithm
 struct MyNewSort {
     [[nodiscard]] constexpr std::string_view name() const noexcept {
         return "mynewsort";
     }
 
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
-        return 0;
+        return 0; // Minimum element threshold where algorithm is optimal
     }
 
     template <typename T>
@@ -141,48 +302,127 @@ struct MyNewSort {
 };
 
 } // namespace algoat::sorting
+
+// Automated Self-Registration
+#include "algoat/core/registry.hpp"
+
+ALGOAT_REGISTER_ALGORITHM("sorting", "mynewsort", ::algoat::sorting::MyNewSort)
 ```
 
-### Step 2: Register in `SortVariant`
-In [`include/algoat/sorting/sorting.hpp`](include/algoat/sorting/sorting.hpp):
-1. `#include "algoat/sorting/my_new_sort.hpp"`
-2. Add `MyNewSort` to the `SortVariant` type alias.
-
-### Step 3: Register in Dispatcher
-In [`src/core/dispatcher.cpp`](src/core/dispatcher.cpp):
-1. `#include "algoat/sorting/my_new_sort.hpp"`
-2. Add factory registration inside `Dispatcher::Dispatcher`:
-   ```cpp
-   sort_registry_.register_algo("mynewsort", []() -> sorting::SortVariant {
-       return sorting::MyNewSort{};
-   });
-   ```
-
-### Step 4: Add Unit Tests
-Add tests in [`tests/sorting/`](tests/sorting/) testing both the direct free function template and the adapter:
+##### Example B: Searching Domain (`include/algoat/searching/my_new_search.hpp`)
 ```cpp
-#include <gtest/gtest.h>
-#include "algoat/sorting/my_new_sort.hpp"
+#pragma once
 
-TEST(MyNewSortTest, FreeFunctionSortsAscendingAndDescending) {
-    std::vector<int> data = {9, 3, 1, 5, 2};
-    algoat::sorting::my_new_sort(std::span{data});
-    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+#include <concepts>
+#include <cstddef>
+#include <functional>
+#include <optional>
+#include <ranges>
+#include <span>
+#include <string_view>
 
-    algoat::sorting::my_new_sort(std::span{data}, std::greater<int>{});
-    EXPECT_TRUE(std::is_sorted(data.begin(), data.end(), std::greater<int>{}));
+namespace algoat::searching {
+
+// Tier 1: C++20 Ranges Free Function
+template <std::ranges::random_access_range R, typename T = std::ranges::range_value_t<R>,
+          typename Comp = std::ranges::less, typename Proj = std::identity>
+    requires std::indirect_strict_weak_order<Comp, const T*,
+                                             std::projected<std::ranges::iterator_t<R>, Proj>>
+std::optional<std::size_t> my_new_search(R&& data, const T& target, Comp comp = {},
+                                         Proj proj = {}) {
+    // Algorithm core using comparator and projection...
+    return std::nullopt;
 }
 
-TEST(MyNewSortTest, AdapterSortsVector) {
-    std::vector<int> data = {9, 3, 1, 5, 2};
-    algoat::sorting::MyNewSort{}.sort(std::span{data});
-    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+// Span Overloads
+template <typename T>
+std::optional<std::size_t> my_new_search(std::span<const T> data, const T& target) {
+    return my_new_search(data, target, std::ranges::less{}, std::identity{});
 }
+
+// Tier 2: Zero-Overhead Adapter Conforming to SearchAlgorithm
+struct MyNewSearch {
+    [[nodiscard]] constexpr std::string_view name() const noexcept {
+        return "mynewsearch";
+    }
+
+    [[nodiscard]] constexpr bool requires_sorted() const noexcept {
+        return true; // true if algorithm requires pre-sorted input sequence
+    }
+
+    template <typename T>
+    std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
+        return my_new_search(data, target);
+    }
+};
+
+} // namespace algoat::searching
+
+// Automated Self-Registration
+#include "algoat/core/registry.hpp"
+
+ALGOAT_REGISTER_ALGORITHM("searching", "mynewsearch", ::algoat::searching::MyNewSearch)
 ```
 
 ---
 
-## 5. Python nanobind Interoperability
+#### Step 2: Register in the Domain Variant
+
+In the domain umbrella header ([`include/algoat/sorting/sorting.hpp`](include/algoat/sorting/sorting.hpp) or [`include/algoat/searching/searching.hpp`](include/algoat/searching/searching.hpp)):
+1. `#include "algoat/<domain>/my_new_<algo>.hpp"`
+2. Append the adapter type to the domain `std::variant`:
+
+```cpp
+// For Sorting:
+using SortVariant = std::variant<InsertionSort, QuickSort, ..., MyNewSort>;
+
+// For Searching:
+using SearchVariant = std::variant<LinearSearch, BinarySearch, ..., MyNewSearch>;
+```
+
+> [!NOTE]
+> **Static Polymorphism Rationale**: Algoat avoids dynamic dispatch through virtual method tables. Instead, `Registry<DomainVariant>` maps `std::any` instances from the global registry into the variant via `VariantCaster`. Dispatch executes at runtime using `std::visit`, allowing the compiler to optimize and inline algorithm invocations without pointer indirection or cache pollution.
+
+---
+
+#### Step 3: Dispatcher Integration & Specialization Interception
+
+1. **Dynamic Heuristic Dispatch**: Standard algorithms require **no edits** to [`src/core/dispatcher.cpp`](src/core/dispatcher.cpp). The `Dispatcher` dynamically queries `Registry<DomainVariant>::global(Domain)` using runtime input traits (size, sortedness ratio, element type).
+2. **Compile-Time Hardware / Numeric Interception**: For domain-specific hardware or numeric specializations (e.g., `bool` via `sort_boolean`, `std::complex` via `sort_complex_morton`, or cache-oblivious `EytzingerSearchTree`), add an explicit `if constexpr` branch inside `Dispatcher::sort` or `Dispatcher::search`:
+   ```cpp
+   if constexpr (IsSpecialType<ElementType> && std::is_same_v<Comp, std::ranges::less>) {
+       my_specialized_kernel(span_view);
+       return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+   }
+   ```
+
+---
+
+#### Step 4: Tripartite Verification Suite
+
+Every algorithm must pass three distinct verification tiers before merging:
+
+1. **Deterministic Unit Tests** ([`tests/sorting/`](tests/sorting/) or [`tests/searching/`](tests/searching/)):
+   Validate range projections, span overloads, custom comparators, empty/single-element boundary cases, and adapter struct compliance.
+
+2. **Property-Based Invariant Testing (PBT)**:
+   Add the adapter type to the parameterized test suite in [`tests/pbt/test_sorting_invariants.cpp`](tests/pbt/test_sorting_invariants.cpp) or [`tests/pbt/test_searching_invariants.cpp`](tests/pbt/test_searching_invariants.cpp):
+   ```cpp
+   // Sorting invariants: conservation, monotonic ordering, idempotency
+   using ComparativeSortAlgos = ::testing::Types<..., MyNewSort>;
+   TYPED_TEST_SUITE(ComparativeSortPBT, ComparativeSortAlgos);
+
+   // Searching invariants: positive match parity, absence guarantee, sorted precondition
+   using SearchAlgos = ::testing::Types<..., MyNewSearch>;
+   TYPED_TEST_SUITE(SearchingPBT, SearchAlgos);
+   ```
+
+3. **Continuous Differential Fuzzing**:
+   Add the algorithm to [`tests/fuzzing/diff_sort_fuzzer.cpp`](tests/fuzzing/diff_sort_fuzzer.cpp) or [`tests/fuzzing/diff_search_fuzzer.cpp`](tests/fuzzing/diff_search_fuzzer.cpp) to verify bit-level output parity against `std::sort`, `std::stable_sort`, `std::find`, or `std::lower_bound` over raw mutated byte buffers under LLVM libFuzzer.
+
+---
+
+## 6. Python nanobind Interoperability
 
 Located in [`python/`](python/).
 
@@ -192,16 +432,21 @@ Located in [`python/`](python/).
 
 ---
 
-## 6. Build, Test, and Benchmark Workflows
+## 7. Build, Test, and Benchmark Workflows
 
 ### Building the C++ Library & Tests
 ```bash
-# Configure with CMake Preset or manual flags
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j$(nproc)
+# Configure with CMake Presets
+cmake --preset debug
+cmake --build --preset debug -j$(nproc)
 
-# Run GoogleTest suite
-ctest --test-dir build --output-on-failure
+# Run full GoogleTest + RapidCheck suite (494 tests)
+ctest --preset debug --output-on-failure
+
+# Memory safety validation via AddressSanitizer and UndefinedBehaviorSanitizer
+cmake --preset asan
+cmake --build --preset asan -j$(nproc)
+ctest --test-dir build/asan --output-on-failure
 ```
 
 ### Building & Testing Python Bindings
@@ -215,9 +460,15 @@ pytest tests/python/
 
 ### Running Benchmarks
 ```bash
-# C++ sorting benchmarks
-./build/benchmarks/bench_sorting
+# Build release benchmarks
+cmake --preset release
+cmake --build --preset release -j$(nproc)
+
+# C++ sorting and search benchmarks
+./build/release/benchmarks/bench_sorting
+./build/release/benchmarks/bench_eytzinger_search
 
 # Python / NumPy speedup benchmarks
 python benchmarks/bench_python.py
+python examples/python/benchmark.py
 ```

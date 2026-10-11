@@ -6,11 +6,13 @@ Algoat is a high-performance C++20 and Python algorithm library featuring smart 
 
 ## Features
 
-- **Comprehensive Sorting Suite (20 Algorithms)**:
+- **Comprehensive Sorting Suite (20+ Algorithms)**:
   - **Hybrid & High-Performance**: Intro Sort, Tim Sort, Block Sort.
   - **Divide & Conquer / Comparison**: Quick Sort, Merge Sort, Heap Sort, Insertion Sort, Shell Sort (Ciura gap sequence), Comb Sort, Cycle Sort, Bitonic Sort, Bubble Sort, Selection Sort, Gnome Sort.
   - **Distribution & Non-Comparative**: Radix Sort (LSD / MSD), Counting Sort, Bucket Sort, Pigeonhole Sort, Boolean Sort.
-- **Searching Suite**: Binary Search, Interpolation Search (with arithmetic probe and fallback), Linear Search.
+  - **Compile-Time Sorting Networks**: Optimal Batcher odd-even sorting networks for fixed extents ($N \le 16$) with branchless conditional swaps.
+- **Searching Suite**: Binary Search, Adaptive Binary Search, Interpolation Search, Hybrid Interpolation Search, Linear Search, and Cache-Oblivious **Eytzinger Search Tree** with software lookahead prefetching.
+- **Zero-Overhead Compile-Time Algorithm Selector**: `algoat::meta::static_sort` selects and inlines optimal kernels at compile time via ISO C++20 structural NTTP policies and declarative tag chains (`p::stable | p::in_place`), completely eliminating vtables, branch tables, and runtime profiling passes.
 - **Smart Dynamic Dispatch**: Automatically analyzes data profiles in a single $O(N)$ pass to select the optimal algorithm (e.g., `InsertionSort` for $N < 32$, `TimSort` for partially ordered data, `RadixSortLSD` for large integers, `IntroSort` as default).
 - **Runtime JSON Configuration**: Dynamically override algorithms or fallback behavior via JSON configuration (`nlohmann/json`).
 - **Python nanobind Integration**: Zero-copy Python bindings with support for native Python lists and direct contiguous NumPy `ndarray` views (`float16`, `float32`, `float64`, `int32`, `int64`, `uint32`, `uint64`, `complex64`, `complex128`, `bool_`).
@@ -77,20 +79,31 @@ vcpkg install algoat
 
 ```cpp
 #include <algoat/algoat.hpp>
+#include <array>
 #include <iostream>
-#include <vector>
 #include <span>
+#include <vector>
+
+namespace p = algoat::meta::policy;
 
 int main() {
     std::vector<int> data = {42, 7, 19, 100, 3, 55, 21};
 
-    // Automatically selects the best sorting algorithm based on data traits
+    // 1. Dynamic Dispatch (Runtime data profiling pass)
     algoat::sort(std::span{data});
 
-    // Automatically selects the best searching algorithm (BinarySearch for sorted data)
-    auto res = algoat::search(std::span{data}, 19);
-    if (res) {
-        std::cout << "Found 19 at index " << *res << "\n";
+    // 2. Zero-Overhead Compile-Time Selector (Direct inlining, O(0) dispatch overhead)
+    algoat::meta::static_sort(std::span{data}, p::stable | p::in_place);
+
+    // 3. Compile-Time Sorting Networks for Fixed Extents (N <= 16)
+    std::array<int, 8> small_buffer = {8, 4, 7, 1, 3, 6, 2, 5};
+    algoat::meta::static_sort(std::span<int, 8>{small_buffer});
+
+    // 4. Cache-Oblivious Eytzinger Search Tree with Software Lookahead Prefetching
+    algoat::searching::EytzingerSearchTree<int> tree(std::span<const int>{data});
+    std::size_t idx = tree.lower_bound(19);
+    if (idx < data.size() && data[idx] == 19) {
+        std::cout << "Found 19 at index " << idx << "\n";
     }
 
     return 0;
