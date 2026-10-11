@@ -6,10 +6,10 @@
 
 #pragma once
 
-#if defined(__cpp_modules) && defined(__GNUC__) && !defined(__clang__)
-// In GCC C++20 module interface compilation, Highway's internal static inline templates
-// trigger ISO C++20 [basic.link] p14 ('exposes TU-local entity') errors.
-// Provide robust scalar implementation during module interface parsing.
+#if defined(__cpp_modules)
+// In C++20 module interface compilation, Highway's internal static inline templates
+// trigger ISO C++20 [basic.link] p14 ('exposes TU-local entity') errors across conforming
+// compilers. Provide robust scalar implementation during module interface parsing.
 #define ALGOAT_SIMD_PROFILER_SCALAR_ONLY 1
 #endif
 

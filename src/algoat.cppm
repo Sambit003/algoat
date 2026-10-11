@@ -31,11 +31,14 @@ module;
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
 #include <algoat/meta/static_sort.hpp>
+#include <algoat/numerics/float16_sort.hpp>
 #include <algoat/numerics/hilbert.hpp>
 #include <algoat/numerics/hybrid_sfc.hpp>
 #include <algoat/numerics/morton.hpp>
 #include <algoat/searching/searching.hpp>
+#include <algoat/sorting/boolean_sort.hpp>
 #include <algoat/sorting/sorting.hpp>
+#include <algoat/utils.hpp>
 
 export module algoat;
 
@@ -43,12 +46,20 @@ export module algoat;
 // Must export declarations explicitly via exported namespace blocks:
 export namespace algoat {
 // Primary public API
+using algoat::clamp;
 using algoat::get_dispatcher;
 using algoat::get_global_config;
 using algoat::load_global_config;
 using algoat::search;
 using algoat::sort;
 using algoat::SpaceFillingCurve;
+
+namespace concepts {
+using algoat::concepts::Float16;
+using algoat::concepts::Float16OrInt16;
+using algoat::concepts::Int16;
+using algoat::concepts::Size16Bit;
+} // namespace concepts
 
 namespace core {
 using algoat::core::AlgoConfig;
@@ -62,30 +73,42 @@ using algoat::core::Registry;
 namespace meta {
 using algoat::meta::IsPolicyChain;
 using algoat::meta::IsPolicyTag;
+using algoat::meta::kernel_facet;
+using algoat::meta::memory_facet;
+using algoat::meta::order_facet;
 using algoat::meta::PolicyChain;
 using algoat::meta::PolicyDescriptor;
 using algoat::meta::SortingNetworkTable;
+using algoat::meta::stability_facet;
 using algoat::meta::static_sort;
 
 namespace policy {
 using algoat::meta::policy::force_radix;
+using algoat::meta::policy::force_radix_t;
 using algoat::meta::policy::in_place;
+using algoat::meta::policy::in_place_t;
 using algoat::meta::policy::nearly_sorted;
+using algoat::meta::policy::nearly_sorted_t;
 using algoat::meta::policy::stable;
+using algoat::meta::policy::stable_t;
 using algoat::meta::policy::operator|;
 } // namespace policy
 } // namespace meta
 
 namespace numerics {
+using algoat::numerics::Float16Compare;
 using algoat::numerics::float_to_hilbert2d;
 using algoat::numerics::float_to_morton;
 using algoat::numerics::morton_interleave;
 using algoat::numerics::MortonCompare;
 using algoat::numerics::sort_complex_hybrid;
 using algoat::numerics::sort_complex_morton;
+using algoat::numerics::sort_float16;
 } // namespace numerics
 
 namespace sorting {
+using algoat::sorting::boolean_sort;
+using algoat::sorting::sort_boolean;
 using algoat::sorting::SortAlgorithm;
 using algoat::sorting::SortVariant;
 

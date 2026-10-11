@@ -129,3 +129,31 @@ TEST(ModuleImportTest, GlobalConfigAndDispatcher) {
     dispatcher.sort(std::span<int>(data));
     EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
 }
+
+TEST(ModuleImportTest, UtilityClampAndConcepts) {
+    constexpr int clamped = algoat::clamp(15, 0, 10);
+    static_assert(clamped == 10, "algoat::clamp must be usable in constexpr via module import");
+    EXPECT_EQ(clamped, 10);
+    EXPECT_EQ(algoat::clamp(-5, 0, 10), 0);
+    EXPECT_EQ(algoat::clamp(5, 0, 10), 5);
+
+    static_assert(algoat::concepts::Size16Bit<uint16_t>,
+                  "algoat::concepts::Size16Bit must be exported");
+    static_assert(algoat::concepts::Float16OrInt16<uint16_t>,
+                  "algoat::concepts::Float16OrInt16 must be exported");
+}
+
+TEST(ModuleImportTest, BooleanAndFloat16Sorts) {
+    std::array<bool, 5> bool_data{true, false, true, false, true};
+    algoat::sorting::boolean_sort(std::span<bool>(bool_data));
+    EXPECT_FALSE(bool_data[0]);
+    EXPECT_FALSE(bool_data[1]);
+    EXPECT_TRUE(bool_data[2]);
+    EXPECT_TRUE(bool_data[3]);
+    EXPECT_TRUE(bool_data[4]);
+
+    std::vector<uint16_t> f16_data{0x3C00, 0x8000, 0x0000, 0xBC00};
+    algoat::numerics::sort_float16(std::span<uint16_t>(f16_data));
+    std::vector<uint16_t> expected{0xBC00, 0x8000, 0x0000, 0x3C00};
+    EXPECT_EQ(f16_data, expected);
+}

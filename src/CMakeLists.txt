@@ -81,10 +81,16 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/algoat
     FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
 )
 
+set(_algoat_export_module_args "")
+if(ALGOAT_BUILD_MODULES)
+    set(_algoat_export_module_args CXX_MODULES_DIRECTORY cxx-modules)
+endif()
+
 install(EXPORT AlgoatTargets
     FILE AlgoatTargets.cmake
     NAMESPACE Algoat::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Algoat
+    ${_algoat_export_module_args}
 )
 
 include(CMakePackageConfigHelpers)

@@ -10,6 +10,7 @@ jobs:
   build-and-test:
     name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -18,10 +19,12 @@ jobs:
             cc: gcc-14
             cxx: g++-14
             packages: gcc-14 g++-14 ninja-build cmake
+            extra_cmake_flags: ""
           - name: Clang 18 (C++20 Modules)
             cc: clang-18
             cxx: clang++-18
-            packages: clang-18 ninja-build cmake
+            packages: clang-18 clang-tools-18 ninja-build cmake
+            extra_cmake_flags: "-DCMAKE_CXX_COMPILER_CLANG_SCAN_DEPS=/usr/bin/clang-scan-deps-18"
 
     steps:
       - uses: actions/checkout@v4
@@ -38,10 +41,14 @@ jobs:
             -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
             -DCMAKE_BUILD_TYPE=Release \
             -DALGOAT_BUILD_MODULES=ON \
-            -DALGOAT_BUILD_TESTS=ON
+            -DALGOAT_BUILD_TESTS=ON \
+            ${{ matrix.extra_cmake_flags }}
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build build --parallel 2
 
       - name: Run Tests
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --parallel 2
+
+      - name: Test Installation & Export Packaging
+        run: cmake --install build --prefix /tmp/algoat_test_install

@@ -24,6 +24,9 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.28.0" AND
 endif()
 
 option(ALGOAT_BUILD_MODULES "Build C++20 primary module interface (algoat.cppm)" ${_algoat_modules_supported})
+if(ALGOAT_BUILD_MODULES AND NOT _algoat_modules_supported)
+    message(FATAL_ERROR "ALGOAT_BUILD_MODULES=ON requires CMake >= 3.28, Ninja or Visual Studio generator, and Clang >= 16, GCC >= 14, or MSVC >= 19.34.")
+endif()
 
 # Core library
 add_subdirectory(src)
