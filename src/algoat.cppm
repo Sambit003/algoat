@@ -1,5 +1,10 @@
 module;
 
+// Enforce scalar profiler fallback inside module BMI compilation across all compilers (including
+// Clang 18) to prevent Highway static inline template exposures and LoadU overload resolution
+// failures.
+#define ALGOAT_SIMD_PROFILER_SCALAR_ONLY 1
+
 // Global Module Fragment (GMF): only preprocessor directives and non-modular includes
 #include <algorithm>
 #include <array>
