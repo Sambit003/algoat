@@ -15,6 +15,7 @@
 #include <concepts>
 #include <functional>
 #include <gtest/gtest.h>
+#include <numeric>
 #include <random>
 #include <vector>
 
