@@ -21,6 +21,18 @@ target_include_directories(algoat
 target_compile_features(algoat PUBLIC cxx_std_20)
 set_target_properties(algoat PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+if(ALGOAT_BUILD_MODULES)
+    target_sources(algoat
+        PUBLIC
+            FILE_SET CXX_MODULES
+                BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
+                FILES algoat.cppm
+    )
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(algoat PRIVATE -Wno-template-names-tu-local)
+    endif()
+endif()
+
 find_package(nlohmann_json QUIET)
 if(NOT nlohmann_json_FOUND)
     include(FetchContent)
@@ -50,12 +62,18 @@ target_link_libraries(algoat
 
 include(GNUInstallDirs)
 
+set(_algoat_module_install_args "")
+if(ALGOAT_BUILD_MODULES)
+    set(_algoat_module_install_args FILE_SET CXX_MODULES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/algoat/modules)
+endif()
+
 install(TARGETS algoat
     EXPORT AlgoatTargets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    ${_algoat_module_install_args}
 )
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/algoat

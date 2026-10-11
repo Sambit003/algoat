@@ -6,7 +6,16 @@
 
 #pragma once
 
+#if defined(__cpp_modules) && defined(__GNUC__) && !defined(__clang__)
+// In GCC C++20 module interface compilation, Highway's internal static inline templates
+// trigger ISO C++20 [basic.link] p14 ('exposes TU-local entity') errors.
+// Provide robust scalar implementation during module interface parsing.
+#define ALGOAT_SIMD_PROFILER_SCALAR_ONLY 1
+#endif
+
+#if !defined(ALGOAT_SIMD_PROFILER_SCALAR_ONLY)
 #include <hwy/highway.h>
+#endif
 
 #if defined(__x86_64__) || defined(_M_X64)
 #include <immintrin.h>
@@ -25,7 +34,9 @@
 
 namespace algoat::core::detail {
 
+#if !defined(ALGOAT_SIMD_PROFILER_SCALAR_ONLY)
 namespace hn = hwy::HWY_NAMESPACE;
+#endif
 
 // Determine cache line size based on target architecture
 #if defined(__APPLE__) && (defined(__aarch64__) || defined(_M_ARM64))
@@ -43,15 +54,35 @@ struct ChunkProfileResult {
     bool has_duplicates{false};
 };
 
+template <typename T>
+inline ChunkProfileResult profile_chunk_scalar(const T* ptr, std::size_t len) {
+    ChunkProfileResult res;
+    for (std::size_t i = 0; i + 1 < len; ++i) {
+        if (ptr[i] <= ptr[i + 1]) {
+            res.sorted_pairs++;
+        }
+        if (ptr[i] == ptr[i + 1]) {
+            res.has_duplicates = true;
+        }
+    }
+    return res;
+}
+
 /**
  * @brief Evaluates adjacent sortedness and equality across a contiguous memory chunk using SIMD.
  */
 template <typename T>
-HWY_INLINE ChunkProfileResult profile_chunk_simd(const T* ptr, std::size_t len) {
-    ChunkProfileResult res;
+#if !defined(ALGOAT_SIMD_PROFILER_SCALAR_ONLY)
+HWY_INLINE
+#else
+inline
+#endif
+    ChunkProfileResult profile_chunk_simd(const T* ptr, std::size_t len) {
     if (len <= 1)
-        return res;
+        return ChunkProfileResult{};
 
+#if !defined(ALGOAT_SIMD_PROFILER_SCALAR_ONLY)
+    ChunkProfileResult res;
     const hn::ScalableTag<T> d;
     const std::size_t N = hn::Lanes(d);
 
@@ -73,16 +104,15 @@ HWY_INLINE ChunkProfileResult profile_chunk_simd(const T* ptr, std::size_t len) 
     }
 
     // Process remaining scalar tail in chunk
-    for (; i + 1 < len; ++i) {
-        if (ptr[i] <= ptr[i + 1]) {
-            res.sorted_pairs++;
-        }
-        if (ptr[i] == ptr[i + 1]) {
-            res.has_duplicates = true;
-        }
+    if (i + 1 < len) {
+        ChunkProfileResult tail_res = profile_chunk_scalar(ptr + i, len - i);
+        res.sorted_pairs += tail_res.sorted_pairs;
+        res.has_duplicates = res.has_duplicates || tail_res.has_duplicates;
     }
-
     return res;
+#else
+    return profile_chunk_scalar(ptr, len);
+#endif
 }
 
 /**

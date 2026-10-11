@@ -1,0 +1,47 @@
+name: C++20 Modules CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: GCC 14 (C++20 Modules)
+            cc: gcc-14
+            cxx: g++-14
+            packages: gcc-14 g++-14 ninja-build cmake
+          - name: Clang 18 (C++20 Modules)
+            cc: clang-18
+            cxx: clang++-18
+            packages: clang-18 ninja-build cmake
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.packages }}
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . -G Ninja \
+            -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DALGOAT_BUILD_MODULES=ON \
+            -DALGOAT_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run Tests
+        run: ctest --test-dir build --output-on-failure

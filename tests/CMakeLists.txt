@@ -94,3 +94,8 @@ endfunction()
 algoat_add_compile_fail_test(StaticAssert_RadixNonIntegral compile_fail/test_radix_non_integral.cpp)
 algoat_add_compile_fail_test(StaticAssert_ConflictingStabilityPolicies compile_fail/test_conflicting_stability_policies.cpp)
 algoat_add_compile_fail_test(StaticAssert_DuplicatePolicies compile_fail/test_duplicate_policies.cpp)
+
+# C++20 Module integration and interop tests
+if(ALGOAT_BUILD_MODULES)
+    add_subdirectory(modules)
+endif()

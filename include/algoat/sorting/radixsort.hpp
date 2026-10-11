@@ -126,7 +126,7 @@ namespace detail {
 /**
  * @brief Recursive MSD radix sort worker on sub-buckets.
  */
-template <typename T> static void msd_impl(std::span<T> arr, std::span<T> buffer, int shift) {
+template <typename T> void msd_impl(std::span<T> arr, std::span<T> buffer, int shift) {
     if (arr.size() <= 1)
         return;
 
