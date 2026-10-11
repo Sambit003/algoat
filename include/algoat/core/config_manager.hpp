@@ -102,10 +102,7 @@ class ConfigManager {
     }
 
 public:
-    static ConfigManager& instance() noexcept {
-        static ConfigManager manager;
-        return manager;
-    }
+    static ConfigManager& instance() noexcept;
 
     // Wait-free read path: zero locks, zero atomic RMW on shared cache lines.
     // Uses Quiescent State Based Reclamation (QSBR) with thread-local aliased shared_ptrs.

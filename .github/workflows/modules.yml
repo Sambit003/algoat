@@ -1,0 +1,77 @@
+name: C++20 Modules CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-linux:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: GCC 14 (C++20 Modules)
+            cc: gcc-14
+            cxx: g++-14
+            packages: gcc-14 g++-14 ninja-build cmake
+            extra_cmake_flags: ""
+          - name: Clang 18 (C++20 Modules)
+            cc: clang-18
+            cxx: clang++-18
+            packages: clang-18 clang-tools-18 ninja-build cmake
+            extra_cmake_flags: "-DCMAKE_CXX_COMPILER_CLANG_SCAN_DEPS=/usr/bin/clang-scan-deps-18"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.packages }}
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . -G Ninja \
+            -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DALGOAT_BUILD_MODULES=ON \
+            -DALGOAT_BUILD_TESTS=ON \
+            ${{ matrix.extra_cmake_flags }}
+
+      - name: Build
+        run: cmake --build build --parallel 2
+
+      - name: Run Tests
+        run: ctest --test-dir build --output-on-failure --parallel 2
+
+      - name: Test Installation & Export Packaging
+        run: cmake --install build --prefix /tmp/algoat_test_install
+
+  build-msvc:
+    name: MSVC 2022 (C++20 Modules)
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DALGOAT_BUILD_MODULES=ON `
+            -DALGOAT_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --parallel 2
+
+      - name: Run Tests
+        run: ctest --test-dir build --output-on-failure --parallel 2

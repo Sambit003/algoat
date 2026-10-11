@@ -12,6 +12,10 @@
 #include <string>
 #include <vector>
 
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
 #if !defined(__SANITIZE_ADDRESS__) && (!defined(__has_feature) || !__has_feature(address_sanitizer))
 // Allocation tracking to verify O(1) auxiliary heap space guarantee in standard builds
 static std::atomic<std::size_t> g_active_allocations{0};

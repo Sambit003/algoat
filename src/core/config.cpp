@@ -5,11 +5,18 @@
 
 #include "algoat/core/config.hpp"
 
+#include "algoat/core/config_manager.hpp"
+
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 
 namespace algoat::core {
+
+ConfigManager& ConfigManager::instance() noexcept {
+    static ConfigManager manager;
+    return manager;
+}
 
 AlgoConfig load_config(const std::string& filepath) {
     std::ifstream file(filepath);
