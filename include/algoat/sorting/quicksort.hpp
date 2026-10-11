@@ -34,38 +34,53 @@ struct PartitionResult {
 /**
  * @brief Selects the median of @c arr[low], @c arr[mid], and @c arr[high]
  * and places it at @c arr[high].
+ *
+ * @tparam I Random-access iterator type.
+ * @tparam Compare Strict weak ordering comparator callable.
+ * @param arr Base random-access iterator.
+ * @param low Starting index.
+ * @param high Ending index.
+ * @param comp Strict weak ordering comparator.
  */
-template <typename T, typename Compare>
-void median_of_three(T* arr, std::size_t low, std::size_t high, Compare comp) {
+template <std::random_access_iterator I, typename Compare>
+constexpr void median_of_three(I arr, std::size_t low, std::size_t high, Compare comp) {
     std::size_t mid = low + (high - low) / 2;
     if (comp(arr[mid], arr[low]))
-        std::swap(arr[low], arr[mid]);
+        std::ranges::iter_swap(arr + low, arr + mid);
     if (comp(arr[high], arr[low]))
-        std::swap(arr[low], arr[high]);
+        std::ranges::iter_swap(arr + low, arr + high);
     if (comp(arr[high], arr[mid]))
-        std::swap(arr[mid], arr[high]);
+        std::ranges::iter_swap(arr + mid, arr + high);
     // Place the median at arr[high] so it is excluded from the active partition scan [low, high -
     // 1]
-    std::swap(arr[mid], arr[high]);
+    std::ranges::iter_swap(arr + mid, arr + high);
 }
 
 /**
  * @brief Dijkstra 3-Way Fat Partitioning (Dutch National Flag) with zero-copy pivot reference.
+ *
+ * @tparam I Random-access iterator type.
+ * @tparam Compare Strict weak ordering comparator callable.
+ * @param arr Base random-access iterator.
+ * @param low Starting index.
+ * @param high Ending index.
+ * @param comp Strict weak ordering comparator.
+ * @return PartitionResult containing lt and gt boundaries.
  */
-template <typename T, typename Compare>
-PartitionResult partition_3way(T* arr, std::size_t low, std::size_t high, Compare comp) {
-    const T& pivot = arr[high];
+template <std::random_access_iterator I, typename Compare>
+constexpr PartitionResult partition_3way(I arr, std::size_t low, std::size_t high, Compare comp) {
+    const auto& pivot = arr[high];
     std::size_t lt = low;
     std::size_t i = low;
     std::size_t gt = high - 1;
 
     while (i <= gt) {
         if (comp(arr[i], pivot)) {
-            std::swap(arr[lt], arr[i]);
+            std::ranges::iter_swap(arr + lt, arr + i);
             ++lt;
             ++i;
         } else if (comp(pivot, arr[i])) {
-            std::swap(arr[i], arr[gt]);
+            std::ranges::iter_swap(arr + i, arr + gt);
             if (gt == 0)
                 break;
             --gt;
@@ -74,16 +89,23 @@ PartitionResult partition_3way(T* arr, std::size_t low, std::size_t high, Compar
         }
     }
 
-    std::swap(arr[gt + 1], arr[high]);
+    std::ranges::iter_swap(arr + gt + 1, arr + high);
     ++gt;
     return {lt, gt};
 }
 
 /**
  * @brief Iterative/recursive quicksort with tail-call elimination.
+ *
+ * @tparam I Random-access iterator type.
+ * @tparam Compare Strict weak ordering comparator callable.
+ * @param arr Base random-access iterator.
+ * @param low Starting index.
+ * @param high Ending index.
+ * @param comp Strict weak ordering comparator.
  */
-template <typename T, typename Compare>
-void quicksort_impl(T* arr, std::size_t low, std::size_t high, Compare comp) {
+template <std::random_access_iterator I, typename Compare>
+constexpr void quicksort_impl(I arr, std::size_t low, std::size_t high, Compare comp) {
     // Threshold where SIMD vectorization overhead is overcome by parallel throughput
     constexpr std::size_t SIMD_THRESHOLD = 128;
 
@@ -115,31 +137,39 @@ void quicksort_impl(T* arr, std::size_t low, std::size_t high, Compare comp) {
     while (low < high) {
         std::size_t current_size = high - low + 1;
         if (current_size <= 16) {
-            insertionsort(std::span<T>{arr + low, current_size}, comp);
+            insertion_sort(arr + low, arr + high + 1, comp);
             return;
         }
 
         median_of_three(arr, low, high, comp);
 
-        if constexpr (::algoat::simd::is_simd_supported_v<T>) {
-            if constexpr (std::is_same_v<Compare, std::less<T>> ||
-                          std::is_same_v<Compare, std::less<>>) {
-                if (current_size > SIMD_THRESHOLD) {
-                    const T& pivot = arr[high];
+        if (!std::is_constant_evaluated()) {
+            if constexpr (std::contiguous_iterator<I>) {
+                using T = std::iter_value_t<I>;
+                if constexpr (::algoat::simd::is_simd_supported_v<T>) {
+                    if constexpr (std::is_same_v<Compare, std::less<T>> ||
+                                  std::is_same_v<Compare, std::less<>>) {
+                        if (current_size > SIMD_THRESHOLD) {
+                            auto* raw_ptr = std::to_address(arr + low);
+                            const T& pivot = *(arr + high);
 
-                    // Proceed with SIMD partitioning only if the array sample is not an extreme
-                    // duplicate sequence (arr[low] == arr[high] == pivot means sample is identical)
-                    if (arr[low] != pivot) {
-                        auto split_opt =
-                            ::algoat::simd::partition_simd(arr + low, current_size - 1, pivot);
+                            // Proceed with SIMD partitioning only if the array sample is not an
+                            // extreme duplicate sequence (arr[low] == arr[high] == pivot means
+                            // sample is identical)
+                            if (*(arr + low) != pivot) {
+                                auto split_opt = ::algoat::simd::partition_simd(
+                                    raw_ptr, current_size - 1, pivot);
 
-                        // If SIMD partition succeeded, apply split and advance;
-                        // if std::nullopt (scalar host fallback), fall through to partition_3way.
-                        if (split_opt.has_value()) {
-                            std::size_t split_idx = low + *split_opt;
-                            std::swap(arr[split_idx], arr[high]);
-                            recurse_smaller_and_advance(split_idx, split_idx);
-                            continue;
+                                // If SIMD partition succeeded, apply split and advance;
+                                // if std::nullopt (scalar host fallback), fall through to
+                                // partition_3way.
+                                if (split_opt.has_value()) {
+                                    std::size_t split_idx = low + *split_opt;
+                                    std::ranges::iter_swap(arr + split_idx, arr + high);
+                                    recurse_smaller_and_advance(split_idx, split_idx);
+                                    continue;
+                                }
+                            }
                         }
                     }
                 }
@@ -152,6 +182,33 @@ void quicksort_impl(T* arr, std::size_t low, std::size_t high, Compare comp) {
 }
 
 } // namespace detail
+
+/**
+ * @brief Sorts a range delimited by iterators [first, last) in-place using 3-way partitioning
+ * quicksort with custom comparator and projection.
+ *
+ * @tparam I Random-access iterator type.
+ * @tparam S Sentinel type for iterator I.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ *
+ * @param first Beginning of the range to sort in-place.
+ * @param last Sentinel or end of the range.
+ * @param comp Strict weak ordering comparator.
+ * @param proj Projection callable.
+ */
+template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+    requires std::sortable<I, Comp, Proj>
+constexpr void quicksort(I first, S last, Comp comp = {}, Proj proj = {}) {
+    auto last_it = std::ranges::next(first, last);
+    auto len = last_it - first;
+    if (len <= 1) {
+        return;
+    }
+    auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
+    detail::quicksort_impl(first, 0, static_cast<std::size_t>(len - 1), comp_proj);
+}
 
 /**
  * @brief Sorts a C++20 random-access range in-place using 3-way partitioning quicksort with custom
@@ -170,21 +227,8 @@ template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
           typename Proj = std::identity>
     requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
 constexpr std::ranges::borrowed_iterator_t<R> quicksort(R&& data, Comp comp = {}, Proj proj = {}) {
-    if constexpr (std::ranges::contiguous_range<R> && std::ranges::sized_range<R>) {
-        auto span_data = ::algoat::detail::to_span(data);
-        if (span_data.size() <= 1) {
-            return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
-        }
-        if constexpr (std::is_same_v<Proj, std::identity>) {
-            detail::quicksort_impl(span_data.data(), 0, span_data.size() - 1, comp);
-        } else {
-            auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
-            detail::quicksort_impl(span_data.data(), 0, span_data.size() - 1, comp_proj);
-        }
-        return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
-    } else {
-        return ::algoat::detail::fallback_sort(data, std::move(comp), std::move(proj));
-    }
+    quicksort(std::ranges::begin(data), std::ranges::end(data), comp, proj);
+    return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
 }
 
 /**
@@ -195,7 +239,7 @@ constexpr std::ranges::borrowed_iterator_t<R> quicksort(R&& data, Comp comp = {}
  * @param data Contiguous span of elements to sort.
  * @param comp Strict weak ordering comparator.
  */
-template <typename T, typename Compare> void quicksort(std::span<T> data, Compare comp) {
+template <typename T, typename Compare> constexpr void quicksort(std::span<T> data, Compare comp) {
     if (data.size() <= 1)
         return;
     detail::quicksort_impl(data.data(), 0, data.size() - 1, comp);
@@ -207,7 +251,7 @@ template <typename T, typename Compare> void quicksort(std::span<T> data, Compar
  * @tparam T Element type supporting @c operator<.
  * @param data Contiguous span of elements to sort.
  */
-template <typename T> void quicksort(std::span<T> data) {
+template <typename T> constexpr void quicksort(std::span<T> data) {
     quicksort(data, std::less<T>{});
 }
 
@@ -251,7 +295,7 @@ struct QuickSort {
      * @tparam T Element type supporting @c operator<.
      * @param data Contiguous span of elements to sort.
      */
-    template <typename T> void sort(std::span<T> data) const {
+    template <typename T> constexpr void sort(std::span<T> data) const {
         quicksort(data);
     }
 
@@ -263,7 +307,8 @@ struct QuickSort {
      * @param data Contiguous span of elements to sort.
      * @param comp Strict weak ordering comparator.
      */
-    template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
+    template <typename T, typename Compare>
+    constexpr void sort(std::span<T> data, Compare comp) const {
         quicksort(data, comp);
     }
 

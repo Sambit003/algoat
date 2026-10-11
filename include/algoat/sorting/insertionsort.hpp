@@ -19,6 +19,60 @@
 namespace algoat::sorting {
 
 /**
+ * @brief Sorts a range delimited by iterators [first, last) using insertion sort with custom
+ * comparator and projection.
+ *
+ * @tparam I Random-access iterator type.
+ * @tparam S Sentinel type for iterator I.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ *
+ * @param first Beginning of the range to sort in-place.
+ * @param last Sentinel or end of the range.
+ * @param comp Comparator callable.
+ * @param proj Projection callable.
+ */
+template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+    requires std::sortable<I, Comp, Proj>
+constexpr void insertion_sort(I first, S last, Comp comp = {}, Proj proj = {}) {
+    auto last_it = std::ranges::next(first, last);
+    if (first == last_it) {
+        return;
+    }
+    for (auto i = first + 1; i != last_it; ++i) {
+        auto val = std::move(*i);
+        const auto& val_proj = std::invoke(proj, val);
+        auto j = i;
+        while (j != first && std::invoke(comp, val_proj, std::invoke(proj, *(j - 1)))) {
+            *j = std::move(*(j - 1));
+            --j;
+        }
+        *j = std::move(val);
+    }
+}
+
+/**
+ * @brief Sorts a range delimited by iterators [first, last) using insertion sort (camelCase alias).
+ *
+ * @tparam I Random-access iterator type.
+ * @tparam S Sentinel type for iterator I.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ *
+ * @param first Beginning of the range to sort in-place.
+ * @param last Sentinel or end of the range.
+ * @param comp Comparator callable.
+ * @param proj Projection callable.
+ */
+template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+    requires std::sortable<I, Comp, Proj>
+constexpr void insertionsort(I first, S last, Comp comp = {}, Proj proj = {}) {
+    insertion_sort(first, last, std::move(comp), std::move(proj));
+}
+
+/**
  * @brief Sorts a C++20 random-access range using insertion sort with custom comparator and
  * projection.
  *
@@ -36,12 +90,29 @@ template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
     requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
 constexpr std::ranges::borrowed_iterator_t<R> insertionsort(R&& data, Comp comp = {},
                                                             Proj proj = {}) {
-    auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
-    for (auto i = std::ranges::begin(data); i != std::ranges::end(data); ++i) {
-        for (auto j = i; j != std::ranges::begin(data) && comp_proj(*j, *(j - 1)); --j) {
-            std::ranges::iter_swap(j, j - 1);
-        }
-    }
+    insertion_sort(std::ranges::begin(data), std::ranges::end(data), comp, proj);
+    return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+}
+
+/**
+ * @brief Sorts a C++20 random-access range using insertion sort with custom comparator and
+ * projection (snake_case alias conforming to issue #66 spec).
+ *
+ * @tparam R Random-access range type.
+ * @tparam Comp Strict weak ordering comparator callable.
+ * @tparam Proj Projection callable.
+ *
+ * @param data Range of elements to sort in-place.
+ * @param comp Comparator callable.
+ * @param proj Projection callable.
+ * @return Iterator pointing to the end of the range.
+ */
+template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+    requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+constexpr std::ranges::borrowed_iterator_t<R> insertion_sort(R&& data, Comp comp = {},
+                                                             Proj proj = {}) {
+    insertion_sort(std::ranges::begin(data), std::ranges::end(data), comp, proj);
     return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
 }
 
@@ -111,7 +182,7 @@ struct InsertionSort {
      *
      * @param data Span of elements to sort in-place.
      */
-    template <typename T> void sort(std::span<T> data) const {
+    template <typename T> constexpr void sort(std::span<T> data) const {
         insertionsort(data);
     }
 
@@ -123,7 +194,8 @@ struct InsertionSort {
      * @param data Span of elements to sort in-place.
      * @param comp Comparator callable.
      */
-    template <typename T, typename Compare> void sort(std::span<T> data, Compare comp) const {
+    template <typename T, typename Compare>
+    constexpr void sort(std::span<T> data, Compare comp) const {
         insertionsort(data, comp);
     }
 

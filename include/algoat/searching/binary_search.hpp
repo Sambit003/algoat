@@ -18,6 +18,53 @@
 namespace algoat::searching {
 
 /**
+ * @brief Searches for target within a range [first, last) using binary search with custom
+ * comparator and projection.
+ *
+ * Conforms to C++20 standard algorithm contract: returns an iterator pointing to the matching
+ * element if found, or the sentinel / end iterator @c last if not present.
+ *
+ * @tparam I Forward iterator type.
+ * @tparam S Sentinel type for iterator I.
+ * @tparam T Target value type.
+ * @tparam Proj Element projection callable.
+ * @tparam Comp Strict weak ordering comparator callable.
+ *
+ * @param first Beginning of the range to search.
+ * @param last Sentinel or end of the range.
+ * @param target Value to locate.
+ * @param comp Strict weak ordering comparator.
+ * @param proj Element projection callable.
+ * @return Iterator pointing to the matching element, or @c last if not found.
+ */
+template <std::forward_iterator I, std::sentinel_for<I> S, typename T,
+          typename Proj = std::identity, typename Comp = std::ranges::less>
+    requires std::indirect_strict_weak_order<Comp, const T*, std::projected<I, Proj>>
+constexpr I binary_search(I first, S last, const T& target, Comp comp = {}, Proj proj = {}) {
+    auto orig_last = std::ranges::next(first, last);
+    auto len = std::ranges::distance(first, last);
+    while (len > 0) {
+        auto half = len / 2;
+        auto middle = first;
+        std::ranges::advance(middle, half);
+        if (std::invoke(comp, std::invoke(proj, *middle), target)) {
+            first = middle;
+            ++first;
+            len = len - half - 1;
+        } else {
+            len = half;
+        }
+    }
+    if (first == orig_last) {
+        return orig_last;
+    }
+    if (!std::invoke(comp, target, std::invoke(proj, *first))) {
+        return first;
+    }
+    return orig_last;
+}
+
+/**
  * @brief Searches for target within a C++20 random-access range using binary search with custom
  * comparator and projection.
  *
@@ -36,8 +83,8 @@ template <std::ranges::random_access_range R, typename T = std::ranges::range_va
           typename Comp = std::ranges::less, typename Proj = std::identity>
     requires std::indirect_strict_weak_order<Comp, const T*,
                                              std::projected<std::ranges::iterator_t<R>, Proj>>
-std::optional<std::size_t> binary_search(R&& range, const T& target, Comp comp = {},
-                                         Proj proj = {}) {
+constexpr std::optional<std::size_t> binary_search(R&& range, const T& target, Comp comp = {},
+                                                   Proj proj = {}) {
     auto len = std::ranges::distance(range);
     if (len <= 0) {
         return std::nullopt;
@@ -80,7 +127,8 @@ std::optional<std::size_t> binary_search(R&& range, const T& target, Comp comp =
  * @return Index of a matching element if present, or @c std::nullopt.
  */
 template <typename T, typename Compare>
-std::optional<std::size_t> binary_search(std::span<const T> data, const T& target, Compare comp) {
+constexpr std::optional<std::size_t> binary_search(std::span<const T> data, const T& target,
+                                                   Compare comp) {
     if (data.empty()) {
         return std::nullopt;
     }
@@ -114,7 +162,7 @@ std::optional<std::size_t> binary_search(std::span<const T> data, const T& targe
  * @return Index of a matching element if present, or @c std::nullopt.
  */
 template <typename T>
-std::optional<std::size_t> binary_search(std::span<const T> data, const T& target) {
+constexpr std::optional<std::size_t> binary_search(std::span<const T> data, const T& target) {
     return binary_search(data, target, std::less<>{});
 }
 
@@ -126,7 +174,8 @@ std::optional<std::size_t> binary_search(std::span<const T> data, const T& targe
  * @param target Value to locate.
  * @return Index of a matching element if present, or @c std::nullopt.
  */
-template <typename T> std::optional<std::size_t> binary_search(std::span<T> data, const T& target) {
+template <typename T>
+constexpr std::optional<std::size_t> binary_search(std::span<T> data, const T& target) {
     return binary_search(std::span<const T>{data.data(), data.size()}, target);
 }
 
@@ -141,7 +190,8 @@ template <typename T> std::optional<std::size_t> binary_search(std::span<T> data
  * @return Index of a matching element if present, or @c std::nullopt.
  */
 template <typename T, typename Compare>
-std::optional<std::size_t> binary_search(std::span<T> data, const T& target, Compare comp) {
+constexpr std::optional<std::size_t> binary_search(std::span<T> data, const T& target,
+                                                   Compare comp) {
     return binary_search(std::span<const T>{data.data(), data.size()}, target, std::move(comp));
 }
 
@@ -179,7 +229,7 @@ struct BinarySearch {
      * @return Index of a matching element if present, or @c std::nullopt.
      */
     template <typename T>
-    std::optional<std::size_t> search(std::span<T> data, const T& target) const {
+    constexpr std::optional<std::size_t> search(std::span<T> data, const T& target) const {
         return binary_search(data, target);
     }
 
@@ -192,7 +242,7 @@ struct BinarySearch {
      * @return Index of a matching element if present, or @c std::nullopt.
      */
     template <typename T>
-    std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
+    constexpr std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
         return binary_search(data, target);
     }
 
@@ -207,7 +257,8 @@ struct BinarySearch {
      * @return Index of a matching element if present, or @c std::nullopt.
      */
     template <typename T, typename Compare>
-    std::optional<std::size_t> search(std::span<T> data, const T& target, Compare comp) const {
+    constexpr std::optional<std::size_t> search(std::span<T> data, const T& target,
+                                                Compare comp) const {
         return binary_search(data, target, std::move(comp));
     }
 
@@ -222,8 +273,8 @@ struct BinarySearch {
      * @return Index of a matching element if present, or @c std::nullopt.
      */
     template <typename T, typename Compare>
-    std::optional<std::size_t> search(std::span<const T> data, const T& target,
-                                      Compare comp) const {
+    constexpr std::optional<std::size_t> search(std::span<const T> data, const T& target,
+                                                Compare comp) const {
         return binary_search(data, target, std::move(comp));
     }
 
@@ -237,8 +288,8 @@ struct BinarySearch {
      * @return Index of matching element if present, or std::nullopt.
      */
     template <typename RandomAccessSeq, typename T>
-    std::optional<std::size_t> search_indexed(const RandomAccessSeq& seq, std::size_t size,
-                                              const T& target) const {
+    constexpr std::optional<std::size_t> search_indexed(const RandomAccessSeq& seq,
+                                                        std::size_t size, const T& target) const {
         if (size == 0) {
             return std::nullopt;
         }

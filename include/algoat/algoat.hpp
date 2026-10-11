@@ -15,6 +15,8 @@
 #include "algoat/meta/policy.hpp"
 #include "algoat/meta/static_sort.hpp"
 #include "algoat/numerics/hybrid_sfc.hpp"
+#include "algoat/searching/binary_search.hpp"
+#include "algoat/sorting/introsort.hpp"
 
 #include <concepts>
 #include <cstddef>
@@ -25,6 +27,7 @@
 #include <ranges>
 #include <span>
 #include <string>
+#include <type_traits>
 
 namespace algoat {
 
@@ -87,6 +90,9 @@ template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
     requires(!std::is_same_v<std::remove_cvref_t<Comp>, SpaceFillingCurve> &&
              std::sortable<std::ranges::iterator_t<R>, Comp, Proj>)
 constexpr std::ranges::borrowed_iterator_t<R> sort(R&& range, Comp comp = {}, Proj proj = {}) {
+    if (std::is_constant_evaluated()) {
+        return sorting::introsort(std::forward<R>(range), std::move(comp), std::move(proj));
+    }
     return get_dispatcher().sort(std::forward<R>(range), std::move(comp), std::move(proj));
 }
 
@@ -97,7 +103,11 @@ constexpr std::ranges::borrowed_iterator_t<R> sort(R&& range, Comp comp = {}, Pr
  * @tparam T The element type in the span.
  * @param data Contiguous span of elements to sort in-place.
  */
-template <typename T> void sort(std::span<T> data) {
+template <typename T> constexpr void sort(std::span<T> data) {
+    if (std::is_constant_evaluated()) {
+        sorting::introsort(data);
+        return;
+    }
     get_dispatcher().sort(data);
 }
 
@@ -158,7 +168,12 @@ template <std::ranges::random_access_range R, typename T = std::ranges::range_va
           typename Comp = std::ranges::less, typename Proj = std::identity>
     requires std::indirect_strict_weak_order<Comp, const T*,
                                              std::projected<std::ranges::iterator_t<R>, Proj>>
-std::optional<std::size_t> search(R&& range, const T& target, Comp comp = {}, Proj proj = {}) {
+constexpr std::optional<std::size_t> search(R&& range, const T& target, Comp comp = {},
+                                            Proj proj = {}) {
+    if (std::is_constant_evaluated()) {
+        return searching::binary_search(std::forward<R>(range), target, std::move(comp),
+                                        std::move(proj));
+    }
     return get_dispatcher().search(std::forward<R>(range), target, std::move(comp),
                                    std::move(proj));
 }
@@ -171,7 +186,11 @@ std::optional<std::size_t> search(R&& range, const T& target, Comp comp = {}, Pr
  * @param target The value to locate.
  * @return Index of the matching element if found, or @c std::nullopt.
  */
-template <typename T> std::optional<std::size_t> search(std::span<const T> data, const T& target) {
+template <typename T>
+constexpr std::optional<std::size_t> search(std::span<const T> data, const T& target) {
+    if (std::is_constant_evaluated()) {
+        return searching::binary_search(data, target);
+    }
     return get_dispatcher().search(data, target);
 }
 
@@ -183,7 +202,8 @@ template <typename T> std::optional<std::size_t> search(std::span<const T> data,
  * @param target The value to locate.
  * @return Index of the matching element if found, or @c std::nullopt.
  */
-template <typename T> std::optional<std::size_t> search(std::span<T> data, const T& target) {
+template <typename T>
+constexpr std::optional<std::size_t> search(std::span<T> data, const T& target) {
     return search(std::span<const T>{data.data(), data.size()}, target);
 }
 
