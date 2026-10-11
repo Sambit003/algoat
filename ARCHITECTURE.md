@@ -168,37 +168,53 @@ Located in [`include/algoat/searching/eytzinger_search_tree.hpp`](include/algoat
 To contribute a new sorting algorithm to Algoat, follow these 4 steps *(unless it is a domain-specific static dispatch optimization for a single type, in which case it is intercepted via `if constexpr` in `Dispatcher::sort` directly)*:
 
 ### Step 1: Implement the Header
-Create `include/algoat/sorting/my_new_sort.hpp`. Expose idiomatic overloaded free function templates (`my_new_sort(span)` and `my_new_sort(span, comp)`), alongside a lightweight adapter struct satisfying `algoat::sorting::SortAlgorithm`:
+Create `include/algoat/sorting/my_new_sort.hpp`. Expose idiomatic C++20 range free function templates supporting comparators and projections, span convenience overloads, a lightweight adapter struct satisfying `algoat::sorting::SortAlgorithm`, and invoke the automated registry macro:
 
 ```cpp
 #pragma once
+
+#include "algoat/core/traits.hpp" // for make_comp_proj
 #include <concepts>
 #include <functional>
+#include <iterator>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <utility>
 
 namespace algoat::sorting {
 
-// 1. Idiomatic C++20 Free Function Templates
+// 1. Idiomatic C++20 Ranges Free Function with Comparator & Projection Support
+template <std::ranges::random_access_range R,
+          typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+    requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+constexpr std::ranges::borrowed_iterator_t<R> my_new_sort(R&& data, Comp comp = {},
+                                                            Proj proj = {}) {
+    auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
+    // Core sorting implementation using comp_proj...
+    return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+}
+
+// 2. Span Convenience Overloads
 template <typename T, typename Compare>
-void my_new_sort(std::span<T> data, Compare comp) {
-    // Core algorithm implementation using comparator...
+constexpr void my_new_sort(std::span<T> data, Compare comp) {
+    my_new_sort(data, std::move(comp), std::identity{});
 }
 
 template <typename T>
-void my_new_sort(std::span<T> data) {
-    my_new_sort(data, std::less<T>{});
+constexpr void my_new_sort(std::span<T> data) {
+    my_new_sort(data, std::ranges::less{});
 }
 
-// 2. Zero-Overhead Adapter Struct for Registry / Dispatcher Static Polymorphism
+// 3. Zero-Overhead Adapter Struct Satisfying SortAlgorithm Concept
 struct MyNewSort {
     [[nodiscard]] constexpr std::string_view name() const noexcept {
         return "mynewsort";
     }
 
     [[nodiscard]] constexpr std::size_t preferred_min_size() const noexcept {
-        return 0;
+        return 0; // Minimum element count where this algorithm is preferred
     }
 
     template <typename T>
@@ -213,44 +229,65 @@ struct MyNewSort {
 };
 
 } // namespace algoat::sorting
+
+// 4. Automated Registration into Global Algorithm Registry
+#include "algoat/core/registry.hpp"
+
+ALGOAT_REGISTER_ALGORITHM("sorting", "mynewsort", ::algoat::sorting::MyNewSort)
 ```
 
 ### Step 2: Register in `SortVariant`
 In [`include/algoat/sorting/sorting.hpp`](include/algoat/sorting/sorting.hpp):
 1. `#include "algoat/sorting/my_new_sort.hpp"`
-2. Add `MyNewSort` to the `SortVariant` type alias.
-
-### Step 3: Register in Dispatcher
-In [`src/core/dispatcher.cpp`](src/core/dispatcher.cpp):
-1. `#include "algoat/sorting/my_new_sort.hpp"`
-2. Add factory registration inside `Dispatcher::Dispatcher`:
+2. Add `MyNewSort` to the `SortVariant` type alias:
    ```cpp
-   sort_registry_.register_algo("mynewsort", []() -> sorting::SortVariant {
-       return sorting::MyNewSort{};
-   });
+   using SortVariant =
+       std::variant<InsertionSort, QuickSort, ..., MyNewSort>;
    ```
 
-### Step 4: Add Unit Tests
-Add tests in [`tests/sorting/`](tests/sorting/) testing both the direct free function template and the adapter:
-```cpp
-#include <gtest/gtest.h>
-#include "algoat/sorting/my_new_sort.hpp"
+> [!NOTE]
+> `Registry<SortVariant>` leverages `VariantCaster<SortVariant>` to safely unpack algorithm instances held in the type-erased `BaseRegistry` into the concrete `std::variant` at runtime with zero virtual method dispatch overhead.
 
-TEST(MyNewSortTest, FreeFunctionSortsAscendingAndDescending) {
-    std::vector<int> data = {9, 3, 1, 5, 2};
-    algoat::sorting::my_new_sort(std::span{data});
-    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+### Step 3: Automated Static Registry (No Dispatcher Edits Needed)
+In modern Algoat, algorithm registration is **fully decentralized**:
+- The `ALGOAT_REGISTER_ALGORITHM("sorting", "mynewsort", ::algoat::sorting::MyNewSort)` macro automatically registers the factory function into `::algoat::core::BaseRegistry::global("sorting")` during static initialization before `main()` executes.
+- `Dispatcher` automatically binds to `Registry<sorting::SortVariant>::global("sorting")` on initialization.
+- **You do not need to edit `src/core/dispatcher.cpp`**.
 
-    algoat::sorting::my_new_sort(std::span{data}, std::greater<int>{});
-    EXPECT_TRUE(std::is_sorted(data.begin(), data.end(), std::greater<int>{}));
-}
+### Step 4: Add Unit Tests, PBT, and Fuzzing
+Add verification across all test harnesses:
 
-TEST(MyNewSortTest, AdapterSortsVector) {
-    std::vector<int> data = {9, 3, 1, 5, 2};
-    algoat::sorting::MyNewSort{}.sort(std::span{data});
-    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
-}
-```
+1. **Unit Tests** in [`tests/sorting/test_my_new_sort.cpp`](tests/sorting/):
+   ```cpp
+   #include <gtest/gtest.h>
+   #include "algoat/sorting/my_new_sort.hpp"
+   #include <vector>
+
+   TEST(MyNewSortTest, RangesAndProjections) {
+       struct Item { int value; };
+       std::vector<Item> data = {{5}, {1}, {3}};
+       algoat::sorting::my_new_sort(data, std::ranges::less{}, &Item::value);
+       EXPECT_EQ(data[0].value, 1);
+       EXPECT_EQ(data[1].value, 3);
+       EXPECT_EQ(data[2].value, 5);
+   }
+
+   TEST(MyNewSortTest, AdapterSortsSpan) {
+       std::vector<int> data = {9, 3, 1, 5, 2};
+       algoat::sorting::MyNewSort{}.sort(std::span{data});
+       EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+   }
+   ```
+
+2. **Property-Based Testing (PBT)** in [`tests/pbt/test_sorting_invariants.cpp`](tests/pbt/test_sorting_invariants.cpp):
+   Add `MyNewSort` to `ComparativeSortAlgos` (and `StableSortAlgos` if the algorithm is stable). RapidCheck will automatically test conservation, monotonic sortedness, and idempotency invariants across thousands of pseudo-random inputs:
+   ```cpp
+   using ComparativeSortAlgos =
+       ::testing::Types<SelectionSort, BubbleSort, ..., MyNewSort>;
+   ```
+
+3. **Differential Fuzzing** in [`tests/fuzzing/diff_sort_fuzzer.cpp`](tests/fuzzing/diff_sort_fuzzer.cpp):
+   Add `MyNewSort` to the LLVM libFuzzer test harness to continuously verify identical ordering against `std::sort` / `std::stable_sort` over raw mutated byte streams.
 
 ---
 
