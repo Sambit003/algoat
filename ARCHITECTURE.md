@@ -167,44 +167,41 @@ Located in [`include/algoat/searching/eytzinger_search_tree.hpp`](include/algoat
 
 Algoat structures its algorithmic portfolio across distinct domains (`"sorting"`, `"searching"`). Rather than using intrusive monolithic dispatch tables or traditional object-oriented virtual inheritance, every domain follows a uniform, decentralized lifecycle built on compile-time C++20 concepts, static polymorphism via closed variants (`std::variant`), and automatic static registry binding.
 
-```
-       +-------------------------------------------------------------+
-       |                  C++20 Constrained Concept                  |
-       |  (e.g., algoat::sorting::SortAlgorithm / SearchAlgorithm)   |
-       +-------------------------------------------------------------+
-                                      |
-         +----------------------------+----------------------------+
-         |                                                         |
-         v                                                         v
-+-------------------------------+                         +-------------------------------+
-|     Tier 1: Ranges Core       |                         |    Tier 2: Adapter Struct     |
-|   my_algo(Range, Comp, Proj)  |                         |    MyAlgo { name(), run() }   |
-+-------------------------------+                         +-------------------------------+
-                                                                   |
-                                      +----------------------------+
-                                      |
-                                      v
-                        +---------------------------+
-                        |  Automated Self-Registry  |
-                        | ALGOAT_REGISTER_ALGORITHM |
-                        +---------------------------+
-                                      |
-         +----------------------------+----------------------------+
-         |                                                         |
-         v                                                         v
-+-------------------------------+                         +-------------------------------+
-|     Domain Variant Union      |                         |      Dynamic Dispatcher       |
-|  (SortVariant, SearchVariant) |                         |  Registry<DomainVariant>      |
-|  Zero-vtable std::visit       |                         |  with if constexpr bypass     |
-+-------------------------------+                         +-------------------------------+
-                                      |
-                                      v
-                        +---------------------------+
-                        |   Tripartite Verification |
-                        |  - Unit Tests (GTest)     |
-                        |  - Invariant PBT (Rapid)  |
-                        |  - Differential Fuzzing   |
-                        +---------------------------+
+```mermaid
+flowchart TD
+    subgraph Specification ["Compile-Time Specification"]
+        Concept["C++20 Domain Concepts<br/>(SortAlgorithm / SearchAlgorithm)"]
+        Tier1["Tier 1: Ranges Core Algorithm<br/>my_algo(Range, Comp, Proj)"]
+        Tier2["Tier 2: Zero-Overhead Adapter Struct<br/>MyAlgo::name(), MyAlgo::sort() / search()"]
+        Concept --> Tier1
+        Concept --> Tier2
+    end
+
+    subgraph Registration ["Decentralized Registration"]
+        Macro["Automated Static Self-Registry<br/>ALGOAT_REGISTER_ALGORITHM(Domain, Name, Type)"]
+        BaseRegistry["BaseRegistry::global(Domain)<br/>Type-Erased Factory Storage"]
+        Tier2 --> Macro
+        Macro --> BaseRegistry
+    end
+
+    subgraph Dispatch ["Static Polymorphism & Dispatch"]
+        Variant["Closed Domain Variant<br/>(SortVariant / SearchVariant)"]
+        Dispatcher["Dynamic Dispatcher<br/>Registry&lt;DomainVariant&gt;"]
+        Execution["std::visit Dispatch<br/>(with if constexpr Fast-Paths)"]
+        Tier2 --> Variant
+        Variant --> Dispatcher
+        BaseRegistry --> Dispatcher
+        Dispatcher --> Execution
+    end
+
+    subgraph Verification ["Tripartite Verification Pipeline"]
+        UnitTests["Deterministic Unit Tests<br/>(Ranges, Projections, Spans)"]
+        PBT["Invariant PBT (RapidCheck)<br/>(Conservation, Monotonicity, Parity)"]
+        Fuzzing["Continuous Differential Fuzzing<br/>(libFuzzer vs std Reference)"]
+        Tier1 --> UnitTests
+        Execution --> PBT
+        Execution --> Fuzzing
+    end
 ```
 
 ---
