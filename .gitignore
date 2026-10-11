@@ -21,6 +21,7 @@ bin/
 *.dll
 *.dylib
 compile_commands.json
+gcm.cache/
 
 # Python specific
 __pycache__/
