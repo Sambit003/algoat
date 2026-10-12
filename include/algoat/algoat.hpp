@@ -17,6 +17,7 @@
 #include "algoat/numerics/hybrid_sfc.hpp"
 #include "algoat/searching/binary_search.hpp"
 #include "algoat/sorting/introsort.hpp"
+#include "algoat/sorting/pdqsort.hpp"
 
 #include <concepts>
 #include <cstddef>
@@ -91,7 +92,7 @@ template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
              std::sortable<std::ranges::iterator_t<R>, Comp, Proj>)
 constexpr std::ranges::borrowed_iterator_t<R> sort(R&& range, Comp comp = {}, Proj proj = {}) {
     if (std::is_constant_evaluated()) {
-        return sorting::introsort(std::forward<R>(range), std::move(comp), std::move(proj));
+        return sorting::pdqsort(std::forward<R>(range), std::move(comp), std::move(proj));
     }
     return get_dispatcher().sort(std::forward<R>(range), std::move(comp), std::move(proj));
 }

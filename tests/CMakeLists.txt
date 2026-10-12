@@ -49,6 +49,7 @@ algoat_add_test(test_inplace_radixsort sorting/test_inplace_radixsort.cpp)
 algoat_add_test(test_sorting_network sorting/test_sorting_network.cpp)
 algoat_add_test(test_float16_sort sorting/test_float16_sort.cpp)
 algoat_add_test(test_constexpr_sort sorting/test_constexpr_sort.cpp)
+algoat_add_test(test_pdqsort sorting/test_pdqsort.cpp)
 
 # Searching tests
 algoat_add_test(test_linear_search searching/test_linear_search.cpp)

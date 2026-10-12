@@ -106,6 +106,38 @@ def benchmark_sorting():
         )
         print(f"Speedup (median): {stats_np_bool['median'] / stats_algoat_bool['median']:.2f}x")
 
+        # 4. Int64 sorting (PDQSort primary in-place engine)
+        arr_i64 = np.random.randint(-1_000_000, 1_000_000, size=size, dtype=np.int64)
+
+        stats_np_i64 = bench_sort(np.sort, arr_i64, number=10)
+        stats_algoat_i64 = bench_sort(algoat.sort, arr_i64, number=10)
+
+        print(
+            f"Int64 np.sort:     min={stats_np_i64['min']:.6f}s, "
+            f"median={stats_np_i64['median']:.6f}s, mad={stats_np_i64['mad']:.6f}s"
+        )
+        print(
+            f"Int64 algoat.sort: min={stats_algoat_i64['min']:.6f}s, "
+            f"median={stats_algoat_i64['median']:.6f}s, mad={stats_algoat_i64['mad']:.6f}s"
+        )
+        print(f"Speedup (median): {stats_np_i64['median'] / stats_algoat_i64['median']:.2f}x")
+
+        # 5. Float64 sorting (PDQSort primary in-place engine)
+        arr_f64 = np.random.uniform(-1000.0, 1000.0, size=size).astype(np.float64)
+
+        stats_np_f64 = bench_sort(np.sort, arr_f64, number=10)
+        stats_algoat_f64 = bench_sort(algoat.sort, arr_f64, number=10)
+
+        print(
+            f"Float64 np.sort:     min={stats_np_f64['min']:.6f}s, "
+            f"median={stats_np_f64['median']:.6f}s, mad={stats_np_f64['mad']:.6f}s"
+        )
+        print(
+            f"Float64 algoat.sort: min={stats_algoat_f64['min']:.6f}s, "
+            f"median={stats_algoat_f64['median']:.6f}s, mad={stats_algoat_f64['mad']:.6f}s"
+        )
+        print(f"Speedup (median): {stats_np_f64['median'] / stats_algoat_f64['median']:.2f}x")
+
 
 if __name__ == '__main__':
     benchmark_sorting()

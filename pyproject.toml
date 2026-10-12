@@ -43,7 +43,6 @@ cmake.define.ALGOAT_BUILD_PYTHON = "ON"
 cmake.define.ALGOAT_BUILD_TESTS = "OFF"
 cmake.define.ALGOAT_BUILD_BENCHMARKS = "OFF"
 cmake.define.ALGOAT_BUILD_EXAMPLES = "OFF"
-wheel.py-api = "cp312"
 
 [tool.cibuildwheel]
 build = "cp310-* cp311-* cp312-* cp313-* cp314-*"

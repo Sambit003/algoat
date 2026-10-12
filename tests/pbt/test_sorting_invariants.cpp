@@ -24,9 +24,9 @@ protected:
     Algo algo;
 };
 
-using ComparativeSortAlgos =
-    ::testing::Types<SelectionSort, BubbleSort, InsertionSort, ShellSort, CombSort, GnomeSort,
-                     CycleSort, QuickSort, MergeSort, HeapSort, IntroSort, TimSort, BlockSort>;
+using ComparativeSortAlgos = ::testing::Types<SelectionSort, BubbleSort, InsertionSort, ShellSort,
+                                              CombSort, GnomeSort, CycleSort, QuickSort, MergeSort,
+                                              HeapSort, IntroSort, TimSort, BlockSort, PdqSort>;
 
 TYPED_TEST_SUITE(ComparativeSortPBT, ComparativeSortAlgos);
 
@@ -320,5 +320,30 @@ TEST(StaticSortPBT, FixedExtentSortingNetworks) {
         algoat::meta::static_sort(std::span<int, 16>{input});
         RC_ASSERT(std::is_sorted(input.begin(), input.end()));
         RC_ASSERT(std::is_permutation(input.begin(), input.end(), original.begin()));
+    });
+}
+
+TEST(PdqSortPBT, CustomComparatorAndProjectionInvariants) {
+    struct TestItem {
+        int key;
+        std::string payload;
+        bool operator==(const TestItem& other) const = default;
+    };
+
+    rc::check("PdqSort with projection and descending comparator", [](std::vector<int> keys) {
+        std::vector<TestItem> items;
+        items.reserve(keys.size());
+        for (int k : keys) {
+            items.push_back({k, std::to_string(k)});
+        }
+        auto original_items = items;
+        algoat::sorting::pdqsort(items, std::greater<int>{}, &TestItem::key);
+
+        RC_ASSERT(items.size() == original_items.size());
+        RC_ASSERT(
+            std::is_sorted(items.begin(), items.end(),
+                           [](const TestItem& a, const TestItem& b) { return a.key > b.key; }));
+        RC_ASSERT(std::is_permutation(items.begin(), items.end(), original_items.begin(),
+                                      original_items.end()));
     });
 }
