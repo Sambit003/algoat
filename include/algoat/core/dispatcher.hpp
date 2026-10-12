@@ -51,8 +51,8 @@ concept CanSearchData = requires(Algo a, std::span<const T> arr, const T& t) { a
  * (@c O(N) best case on partially ordered data).
  * - <b>Large Integral Arrays</b> (@c N > 10,000 & integral type): @c RadixSortLSD (@c O(N * k)
  * linear time).
- * - <b>General / Default:</b> @c IntroSort (@c O(N log N) hybrid
- * quicksort/heapsort/insertionsort).
+ * - <b>General / Default:</b> @c PdqSort (@c O(N log N) Pattern-Defeating Quicksort
+ * with BlockQuicksort branchless partitioning, heapsort fallback, and linear adaptation).
  *
  *
  * @par Searching Heuristics (@c "auto"):
@@ -128,10 +128,10 @@ public:
                             if (traits.size > 10000) {
                                 algo_name = "radixsortlsd";
                             } else {
-                                algo_name = "introsort";
+                                algo_name = "pdqsort";
                             }
                         } else {
-                            algo_name = "introsort";
+                            algo_name = "pdqsort";
                         }
                     }
                 }
@@ -165,7 +165,7 @@ public:
                 } else if (traits.sortedness_ratio >= 0.9 || traits.sortedness_ratio <= 0.1) {
                     sorting::timsort(span_view, comp_proj);
                 } else {
-                    sorting::introsort(span_view, comp_proj);
+                    sorting::pdqsort(span_view, comp_proj);
                 }
                 return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
             }
