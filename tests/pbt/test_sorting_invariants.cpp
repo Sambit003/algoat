@@ -24,9 +24,10 @@ protected:
     Algo algo;
 };
 
-using ComparativeSortAlgos = ::testing::Types<SelectionSort, BubbleSort, InsertionSort, ShellSort,
-                                              CombSort, GnomeSort, CycleSort, QuickSort, MergeSort,
-                                              HeapSort, IntroSort, TimSort, BlockSort, PdqSort>;
+using ComparativeSortAlgos =
+    ::testing::Types<SelectionSort, BubbleSort, InsertionSort, ShellSort, CombSort, GnomeSort,
+                     CycleSort, QuickSort, MergeSort, HeapSort, IntroSort, TimSort, BlockSort,
+                     PdqSort, CrumSort, FluxSort>;
 
 TYPED_TEST_SUITE(ComparativeSortPBT, ComparativeSortAlgos);
 
@@ -56,7 +57,8 @@ protected:
     Algo algo;
 };
 
-using StableSortAlgos = ::testing::Types<BubbleSort, InsertionSort, MergeSort, TimSort, BlockSort>;
+using StableSortAlgos =
+    ::testing::Types<BubbleSort, InsertionSort, MergeSort, TimSort, BlockSort, FluxSort>;
 
 TYPED_TEST_SUITE(StableSortPBT, StableSortAlgos);
 
