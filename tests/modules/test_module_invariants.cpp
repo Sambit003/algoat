@@ -32,3 +32,14 @@ RC_GTEST_PROP(ModulePBT, SearchFindsInsertedElementInSortedData,
     RC_ASSERT(*found < input.size());
     RC_ASSERT(input[*found] == target);
 }
+
+RC_GTEST_PROP(ModulePBT, PdqSortPreservesElementsAndOrders, (std::vector<int> original)) {
+    auto sorted = original;
+    algoat::sorting::pdqsort(sorted);
+
+    // Invariant 1: Sortedness
+    RC_ASSERT(std::is_sorted(sorted.begin(), sorted.end()));
+
+    // Invariant 2: Permutation preservation
+    RC_ASSERT(std::is_permutation(sorted.begin(), sorted.end(), original.begin(), original.end()));
+}

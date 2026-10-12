@@ -95,6 +95,14 @@ TEST(ModuleImportTest, SortingSubnamespaceFunctions) {
     std::vector<int> tdata{6, 5, 4, 3, 2, 1};
     algoat::sorting::timsort(tdata);
     EXPECT_TRUE(std::is_sorted(tdata.begin(), tdata.end()));
+
+    std::vector<int> pdata{10, 3, 7, 2, 8, 1, 9};
+    algoat::sorting::pdqsort(pdata);
+    EXPECT_TRUE(std::is_sorted(pdata.begin(), pdata.end()));
+
+    std::vector<int> padapter_data{5, 4, 3, 2, 1};
+    algoat::sorting::PdqSort{}.sort(std::span{padapter_data});
+    EXPECT_TRUE(std::is_sorted(padapter_data.begin(), padapter_data.end()));
 }
 
 TEST(ModuleImportTest, SearchingSubnamespaceFunctions) {

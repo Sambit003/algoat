@@ -27,6 +27,15 @@ TEST(DispatcherTest, SortingConfigOverride) {
     EXPECT_EQ(data[0], 1);
 }
 
+TEST(DispatcherTest, SortingConfigOverridePdqSort) {
+    AlgoConfig config;
+    config.sorting.prefer = "pdqsort";
+    Dispatcher dispatcher(config);
+    std::vector<int> data = {9, 2, 8, 1, 5, 3};
+    dispatcher.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+}
+
 TEST(DispatcherTest, SearchingAutoSelectsLinearForUnsorted) {
     AlgoConfig config;
     Dispatcher dispatcher(config);

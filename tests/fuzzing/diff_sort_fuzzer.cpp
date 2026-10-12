@@ -83,10 +83,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     test_algo(HeapSort{}, false);
     test_algo(MergeSort{}, true);
     test_algo(IntroSort{}, false);
+    test_algo(PdqSort{}, false);
     test_algo(TimSort{}, true);
     test_algo(BlockSort{}, true);
     test_algo(ShellSort{}, false);
     test_algo(CombSort{}, false);
+
+    // Free function pdqsort
+    {
+        std::vector<int> pdq_data = original_ints;
+        std::vector<int> exp_ints = original_ints;
+        std::sort(exp_ints.begin(), exp_ints.end());
+        algoat::sorting::pdqsort(pdq_data);
+        if (pdq_data != exp_ints)
+            __builtin_trap();
+    }
 
     // O(N^2) algorithms (only run on small inputs to avoid fuzzer timeouts)
     if (num_elements < 500) {

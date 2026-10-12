@@ -337,3 +337,34 @@ def test_list_subclass_support():
 
     idx = algoat.search(cl, 4)
     assert idx == 2
+
+
+def test_sorting_patterns_python_and_numpy():
+    """Validates sorting across diverse pathological patterns (presorted, reverse, pipe-organ, sawtooth, duplicates)."""
+    n = 2000
+
+    # 1. Strictly sorted
+    sorted_data = list(range(n))
+    assert algoat.sort(sorted_data) == sorted_data
+
+    # 2. Reverse sorted
+    rev_data = list(range(n, 0, -1))
+    assert algoat.sort(rev_data) == sorted(rev_data)
+
+    # 3. Pipe-organ distribution (ascend then descend)
+    pipe_organ = list(range(n // 2)) + list(range(n // 2, 0, -1))
+    assert algoat.sort(pipe_organ) == sorted(pipe_organ)
+
+    # 4. Sawtooth distribution
+    sawtooth = [i % 50 for i in range(n)]
+    assert algoat.sort(sawtooth) == sorted(sawtooth)
+
+    # 5. Many duplicates (few unique keys)
+    dups = [i % 5 for i in range(n)]
+    assert algoat.sort(dups) == sorted(dups)
+
+    # 6. NumPy in-place on large random array
+    np_arr = np.random.randint(-10000, 10000, size=5000, dtype=np.int32)
+    expected_np = np.sort(np_arr.copy())
+    algoat.sort_inplace(np_arr)
+    assert np.array_equal(np_arr, expected_np)
