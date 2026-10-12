@@ -35,61 +35,27 @@ constexpr void quadsort_sort2(I a, I b, const Comp& comp, const Proj& proj) {
 }
 
 /**
- * @brief Tiny sorting networks for ranges of size 0 to 7.
+ * @brief Tiny sorting routine for ranges of size 0 to 7 (strictly stable).
  */
 template <std::random_access_iterator I, typename Comp, typename Proj>
 constexpr void tiny_sort(I array, std::size_t count, const Comp& comp, const Proj& proj) {
-    switch (count) {
-    case 0:
-    case 1:
-        return;
-    case 2:
-        quadsort_sort2(array, array + 1, comp, proj);
-        return;
-    case 3:
-        quadsort_sort2(array, array + 1, comp, proj);
-        quadsort_sort2(array + 1, array + 2, comp, proj);
-        quadsort_sort2(array, array + 1, comp, proj);
-        return;
-    case 4: {
-        quadsort_sort2(array, array + 1, comp, proj);
-        quadsort_sort2(array + 2, array + 3, comp, proj);
-        quadsort_sort2(array, array + 2, comp, proj);
-        quadsort_sort2(array + 1, array + 3, comp, proj);
-        quadsort_sort2(array + 1, array + 2, comp, proj);
+    if (count <= 1) {
         return;
     }
-    case 5: {
-        quadsort_sort2(array, array + 1, comp, proj);
-        quadsort_sort2(array + 2, array + 3, comp, proj);
-        quadsort_sort2(array, array + 2, comp, proj);
-        quadsort_sort2(array + 1, array + 3, comp, proj);
-        quadsort_sort2(array + 1, array + 2, comp, proj);
-        for (std::size_t i = 4; i > 0; --i) {
-            if (std::invoke(comp, std::invoke(proj, array[i]), std::invoke(proj, array[i - 1]))) {
-                std::ranges::iter_swap(array + i, array + i - 1);
+    if (count == 2) {
+        if (std::invoke(comp, std::invoke(proj, *(array + 1)), std::invoke(proj, *array))) {
+            std::ranges::iter_swap(array, array + 1);
+        }
+        return;
+    }
+    for (std::size_t i = 1; i < count; ++i) {
+        for (std::size_t j = i; j > 0; --j) {
+            if (std::invoke(comp, std::invoke(proj, array[j]), std::invoke(proj, array[j - 1]))) {
+                std::ranges::iter_swap(array + j, array + j - 1);
             } else {
                 break;
             }
         }
-        return;
-    }
-    case 6:
-    case 7: {
-        for (std::size_t i = 1; i < count; ++i) {
-            for (std::size_t j = i; j > 0; --j) {
-                if (std::invoke(comp, std::invoke(proj, array[j]),
-                                std::invoke(proj, array[j - 1]))) {
-                    std::ranges::iter_swap(array + j, array + j - 1);
-                } else {
-                    break;
-                }
-            }
-        }
-        return;
-    }
-    default:
-        break;
     }
 }
 
@@ -143,10 +109,10 @@ void parity_merge(Out dest, In from, std::size_t left, std::size_t right, const 
         }
 
         // Tail merge: right run element preferred when keys are equal (stable)
-        if (std::invoke(comp, std::invoke(proj, *left_tail), std::invoke(proj, *right_tail))) {
-            *dest_tail-- = std::ranges::iter_move(right_tail--);
-        } else {
+        if (std::invoke(comp, std::invoke(proj, *right_tail), std::invoke(proj, *left_tail))) {
             *dest_tail-- = std::ranges::iter_move(left_tail--);
+        } else {
+            *dest_tail-- = std::ranges::iter_move(right_tail--);
         }
     }
 
