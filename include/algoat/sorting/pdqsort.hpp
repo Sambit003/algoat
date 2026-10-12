@@ -37,19 +37,6 @@ inline constexpr std::size_t pdq_partial_insertion_sort_limit = 8;
 inline constexpr std::size_t pdq_block_size = 64;
 
 /**
- * @brief Projected comparison adapter callable for C++20 projections and comparators.
- */
-template <typename Comp, typename Proj> struct ProjectedCompare {
-    [[no_unique_address]] Comp comp;
-    [[no_unique_address]] Proj proj;
-
-    template <typename T, typename U> constexpr bool operator()(T&& a, U&& b) const {
-        return std::invoke(comp, std::invoke(proj, std::forward<T>(a)),
-                           std::invoke(proj, std::forward<U>(b)));
-    }
-};
-
-/**
  * @brief Trait to determine whether branchless block partitioning should be enabled.
  */
 template <typename I, typename Comp, typename Proj>
@@ -62,11 +49,11 @@ inline constexpr bool is_branchless_sortable_v =
     std::is_same_v<Proj, std::identity>;
 
 /**
- * @brief Sorts two iterators if they are out of order according to the comparator.
+ * @brief Sorts two iterators if they are out of order according to the comparator and projection.
  */
-template <std::random_access_iterator I, typename Compare>
-constexpr void pdq_sort2(I a, I b, Compare comp) {
-    if (comp(*b, *a)) {
+template <std::random_access_iterator I, typename Comp, typename Proj>
+constexpr void pdq_sort2(I a, I b, Comp& comp, Proj& proj) {
+    if (std::invoke(comp, std::invoke(proj, *b), std::invoke(proj, *a))) {
         std::ranges::iter_swap(a, b);
     }
 }
@@ -74,29 +61,30 @@ constexpr void pdq_sort2(I a, I b, Compare comp) {
 /**
  * @brief Sorts three iterators in-place using at most 3 comparisons.
  */
-template <std::random_access_iterator I, typename Compare>
-constexpr void pdq_sort3(I a, I b, I c, Compare comp) {
-    pdq_sort2(a, b, comp);
-    pdq_sort2(b, c, comp);
-    pdq_sort2(a, b, comp);
+template <std::random_access_iterator I, typename Comp, typename Proj>
+constexpr void pdq_sort3(I a, I b, I c, Comp& comp, Proj& proj) {
+    pdq_sort2(a, b, comp, proj);
+    pdq_sort2(b, c, comp, proj);
+    pdq_sort2(a, b, comp, proj);
 }
 
 /**
  * @brief Standard guarded insertion sort.
  */
-template <std::random_access_iterator I, typename Compare>
-constexpr void pdq_insertion_sort(I begin, I end, Compare comp) {
+template <std::random_access_iterator I, typename Comp, typename Proj>
+constexpr void pdq_insertion_sort(I begin, I end, Comp& comp, Proj& proj) {
     if (begin == end) {
         return;
     }
     for (I cur = begin + 1; cur != end; ++cur) {
         I sift = cur;
         I sift_1 = cur - 1;
-        if (comp(*sift, *sift_1)) {
+        if (std::invoke(comp, std::invoke(proj, *sift), std::invoke(proj, *sift_1))) {
             auto val = std::move(*sift);
             do {
                 *sift-- = std::move(*sift_1);
-            } while (sift != begin && comp(val, *--sift_1));
+            } while (sift != begin &&
+                     std::invoke(comp, std::invoke(proj, val), std::invoke(proj, *--sift_1)));
             *sift = std::move(val);
         }
     }
@@ -106,19 +94,19 @@ constexpr void pdq_insertion_sort(I begin, I end, Compare comp) {
  * @brief Unguarded insertion sort assuming a sentinel element strictly less than or equal
  * to any element in [begin, end) exists before begin.
  */
-template <std::random_access_iterator I, typename Compare>
-constexpr void pdq_unguarded_insertion_sort(I begin, I end, Compare comp) {
+template <std::random_access_iterator I, typename Comp, typename Proj>
+constexpr void pdq_unguarded_insertion_sort(I begin, I end, Comp& comp, Proj& proj) {
     if (begin == end) {
         return;
     }
     for (I cur = begin + 1; cur != end; ++cur) {
         I sift = cur;
         I sift_1 = cur - 1;
-        if (comp(*sift, *sift_1)) {
+        if (std::invoke(comp, std::invoke(proj, *sift), std::invoke(proj, *sift_1))) {
             auto val = std::move(*sift);
             do {
                 *sift-- = std::move(*sift_1);
-            } while (comp(val, *--sift_1));
+            } while (std::invoke(comp, std::invoke(proj, val), std::invoke(proj, *--sift_1)));
             *sift = std::move(val);
         }
     }
@@ -128,8 +116,8 @@ constexpr void pdq_unguarded_insertion_sort(I begin, I end, Compare comp) {
  * @brief Attempts insertion sort, aborting if more than pdq_partial_insertion_sort_limit
  * elements are moved. Used to check for already-sorted or nearly-sorted ranges in O(N).
  */
-template <std::random_access_iterator I, typename Compare>
-constexpr bool pdq_partial_insertion_sort(I begin, I end, Compare comp) {
+template <std::random_access_iterator I, typename Comp, typename Proj>
+constexpr bool pdq_partial_insertion_sort(I begin, I end, Comp& comp, Proj& proj) {
     if (begin == end) {
         return true;
     }
@@ -137,11 +125,12 @@ constexpr bool pdq_partial_insertion_sort(I begin, I end, Compare comp) {
     for (I cur = begin + 1; cur != end; ++cur) {
         I sift = cur;
         I sift_1 = cur - 1;
-        if (comp(*sift, *sift_1)) {
+        if (std::invoke(comp, std::invoke(proj, *sift), std::invoke(proj, *sift_1))) {
             auto val = std::move(*sift);
             do {
                 *sift-- = std::move(*sift_1);
-            } while (sift != begin && comp(val, *--sift_1));
+            } while (sift != begin &&
+                     std::invoke(comp, std::invoke(proj, val), std::invoke(proj, *--sift_1)));
             *sift = std::move(val);
             limit += static_cast<std::size_t>(cur - sift);
         }
@@ -187,24 +176,56 @@ constexpr void pdq_swap_offsets(I first, I last, const std::uint8_t* offsets_l,
     }
 }
 
+enum class ScanDirection { Left, Right };
+
+/**
+ * @brief Scans a partition block branchlessly, recording indices of mispositioned elements.
+ * Unrolls in 8-element batches to saturate CPU execution pipelines while eliminating code
+ * duplication.
+ */
+template <ScanDirection Dir, std::size_t Unroll = 8, typename Iter, typename Comp, typename Value>
+constexpr void scan_partition_block(Iter& it, std::uint8_t* offsets, std::size_t& num,
+                                    std::size_t count, Comp& comp, const Value& pivot) {
+    std::size_t i = 0;
+    auto step = [&]() {
+        if constexpr (Dir == ScanDirection::Left) {
+            offsets[num] = static_cast<std::uint8_t>(i++);
+            num += !std::invoke(comp, *it, pivot);
+            ++it;
+        } else {
+            offsets[num] = static_cast<std::uint8_t>(++i);
+            num += std::invoke(comp, *--it, pivot);
+        }
+    };
+
+    while (i + Unroll <= count) {
+        for (std::size_t u = 0; u < Unroll; ++u) {
+            step();
+        }
+    }
+    while (i < count) {
+        step();
+    }
+}
+
 /**
  * @brief BlockQuicksort branchless partitioning algorithm.
  */
-template <std::random_access_iterator I, typename Compare>
-constexpr std::pair<I, bool> pdq_partition_right_branchless(I begin, I end, Compare comp) {
+template <std::random_access_iterator I, typename Comp>
+constexpr std::pair<I, bool> pdq_partition_right_branchless(I begin, I end, Comp& comp) {
     using T = std::iter_value_t<I>;
     T pivot = std::move(*begin);
     I first = begin;
     I last = end;
 
-    while (comp(*++first, pivot)) {
+    while (std::invoke(comp, *++first, pivot)) {
     }
 
     if (first - 1 == begin) {
-        while (first < last && !comp(*--last, pivot)) {
+        while (first < last && !std::invoke(comp, *--last, pivot)) {
         }
     } else {
-        while (!comp(*--last, pivot)) {
+        while (!std::invoke(comp, *--last, pivot)) {
         }
     }
 
@@ -228,65 +249,16 @@ constexpr std::pair<I, bool> pdq_partition_right_branchless(I begin, I end, Comp
             std::size_t left_split = num_l == 0 ? (num_r == 0 ? num_unknown / 2 : num_unknown) : 0;
             std::size_t right_split = num_r == 0 ? (num_unknown - left_split) : 0;
 
-            if (left_split >= pdq_block_size) {
-                for (std::size_t i = 0; i < pdq_block_size;) {
-                    offsets_l[num_l] = static_cast<std::uint8_t>(i++);
-                    num_l += !comp(*first, pivot);
-                    ++first;
-                    offsets_l[num_l] = static_cast<std::uint8_t>(i++);
-                    num_l += !comp(*first, pivot);
-                    ++first;
-                    offsets_l[num_l] = static_cast<std::uint8_t>(i++);
-                    num_l += !comp(*first, pivot);
-                    ++first;
-                    offsets_l[num_l] = static_cast<std::uint8_t>(i++);
-                    num_l += !comp(*first, pivot);
-                    ++first;
-                    offsets_l[num_l] = static_cast<std::uint8_t>(i++);
-                    num_l += !comp(*first, pivot);
-                    ++first;
-                    offsets_l[num_l] = static_cast<std::uint8_t>(i++);
-                    num_l += !comp(*first, pivot);
-                    ++first;
-                    offsets_l[num_l] = static_cast<std::uint8_t>(i++);
-                    num_l += !comp(*first, pivot);
-                    ++first;
-                    offsets_l[num_l] = static_cast<std::uint8_t>(i++);
-                    num_l += !comp(*first, pivot);
-                    ++first;
-                }
-            } else {
-                for (std::size_t i = 0; i < left_split;) {
-                    offsets_l[num_l] = static_cast<std::uint8_t>(i++);
-                    num_l += !comp(*first, pivot);
-                    ++first;
-                }
+            if (left_split > 0) {
+                scan_partition_block<ScanDirection::Left>(
+                    first, offsets_l, num_l,
+                    (left_split >= pdq_block_size ? pdq_block_size : left_split), comp, pivot);
             }
 
-            if (right_split >= pdq_block_size) {
-                for (std::size_t i = 0; i < pdq_block_size;) {
-                    offsets_r[num_r] = static_cast<std::uint8_t>(++i);
-                    num_r += comp(*--last, pivot);
-                    offsets_r[num_r] = static_cast<std::uint8_t>(++i);
-                    num_r += comp(*--last, pivot);
-                    offsets_r[num_r] = static_cast<std::uint8_t>(++i);
-                    num_r += comp(*--last, pivot);
-                    offsets_r[num_r] = static_cast<std::uint8_t>(++i);
-                    num_r += comp(*--last, pivot);
-                    offsets_r[num_r] = static_cast<std::uint8_t>(++i);
-                    num_r += comp(*--last, pivot);
-                    offsets_r[num_r] = static_cast<std::uint8_t>(++i);
-                    num_r += comp(*--last, pivot);
-                    offsets_r[num_r] = static_cast<std::uint8_t>(++i);
-                    num_r += comp(*--last, pivot);
-                    offsets_r[num_r] = static_cast<std::uint8_t>(++i);
-                    num_r += comp(*--last, pivot);
-                }
-            } else {
-                for (std::size_t i = 0; i < right_split;) {
-                    offsets_r[num_r] = static_cast<std::uint8_t>(++i);
-                    num_r += comp(*--last, pivot);
-                }
+            if (right_split > 0) {
+                scan_partition_block<ScanDirection::Right>(
+                    last, offsets_r, num_r,
+                    (right_split >= pdq_block_size ? pdq_block_size : right_split), comp, pivot);
             }
 
             std::size_t num = std::min(num_l, num_r);
@@ -334,21 +306,22 @@ constexpr std::pair<I, bool> pdq_partition_right_branchless(I begin, I end, Comp
 /**
  * @brief Standard branchy partitioning fallback for non-arithmetic or custom-projected types.
  */
-template <std::random_access_iterator I, typename Compare>
-constexpr std::pair<I, bool> pdq_partition_right(I begin, I end, Compare comp) {
+template <std::random_access_iterator I, typename Comp, typename Proj>
+constexpr std::pair<I, bool> pdq_partition_right(I begin, I end, Comp& comp, Proj& proj) {
     using T = std::iter_value_t<I>;
     T pivot = std::move(*begin);
     I first = begin;
     I last = end;
 
-    while (comp(*++first, pivot)) {
+    while (std::invoke(comp, std::invoke(proj, *++first), std::invoke(proj, pivot))) {
     }
 
     if (first - 1 == begin) {
-        while (first < last && !comp(*--last, pivot)) {
+        while (first < last &&
+               !std::invoke(comp, std::invoke(proj, *--last), std::invoke(proj, pivot))) {
         }
     } else {
-        while (!comp(*--last, pivot)) {
+        while (!std::invoke(comp, std::invoke(proj, *--last), std::invoke(proj, pivot))) {
         }
     }
 
@@ -356,9 +329,9 @@ constexpr std::pair<I, bool> pdq_partition_right(I begin, I end, Compare comp) {
 
     while (first < last) {
         std::ranges::iter_swap(first, last);
-        while (comp(*++first, pivot)) {
+        while (std::invoke(comp, std::invoke(proj, *++first), std::invoke(proj, pivot))) {
         }
-        while (!comp(*--last, pivot)) {
+        while (!std::invoke(comp, std::invoke(proj, *--last), std::invoke(proj, pivot))) {
         }
     }
 
@@ -373,29 +346,30 @@ constexpr std::pair<I, bool> pdq_partition_right(I begin, I end, Compare comp) {
  * @brief Left partition putting elements equal to the pivot on the left partition.
  * Collapses duplicate elements into a contiguous block, eliminating them in O(N).
  */
-template <std::random_access_iterator I, typename Compare>
-constexpr I pdq_partition_left(I begin, I end, Compare comp) {
+template <std::random_access_iterator I, typename Comp, typename Proj>
+constexpr I pdq_partition_left(I begin, I end, Comp& comp, Proj& proj) {
     using T = std::iter_value_t<I>;
     T pivot = std::move(*begin);
     I first = begin;
     I last = end;
 
-    while (comp(pivot, *--last)) {
+    while (std::invoke(comp, std::invoke(proj, pivot), std::invoke(proj, *--last))) {
     }
 
     if (last + 1 == end) {
-        while (first < last && !comp(pivot, *++first)) {
+        while (first < last &&
+               !std::invoke(comp, std::invoke(proj, pivot), std::invoke(proj, *++first))) {
         }
     } else {
-        while (!comp(pivot, *++first)) {
+        while (!std::invoke(comp, std::invoke(proj, pivot), std::invoke(proj, *++first))) {
         }
     }
 
     while (first < last) {
         std::ranges::iter_swap(first, last);
-        while (comp(pivot, *--last)) {
+        while (std::invoke(comp, std::invoke(proj, pivot), std::invoke(proj, *--last))) {
         }
-        while (!comp(pivot, *++first)) {
+        while (!std::invoke(comp, std::invoke(proj, pivot), std::invoke(proj, *++first))) {
         }
     }
 
@@ -409,39 +383,44 @@ constexpr I pdq_partition_left(I begin, I end, Compare comp) {
 /**
  * @brief Core recursive driver loop for pattern-defeating quicksort.
  */
-template <bool Branchless, std::random_access_iterator I, typename Compare>
-constexpr void pdqsort_loop(I begin, I end, Compare comp, int bad_allowed, bool leftmost = true) {
+template <bool Branchless, std::random_access_iterator I, typename Comp, typename Proj>
+constexpr void pdqsort_loop(I begin, I end, Comp comp, Proj proj, int bad_allowed,
+                            bool leftmost = true) {
     while (true) {
         auto size = end - begin;
 
         if (static_cast<std::size_t>(size) < pdq_insertion_sort_threshold) {
             if (leftmost) {
-                pdq_insertion_sort(begin, end, comp);
+                pdq_insertion_sort(begin, end, comp, proj);
             } else {
-                pdq_unguarded_insertion_sort(begin, end, comp);
+                pdq_unguarded_insertion_sort(begin, end, comp, proj);
             }
             return;
         }
 
         auto s2 = size / 2;
         if (static_cast<std::size_t>(size) > pdq_ninther_threshold) {
-            pdq_sort3(begin, begin + s2, end - 1, comp);
-            pdq_sort3(begin + 1, begin + (s2 - 1), end - 2, comp);
-            pdq_sort3(begin + 2, begin + (s2 + 1), end - 3, comp);
-            pdq_sort3(begin + (s2 - 1), begin + s2, begin + (s2 + 1), comp);
+            pdq_sort3(begin, begin + s2, end - 1, comp, proj);
+            pdq_sort3(begin + 1, begin + (s2 - 1), end - 2, comp, proj);
+            pdq_sort3(begin + 2, begin + (s2 + 1), end - 3, comp, proj);
+            pdq_sort3(begin + (s2 - 1), begin + s2, begin + (s2 + 1), comp, proj);
             std::ranges::iter_swap(begin, begin + s2);
         } else {
-            pdq_sort3(begin + s2, begin, end - 1, comp);
+            pdq_sort3(begin + s2, begin, end - 1, comp, proj);
         }
 
-        if (!leftmost && !comp(*(begin - 1), *begin)) {
-            begin = pdq_partition_left(begin, end, comp) + 1;
+        if (!leftmost &&
+            !std::invoke(comp, std::invoke(proj, *(begin - 1)), std::invoke(proj, *begin))) {
+            begin = pdq_partition_left(begin, end, comp, proj) + 1;
             continue;
         }
 
-        std::pair<I, bool> part_result = Branchless
-                                             ? pdq_partition_right_branchless(begin, end, comp)
-                                             : pdq_partition_right(begin, end, comp);
+        std::pair<I, bool> part_result;
+        if constexpr (Branchless) {
+            part_result = pdq_partition_right_branchless(begin, end, comp);
+        } else {
+            part_result = pdq_partition_right(begin, end, comp, proj);
+        }
         I pivot_pos = part_result.first;
         bool already_partitioned = part_result.second;
 
@@ -451,7 +430,7 @@ constexpr void pdqsort_loop(I begin, I end, Compare comp, int bad_allowed, bool 
 
         if (highly_unbalanced) {
             if (--bad_allowed == 0) {
-                heapsort(begin, end, comp, std::identity{});
+                heapsort(begin, end, comp, proj);
                 return;
             }
 
@@ -479,13 +458,13 @@ constexpr void pdqsort_loop(I begin, I end, Compare comp, int bad_allowed, bool 
                 }
             }
         } else {
-            if (already_partitioned && pdq_partial_insertion_sort(begin, pivot_pos, comp) &&
-                pdq_partial_insertion_sort(pivot_pos + 1, end, comp)) {
+            if (already_partitioned && pdq_partial_insertion_sort(begin, pivot_pos, comp, proj) &&
+                pdq_partial_insertion_sort(pivot_pos + 1, end, comp, proj)) {
                 return;
             }
         }
 
-        pdqsort_loop<Branchless>(begin, pivot_pos, comp, bad_allowed, leftmost);
+        pdqsort_loop<Branchless>(begin, pivot_pos, comp, proj, bad_allowed, leftmost);
         begin = pivot_pos + 1;
         leftmost = false;
     }
@@ -517,12 +496,11 @@ constexpr void pdqsort(I first, S last, Comp comp = {}, Proj proj = {}) {
     }
 
     int bad_allowed = std::bit_width(static_cast<std::size_t>(len));
-    detail::ProjectedCompare<Comp, Proj> projected_comp{std::move(comp), std::move(proj)};
 
     if constexpr (detail::is_branchless_sortable_v<I, Comp, Proj>) {
-        detail::pdqsort_loop<true>(first, last_it, projected_comp, bad_allowed);
+        detail::pdqsort_loop<true>(first, last_it, comp, proj, bad_allowed);
     } else {
-        detail::pdqsort_loop<false>(first, last_it, projected_comp, bad_allowed);
+        detail::pdqsort_loop<false>(first, last_it, comp, proj, bad_allowed);
     }
 }
 
