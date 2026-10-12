@@ -39,6 +39,7 @@ if(NOT nlohmann_json_FOUND)
     FetchContent_Declare(json
         GIT_REPOSITORY https://github.com/nlohmann/json.git
         GIT_TAG        v3.12.0
+        GIT_SHALLOW    TRUE
     )
     FetchContent_MakeAvailable(json)
 endif()
@@ -50,6 +51,7 @@ set(HWY_ENABLE_CONTRIB OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(highway
     GIT_REPOSITORY https://github.com/google/highway.git
     GIT_TAG        1.2.0
+    GIT_SHALLOW    TRUE
 )
 FetchContent_MakeAvailable(highway)
 
