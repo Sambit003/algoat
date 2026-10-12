@@ -50,6 +50,8 @@ algoat_add_test(test_sorting_network sorting/test_sorting_network.cpp)
 algoat_add_test(test_float16_sort sorting/test_float16_sort.cpp)
 algoat_add_test(test_constexpr_sort sorting/test_constexpr_sort.cpp)
 algoat_add_test(test_pdqsort sorting/test_pdqsort.cpp)
+algoat_add_test(test_crumsort sorting/test_crumsort.cpp)
+algoat_add_test(test_fluxsort sorting/test_fluxsort.cpp)
 
 # Searching tests
 algoat_add_test(test_linear_search searching/test_linear_search.cpp)

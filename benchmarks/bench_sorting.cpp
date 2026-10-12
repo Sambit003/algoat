@@ -3,6 +3,8 @@
 #include "algoat/sorting/bucketsort.hpp"
 #include "algoat/sorting/combsort.hpp"
 #include "algoat/sorting/countingsort.hpp"
+#include "algoat/sorting/crumsort.hpp"
+#include "algoat/sorting/fluxsort.hpp"
 #include "algoat/sorting/heapsort.hpp"
 #include "algoat/sorting/insertionsort.hpp"
 #include "algoat/sorting/introsort.hpp"
@@ -62,6 +64,8 @@ DECLARE_SORT_BENCHMARK(HeapSort, algoat::sorting::heapsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(TimSort, algoat::sorting::timsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(IntroSort, algoat::sorting::introsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(PdqSort, algoat::sorting::pdqsort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(CrumSort, algoat::sorting::crumsort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(FluxSort, algoat::sorting::fluxsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(AlgoatSort, algoat::sort(copy))
 DECLARE_SORT_BENCHMARK(BlockSort, algoat::sorting::blocksort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(RadixSortLSD, algoat::sorting::radixsort_lsd(std::span{copy}))
@@ -231,3 +235,74 @@ static void BM_Complex_AlgoatSort(benchmark::State& state) {
     state.SetComplexityN(state.range(0));
 }
 BENCHMARK(BM_Complex_AlgoatSort)->RangeMultiplier(2)->Range(8, 8 << 12)->Complexity();
+
+// Acceptance Criteria 5 comparative benchmarks:
+static void BM_StdStableSort(benchmark::State& state) {
+    auto data = generate_random_data(state.range(0));
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        std::stable_sort(copy.begin(), copy.end());
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_StdStableSort)->RangeMultiplier(2)->Range(8, 8 << 12)->Complexity();
+
+static std::vector<int> generate_mixed_runs_data(size_t size) {
+    std::vector<int> data(size);
+    std::mt19937 gen(42);
+    std::uniform_int_distribution<int> dist(1, 1000000);
+    size_t run_len = 64;
+    for (size_t i = 0; i < size; i += run_len) {
+        size_t current_len = std::min(run_len, size - i);
+        if ((i / run_len) % 2 == 0) {
+            // Ascending run
+            for (size_t j = 0; j < current_len; ++j) {
+                data[i + j] = static_cast<int>(i + j);
+            }
+        } else {
+            // Random run
+            for (size_t j = 0; j < current_len; ++j) {
+                data[i + j] = dist(gen);
+            }
+        }
+    }
+    return data;
+}
+
+static void BM_MixedRuns_StdStableSort(benchmark::State& state) {
+    auto data = generate_mixed_runs_data(state.range(0));
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        std::stable_sort(copy.begin(), copy.end());
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_MixedRuns_StdStableSort)->RangeMultiplier(2)->Range(64, 8 << 12)->Complexity();
+
+static void BM_MixedRuns_TimSort(benchmark::State& state) {
+    auto data = generate_mixed_runs_data(state.range(0));
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        algoat::sorting::timsort(std::span{copy});
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_MixedRuns_TimSort)->RangeMultiplier(2)->Range(64, 8 << 12)->Complexity();
+
+static void BM_MixedRuns_FluxSort(benchmark::State& state) {
+    auto data = generate_mixed_runs_data(state.range(0));
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        algoat::sorting::fluxsort(std::span{copy});
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_MixedRuns_FluxSort)->RangeMultiplier(2)->Range(64, 8 << 12)->Complexity();
