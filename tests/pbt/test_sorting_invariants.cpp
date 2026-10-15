@@ -27,7 +27,7 @@ protected:
 using ComparativeSortAlgos =
     ::testing::Types<SelectionSort, BubbleSort, InsertionSort, ShellSort, CombSort, GnomeSort,
                      CycleSort, QuickSort, MergeSort, HeapSort, IntroSort, TimSort, BlockSort,
-                     PdqSort, CrumSort, FluxSort>;
+                     PdqSort, CrumSort, FluxSort, Ips4oSort>;
 
 TYPED_TEST_SUITE(ComparativeSortPBT, ComparativeSortAlgos);
 
@@ -347,5 +347,53 @@ TEST(PdqSortPBT, CustomComparatorAndProjectionInvariants) {
                            [](const TestItem& a, const TestItem& b) { return a.key > b.key; }));
         RC_ASSERT(std::is_permutation(items.begin(), items.end(), original_items.begin(),
                                       original_items.end()));
+    });
+}
+
+TEST(Ips4oSortPBT, CustomComparatorAndProjectionInvariants) {
+    struct TestItem {
+        int key;
+        std::string payload;
+        bool operator==(const TestItem& other) const = default;
+    };
+
+    rc::check("IPS4O with projection and descending comparator", [](std::vector<int> keys) {
+        std::vector<TestItem> items;
+        items.reserve(keys.size());
+        for (int k : keys) {
+            items.push_back({k, std::to_string(k)});
+        }
+        auto original_items = items;
+        algoat::sorting::ips4o_parallel_sort(items, std::greater<int>{}, &TestItem::key);
+
+        RC_ASSERT(items.size() == original_items.size());
+        RC_ASSERT(
+            std::is_sorted(items.begin(), items.end(),
+                           [](const TestItem& a, const TestItem& b) { return a.key > b.key; }));
+        RC_ASSERT(std::is_permutation(items.begin(), items.end(), original_items.begin(),
+                                      original_items.end()));
+    });
+}
+
+TEST(Ips4oSortPBT, VaryingSizesAndDuplicates) {
+    rc::check("IPS4O with varying duplicate densities and block sizes", []() {
+        const auto size = *rc::gen::inRange<std::size_t>(0, 5000);
+        const auto max_val = *rc::gen::inRange<int>(1, 20);
+        auto input = *rc::gen::container<std::vector<int>>(size, rc::gen::inRange<int>(0, max_val));
+
+        auto original = input;
+        algoat::sorting::ips4o_parallel_sort(input);
+
+        // 1. Conservation
+        RC_ASSERT(input.size() == original.size());
+        RC_ASSERT(std::is_permutation(input.begin(), input.end(), original.begin()));
+
+        // 2. Monotonic Sortedness
+        RC_ASSERT(std::is_sorted(input.begin(), input.end()));
+
+        // 3. Idempotency
+        auto sorted_again = input;
+        algoat::sorting::ips4o_parallel_sort(sorted_again);
+        RC_ASSERT(input == sorted_again);
     });
 }

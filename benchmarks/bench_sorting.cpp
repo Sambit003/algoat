@@ -8,6 +8,7 @@
 #include "algoat/sorting/heapsort.hpp"
 #include "algoat/sorting/insertionsort.hpp"
 #include "algoat/sorting/introsort.hpp"
+#include "algoat/sorting/ips4o.hpp"
 #include "algoat/sorting/mergesort.hpp"
 #include "algoat/sorting/pdqsort.hpp"
 #include "algoat/sorting/quicksort.hpp"
@@ -66,6 +67,7 @@ DECLARE_SORT_BENCHMARK(IntroSort, algoat::sorting::introsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(PdqSort, algoat::sorting::pdqsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(CrumSort, algoat::sorting::crumsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(FluxSort, algoat::sorting::fluxsort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(Ips4oSort, algoat::sorting::ips4o_parallel_sort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(AlgoatSort, algoat::sort(copy))
 DECLARE_SORT_BENCHMARK(BlockSort, algoat::sorting::blocksort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(RadixSortLSD, algoat::sorting::radixsort_lsd(std::span{copy}))
@@ -105,10 +107,47 @@ BENCHMARK(BM_Adapter_QuickSort)->RangeMultiplier(2)->Range(8, 8 << 12)->Complexi
 
 DECLARE_LARGE_SORT_BENCHMARK(StdSort, std::sort(copy.begin(), copy.end()))
 DECLARE_LARGE_SORT_BENCHMARK(PdqSort, algoat::sorting::pdqsort(copy))
+DECLARE_LARGE_SORT_BENCHMARK(IPS4O, algoat::sorting::ips4o_parallel_sort(copy))
 DECLARE_LARGE_SORT_BENCHMARK(AlgoatSort, algoat::sort(copy))
 DECLARE_LARGE_SORT_BENCHMARK(RadixSortInPlaceMSD,
                              algoat::sorting::inplace_radix_sort(std::span{copy}))
 DECLARE_LARGE_SORT_BENCHMARK(MergeSort, algoat::sorting::mergesort(std::span{copy}))
+
+static void BM_IPS4O_ParallelScaling(benchmark::State& state) {
+    const auto size = state.range(0);
+    const int num_threads = static_cast<int>(state.range(1));
+    auto data = generate_random_data(size);
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        algoat::sorting::ips4o_parallel_sort(copy.begin(), copy.end(), std::ranges::less{},
+                                             std::identity{}, num_threads);
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_IPS4O_ParallelScaling)
+    ->Args({1 << 20, 1})
+    ->Args({1 << 20, 2})
+    ->Args({1 << 20, 4})
+    ->Args({1 << 20, 8})
+    ->Args({1 << 20, 16})
+    ->Complexity();
+
+#if defined(__GNUC__) && !defined(__clang__) && __has_include(<parallel/algorithm>)
+#include <parallel/algorithm>
+static void BM_GCC_ParallelSort(benchmark::State& state) {
+    auto data = generate_random_data(state.range(0));
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        __gnu_parallel::sort(copy.begin(), copy.end());
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_GCC_ParallelSort)->RangeMultiplier(4)->Range(1 << 16, 1 << 22)->Complexity();
+#endif
 
 static void BM_MergeSort_Large_PMR(benchmark::State& state) {
     auto data = generate_random_data(state.range(0));
