@@ -33,6 +33,7 @@ template <typename I>
     if (std::is_constant_evaluated()) {
         return cond ? (base + step) : base;
     } else {
+#if defined(__GNUC__) || defined(__clang__)
 #if (defined(__x86_64__) || defined(_M_X64)) && !defined(__ILP32__)
         if constexpr (std::is_pointer_v<I>) {
             I res = base;
@@ -54,6 +55,9 @@ template <typename I>
         } else {
             return cond ? (base + step) : base;
         }
+#else
+        return cond ? (base + step) : base;
+#endif
 #else
         return cond ? (base + step) : base;
 #endif

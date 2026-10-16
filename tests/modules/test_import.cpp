@@ -131,7 +131,7 @@ TEST(ModuleImportTest, SearchingSubnamespaceFunctions) {
     EXPECT_EQ(gs.name(), "gallopingsearch");
     EXPECT_TRUE(gs.search(std::span<const int>{data}, 10).has_value());
 
-    auto hint_res = algoat::search(data, 20, algoat::SearchHint::NearStart);
+    auto hint_res = algoat::search(data, 20, algoat::core::SearchHint::NearStart);
     ASSERT_TRUE(hint_res.has_value());
     EXPECT_EQ(*hint_res, 1);
 }

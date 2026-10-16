@@ -292,6 +292,7 @@ public:
                     return algo.search(data, target);
                 } else {
                     throw std::invalid_argument("Algorithm does not support this data type.");
+                    return std::nullopt;
                 }
             },
             algo_variant);

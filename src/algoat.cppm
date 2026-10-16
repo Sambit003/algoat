@@ -60,9 +60,9 @@ using algoat::get_dispatcher;
 using algoat::get_global_config;
 using algoat::load_global_config;
 using algoat::search;
-using algoat::SearchHint;
 using algoat::sort;
 using algoat::SpaceFillingCurve;
+using algoat::core::SearchHint;
 
 namespace concepts {
 using algoat::concepts::Float16;
