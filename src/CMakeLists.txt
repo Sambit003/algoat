@@ -55,12 +55,22 @@ FetchContent_Declare(highway
 )
 FetchContent_MakeAvailable(highway)
 
+find_package(Threads REQUIRED)
+
+include(CheckLibraryExists)
+check_library_exists(atomic __atomic_fetch_add_16 "" ALGOAT_HAS_LIBATOMIC)
+
 target_link_libraries(algoat
     PUBLIC
         $<BUILD_INTERFACE:hwy>
+        Threads::Threads
     PRIVATE
         $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>
 )
+
+if(ALGOAT_HAS_LIBATOMIC)
+    target_link_libraries(algoat PUBLIC atomic)
+endif()
 
 include(GNUInstallDirs)
 

@@ -123,6 +123,8 @@ public:
                         algo_name = "insertionsort";
                     } else if (traits.sortedness_ratio >= 0.9 || traits.sortedness_ratio <= 0.1) {
                         algo_name = "timsort";
+                    } else if (traits.size >= 65536) {
+                        algo_name = "ips4o";
                     } else {
                         if constexpr (std::is_integral_v<ElementType>) {
                             if (traits.size > 10000) {
@@ -164,6 +166,8 @@ public:
                     sorting::insertionsort(span_view, comp_proj);
                 } else if (traits.sortedness_ratio >= 0.9 || traits.sortedness_ratio <= 0.1) {
                     sorting::timsort(span_view, comp_proj);
+                } else if (traits.size >= 65536) {
+                    sorting::ips4o_parallel_sort(span_view, comp_proj);
                 } else {
                     sorting::pdqsort(span_view, comp_proj);
                 }

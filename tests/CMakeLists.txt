@@ -52,6 +52,7 @@ algoat_add_test(test_constexpr_sort sorting/test_constexpr_sort.cpp)
 algoat_add_test(test_pdqsort sorting/test_pdqsort.cpp)
 algoat_add_test(test_crumsort sorting/test_crumsort.cpp)
 algoat_add_test(test_fluxsort sorting/test_fluxsort.cpp)
+algoat_add_test(test_ips4o sorting/test_ips4o.cpp)
 
 # Searching tests
 algoat_add_test(test_linear_search searching/test_linear_search.cpp)

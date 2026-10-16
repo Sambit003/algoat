@@ -43,3 +43,14 @@ RC_GTEST_PROP(ModulePBT, PdqSortPreservesElementsAndOrders, (std::vector<int> or
     // Invariant 2: Permutation preservation
     RC_ASSERT(std::is_permutation(sorted.begin(), sorted.end(), original.begin(), original.end()));
 }
+
+RC_GTEST_PROP(ModulePBT, Ips4oSortPreservesElementsAndOrders, (std::vector<int> original)) {
+    auto sorted = original;
+    algoat::sorting::ips4o_parallel_sort(sorted);
+
+    // Invariant 1: Sortedness
+    RC_ASSERT(std::is_sorted(sorted.begin(), sorted.end()));
+
+    // Invariant 2: Permutation preservation
+    RC_ASSERT(std::is_permutation(sorted.begin(), sorted.end(), original.begin(), original.end()));
+}
