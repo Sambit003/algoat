@@ -6,8 +6,13 @@ FetchContent_Declare(googlebenchmark
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Disable benchmark testing" FORCE)
 FetchContent_MakeAvailable(googlebenchmark)
 
+find_package(OpenMP)
+
 add_executable(bench_sorting bench_sorting.cpp)
 target_link_libraries(bench_sorting PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(bench_sorting PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 add_executable(bench_profiler bench_profiler.cpp)
 target_link_libraries(bench_profiler PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
