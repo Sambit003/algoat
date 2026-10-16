@@ -13,6 +13,7 @@
 #include "algoat/searching/hybrid_interpolation_search.hpp"
 #include "algoat/searching/interpolation_search.hpp"
 #include "algoat/searching/linear_search.hpp"
+#include "algoat/searching/static_btree.hpp"
 
 #include <concepts>
 #include <cstddef>

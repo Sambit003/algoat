@@ -1,4 +1,5 @@
 #include "algoat/searching/eytzinger_search_tree.hpp"
+#include "algoat/searching/static_btree.hpp"
 
 #include <algorithm>
 #include <benchmark/benchmark.h>
@@ -63,6 +64,43 @@ static void BM_EytzingerLowerBound_Int32(benchmark::State& state) {
 }
 BENCHMARK(BM_EytzingerLowerBound_Int32)->RangeMultiplier(10)->Range(1000, 10000000)->Complexity();
 
+static void BM_StaticBTreeLowerBound_Int32(benchmark::State& state) {
+    const std::size_t size = static_cast<std::size_t>(state.range(0));
+    const auto data = generate_sorted_data<uint32_t>(size);
+    const StaticBTree<uint32_t> tree(std::span<const uint32_t>{data});
+    const auto queries = generate_random_queries<uint32_t>(10000, data.back());
+
+    std::size_t q_idx = 0;
+    for (auto _ : state) {
+        auto val = queries[q_idx];
+        auto res = tree.lower_bound(val);
+        benchmark::DoNotOptimize(res);
+        q_idx = (q_idx + 1) % queries.size();
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_StaticBTreeLowerBound_Int32)->RangeMultiplier(10)->Range(1000, 10000000)->Complexity();
+
+static void BM_StaticBTreeLowerBoundBatch_Int32(benchmark::State& state) {
+    const std::size_t size = static_cast<std::size_t>(state.range(0));
+    const auto data = generate_sorted_data<uint32_t>(size);
+    const StaticBTree<uint32_t> tree(std::span<const uint32_t>{data});
+    constexpr std::size_t BATCH_SIZE = 1024;
+    const auto queries = generate_random_queries<uint32_t>(BATCH_SIZE, data.back());
+    std::vector<std::size_t> results(BATCH_SIZE);
+
+    for (auto _ : state) {
+        tree.lower_bound_batch(queries, results);
+        benchmark::DoNotOptimize(results.data());
+    }
+    state.SetItemsProcessed(state.iterations() * BATCH_SIZE);
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_StaticBTreeLowerBoundBatch_Int32)
+    ->RangeMultiplier(10)
+    ->Range(1000, 10000000)
+    ->Complexity();
+
 static void BM_StdLowerBound_Int64(benchmark::State& state) {
     const std::size_t size = static_cast<std::size_t>(state.range(0));
     const auto data = generate_sorted_data<uint64_t>(size);
@@ -95,5 +133,22 @@ static void BM_EytzingerLowerBound_Int64(benchmark::State& state) {
     state.SetComplexityN(state.range(0));
 }
 BENCHMARK(BM_EytzingerLowerBound_Int64)->RangeMultiplier(10)->Range(1000, 10000000)->Complexity();
+
+static void BM_StaticBTreeLowerBound_Int64(benchmark::State& state) {
+    const std::size_t size = static_cast<std::size_t>(state.range(0));
+    const auto data = generate_sorted_data<uint64_t>(size);
+    const StaticBTree<uint64_t> tree(std::span<const uint64_t>{data});
+    const auto queries = generate_random_queries<uint64_t>(10000, data.back());
+
+    std::size_t q_idx = 0;
+    for (auto _ : state) {
+        auto val = queries[q_idx];
+        auto res = tree.lower_bound(val);
+        benchmark::DoNotOptimize(res);
+        q_idx = (q_idx + 1) % queries.size();
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_StaticBTreeLowerBound_Int64)->RangeMultiplier(10)->Range(1000, 10000000)->Complexity();
 
 BENCHMARK_MAIN();

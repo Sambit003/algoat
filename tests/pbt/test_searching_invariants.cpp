@@ -71,3 +71,49 @@ TEST(EytzingerSearchPBT, LowerBoundMatchesStdLowerBound) {
         RC_ASSERT(tree.lower_bound(target) == expected_idx);
     });
 }
+
+TEST(StaticBTreePBT, LowerBoundMatchesStdLowerBound) {
+    rc::check("StaticBTree lower_bound matches std::lower_bound",
+              [](std::vector<int> data, int target) {
+                  std::sort(data.begin(), data.end());
+                  StaticBTree<int> tree(std::span<const int>{data});
+
+                  auto std_it = std::lower_bound(data.begin(), data.end(), target);
+                  std::size_t expected_idx = static_cast<std::size_t>(std_it - data.begin());
+
+                  RC_ASSERT(tree.size() == data.size());
+                  RC_ASSERT(tree.lower_bound(target) == expected_idx);
+              });
+}
+
+TEST(StaticBTreePBT, UnsignedSIMDBiasMatchesStdLowerBound) {
+    rc::check("StaticBTree unsigned lower_bound matches std::lower_bound",
+              [](std::vector<std::uint32_t> data, std::uint32_t target) {
+                  std::sort(data.begin(), data.end());
+                  StaticBTree<std::uint32_t> tree(std::span<const std::uint32_t>{data});
+
+                  auto std_it = std::lower_bound(data.begin(), data.end(), target);
+                  std::size_t expected_idx = static_cast<std::size_t>(std_it - data.begin());
+
+                  RC_ASSERT(tree.size() == data.size());
+                  RC_ASSERT(tree.lower_bound(target) == expected_idx);
+              });
+}
+
+TEST(StaticBTreePBT, BatchedLowerBoundMatchesSingleQuery) {
+    rc::check("StaticBTree lower_bound_batch matches std::lower_bound",
+              [](std::vector<int> data, std::vector<int> targets) {
+                  std::sort(data.begin(), data.end());
+                  StaticBTree<int> tree(std::span<const int>{data});
+
+                  std::vector<std::size_t> results(targets.size());
+                  tree.lower_bound_batch(targets, results);
+
+                  for (std::size_t i = 0; i < targets.size(); ++i) {
+                      auto std_it = std::lower_bound(data.begin(), data.end(), targets[i]);
+                      std::size_t expected = static_cast<std::size_t>(std_it - data.begin());
+                      RC_ASSERT(results[i] == expected);
+                      RC_ASSERT(results[i] == tree.lower_bound(targets[i]));
+                  }
+              });
+}
