@@ -17,6 +17,7 @@
 #include "algoat/sorting/sorting.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <functional>
 #include <iterator>
@@ -56,6 +57,9 @@ concept CanSearchData = requires(Algo a, std::span<const T> arr, const T& t) { a
  *
  *
  * @par Searching Heuristics (@c "auto"):
+ * - <b>Target Near Start / Rank <= sqrt(N):</b> @c GallopingSearch (Bentley & Yao exponential
+ * doubling with branchless phase 2, selected when @c SearchHint::NearStart is supplied or target
+ * rank satisfies @c k <= sqrt(N)).
  * - <b>Default:</b> @c AdaptiveBinarySearch (dynamic @c O(log N) with automatic
  * invariant verification and @c O(N) fallback if monotonicity violations are detected).
  */
@@ -205,22 +209,30 @@ public:
      * @param target The value to locate.
      * @param comp Strict weak ordering comparator.
      * @param proj Element projection callable.
+     * @param hint Search hint guiding algorithm selection.
      * @return Index of the matching element if found, or @c std::nullopt.
      */
     template <std::ranges::random_access_range R, typename T = std::ranges::range_value_t<R>,
               typename Comp = std::ranges::less, typename Proj = std::identity>
         requires std::indirect_strict_weak_order<Comp, const T*,
                                                  std::projected<std::ranges::iterator_t<R>, Proj>>
-    std::optional<std::size_t> search(R&& data, const T& target, Comp comp = {},
-                                      Proj proj = {}) const {
+    std::optional<std::size_t> search(R&& data, const T& target, Comp comp = {}, Proj proj = {},
+                                      SearchHint hint = SearchHint::None) const {
         using ElementType = std::remove_reference_t<std::ranges::range_reference_t<R>>;
+
+        if (hint == SearchHint::NearStart) {
+            auto it = searching::galloping_search(std::ranges::begin(data), std::ranges::end(data),
+                                                  target, comp, proj);
+            return searching::detail::match_lower_bound_index(
+                std::ranges::begin(data), it, std::ranges::end(data), target, comp, proj);
+        }
 
         if constexpr (std::is_same_v<Comp, std::ranges::less> &&
                       std::is_same_v<Proj, std::identity> && std::ranges::contiguous_range<R> &&
                       std::ranges::sized_range<R>) {
             auto span_view =
                 std::span<const ElementType>{std::ranges::data(data), std::ranges::size(data)};
-            return this->search(span_view, target);
+            return this->search(span_view, target, hint);
         } else {
             return searching::binary_search(std::forward<R>(data), target, std::move(comp),
                                             std::move(proj));
@@ -231,21 +243,37 @@ public:
      * @brief Searches for a target value using heuristic algorithm selection.
      *
      * Depending on whether the underlying data is sorted or not, dispatches to the most
-     * appropriate searching algorithm.
+     * appropriate searching algorithm. Automatically routes to galloping search when
+     * SearchHint::NearStart is passed or when target rank k <= sqrt(N) is detected.
      *
      * @tparam T The element type in the span.
      *
      * @param data Contiguous span of elements to search.
      * @param target The value to locate.
+     * @param hint Search hint guiding algorithm selection.
      * @return Index of the matching element if found.
      * @throws std::runtime_error If algorithms are unavailable.
      */
     template <typename T>
-    std::optional<std::size_t> search(std::span<const T> data, const T& target) const {
+    std::optional<std::size_t> search(std::span<const T> data, const T& target,
+                                      SearchHint hint = SearchHint::None) const {
         std::string algo_name = config_.searching.prefer.value_or("auto");
 
         if (algo_name == "auto" || algo_name.empty()) {
-            algo_name = "adaptivebinarysearch";
+            if (hint == SearchHint::NearStart) {
+                algo_name = "gallopingsearch";
+            } else if (data.size() >= 64) {
+                // If target rank k <= sqrt(N), galloping search outperforms binary search.
+                // An O(1) probe at floor(sqrt(N)) detects if target rank satisfies k <= sqrt(N).
+                const std::size_t sqrt_n = static_cast<std::size_t>(std::sqrt(data.size()));
+                if (!std::less<T>{}(data[sqrt_n], target)) {
+                    algo_name = "gallopingsearch";
+                } else {
+                    algo_name = "adaptivebinarysearch";
+                }
+            } else {
+                algo_name = "adaptivebinarysearch";
+            }
         }
 
         if (!search_registry_.has(algo_name)) {
@@ -264,6 +292,7 @@ public:
                     return algo.search(data, target);
                 } else {
                     throw std::invalid_argument("Algorithm does not support this data type.");
+                    return std::nullopt;
                 }
             },
             algo_variant);
@@ -276,11 +305,13 @@ public:
      *
      * @param data Contiguous span of elements to search.
      * @param target The value to locate.
+     * @param hint Search hint guiding algorithm selection.
      * @return Index of the matching element if found.
      */
     template <typename T>
-    std::optional<std::size_t> search(std::span<T> data, const T& target) const {
-        return search(std::span<const T>{data.data(), data.size()}, target);
+    std::optional<std::size_t> search(std::span<T> data, const T& target,
+                                      SearchHint hint = SearchHint::None) const {
+        return search(std::span<const T>{data.data(), data.size()}, target, hint);
     }
 };
 

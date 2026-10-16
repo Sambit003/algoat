@@ -16,6 +16,8 @@
 #include "algoat/meta/static_sort.hpp"
 #include "algoat/numerics/hybrid_sfc.hpp"
 #include "algoat/searching/binary_search.hpp"
+#include "algoat/searching/branchless_binary_search.hpp"
+#include "algoat/searching/galloping_search.hpp"
 #include "algoat/sorting/introsort.hpp"
 #include "algoat/sorting/pdqsort.hpp"
 
@@ -31,6 +33,12 @@
 #include <type_traits>
 
 namespace algoat {
+
+using core::SearchHint;
+using searching::branchless_lower_bound;
+using searching::BranchlessBinarySearch;
+using searching::galloping_search;
+using searching::GallopingSearch;
 
 /**
  * @brief Retrieves the thread-safe global configuration instance.
@@ -152,7 +160,7 @@ void sort(std::span<std::complex<T>> data, SpaceFillingCurve curve = SpaceFillin
  *
  * Profiles the input data (e.g., whether it is fully sorted) and selects the optimal
  * searching strategy (e.g., Binary Search for sorted data, Linear Search for unsorted).
- * Supports custom projections and comparators.
+ * Supports custom projections, comparators, and search hints.
  *
  * @tparam R Type satisfying @c std::ranges::random_access_range.
  * @tparam T The element / target type.
@@ -163,20 +171,43 @@ void sort(std::span<std::complex<T>> data, SpaceFillingCurve curve = SpaceFillin
  * @param target The value to locate.
  * @param comp Strict weak ordering comparator.
  * @param proj Element projection callable.
+ * @param hint Search hint guiding algorithm selection.
  * @return Index of the matching element if found, or @c std::nullopt.
  */
 template <std::ranges::random_access_range R, typename T = std::ranges::range_value_t<R>,
           typename Comp = std::ranges::less, typename Proj = std::identity>
-    requires std::indirect_strict_weak_order<Comp, const T*,
-                                             std::projected<std::ranges::iterator_t<R>, Proj>>
+    requires(!std::is_same_v<std::remove_cvref_t<Comp>, core::SearchHint> &&
+             std::indirect_strict_weak_order<Comp, const T*,
+                                             std::projected<std::ranges::iterator_t<R>, Proj>>)
 constexpr std::optional<std::size_t> search(R&& range, const T& target, Comp comp = {},
-                                            Proj proj = {}) {
+                                            Proj proj = {},
+                                            core::SearchHint hint = core::SearchHint::None) {
     if (std::is_constant_evaluated()) {
+        if (hint == core::SearchHint::NearStart) {
+            auto it = searching::galloping_search(std::forward<R>(range), target, comp, proj);
+            return searching::detail::match_lower_bound_index(
+                std::ranges::begin(range), it, std::ranges::end(range), target, comp, proj);
+        }
         return searching::binary_search(std::forward<R>(range), target, std::move(comp),
                                         std::move(proj));
     }
-    return get_dispatcher().search(std::forward<R>(range), target, std::move(comp),
-                                   std::move(proj));
+    return get_dispatcher().search(std::forward<R>(range), target, std::move(comp), std::move(proj),
+                                   hint);
+}
+
+/**
+ * @brief Searches for a target value within a C++20 random-access range with a semantic hint.
+ *
+ * @tparam R Type satisfying @c std::ranges::random_access_range.
+ * @tparam T The element / target type.
+ * @param range Range of elements to search.
+ * @param target Value to locate.
+ * @param hint Search hint.
+ * @return Index of the matching element if found, or @c std::nullopt.
+ */
+template <std::ranges::random_access_range R, typename T = std::ranges::range_value_t<R>>
+constexpr std::optional<std::size_t> search(R&& range, const T& target, core::SearchHint hint) {
+    return search(std::forward<R>(range), target, std::ranges::less{}, std::identity{}, hint);
 }
 
 /**
@@ -185,14 +216,23 @@ constexpr std::optional<std::size_t> search(R&& range, const T& target, Comp com
  * @tparam T The element type in the span.
  * @param data Contiguous span of elements to search.
  * @param target The value to locate.
+ * @param hint Search hint guiding algorithm selection.
  * @return Index of the matching element if found, or @c std::nullopt.
  */
 template <typename T>
-constexpr std::optional<std::size_t> search(std::span<const T> data, const T& target) {
+constexpr std::optional<std::size_t> search(std::span<const T> data, const T& target,
+                                            core::SearchHint hint = core::SearchHint::None) {
     if (std::is_constant_evaluated()) {
+        if (hint == core::SearchHint::NearStart) {
+            auto it = searching::galloping_search(data.begin(), data.end(), target);
+            if (it != data.end() && *it == target) {
+                return static_cast<std::size_t>(it - data.begin());
+            }
+            return std::nullopt;
+        }
         return searching::binary_search(data, target);
     }
-    return get_dispatcher().search(data, target);
+    return get_dispatcher().search(data, target, hint);
 }
 
 /**
@@ -201,11 +241,13 @@ constexpr std::optional<std::size_t> search(std::span<const T> data, const T& ta
  * @tparam T The element type in the span.
  * @param data Contiguous span of elements to search.
  * @param target The value to locate.
+ * @param hint Search hint guiding algorithm selection.
  * @return Index of the matching element if found, or @c std::nullopt.
  */
 template <typename T>
-constexpr std::optional<std::size_t> search(std::span<T> data, const T& target) {
-    return search(std::span<const T>{data.data(), data.size()}, target);
+constexpr std::optional<std::size_t> search(std::span<T> data, const T& target,
+                                            core::SearchHint hint = core::SearchHint::None) {
+    return search(std::span<const T>{data.data(), data.size()}, target, hint);
 }
 
 } // namespace algoat

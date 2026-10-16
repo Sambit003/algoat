@@ -29,6 +29,10 @@ namespace assembly_test {
     algoat::meta::static_sort(s, p::stable | p::in_place);
 }
 
+[[gnu::noinline]] const int* search_branchless(const int* first, const int* last, int target) {
+    return algoat::searching::branchless_lower_bound(first, last, target);
+}
+
 } // namespace assembly_test
 
 TEST(AssemblyVerificationTest, InlinesFixedSizeSortingNetworkWithoutJumpTables) {
@@ -45,4 +49,11 @@ TEST(AssemblyVerificationTest, DirectStaticDispatchWithoutDynamicRegistry) {
     std::vector<int> data = {5, 3, 8, 1, 2};
     assembly_test::sort_policy_chain(std::span{data});
     EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+}
+
+TEST(AssemblyVerificationTest, BranchlessBinarySearchExecution) {
+    std::vector<int> data = {10, 20, 30, 40, 50, 60};
+    const int* res = assembly_test::search_branchless(data.data(), data.data() + data.size(), 35);
+    EXPECT_EQ(res, data.data() + 3);
+    EXPECT_EQ(*res, 40);
 }

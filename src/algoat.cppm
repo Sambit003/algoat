@@ -51,13 +51,18 @@ export module algoat;
 // Must export declarations explicitly via exported namespace blocks:
 export namespace algoat {
 // Primary public API
+using algoat::branchless_lower_bound;
+using algoat::BranchlessBinarySearch;
 using algoat::clamp;
+using algoat::galloping_search;
+using algoat::GallopingSearch;
 using algoat::get_dispatcher;
 using algoat::get_global_config;
 using algoat::load_global_config;
 using algoat::search;
 using algoat::sort;
 using algoat::SpaceFillingCurve;
+using algoat::core::SearchHint;
 
 namespace concepts {
 using algoat::concepts::Float16;
@@ -73,6 +78,7 @@ using algoat::core::DataTraits;
 using algoat::core::Dispatcher;
 using algoat::core::load_config;
 using algoat::core::Registry;
+using algoat::core::SearchHint;
 } // namespace core
 
 namespace meta {
@@ -182,6 +188,8 @@ using algoat::searching::SearchVariant;
 // Free-function searching templates
 using algoat::searching::adaptive_binary_search;
 using algoat::searching::binary_search;
+using algoat::searching::branchless_lower_bound;
+using algoat::searching::galloping_search;
 using algoat::searching::hybrid_interpolation_search;
 using algoat::searching::interpolation_search;
 using algoat::searching::linear_search;
@@ -189,7 +197,9 @@ using algoat::searching::linear_search;
 // Struct algorithm types & trees
 using algoat::searching::AdaptiveBinarySearch;
 using algoat::searching::BinarySearch;
+using algoat::searching::BranchlessBinarySearch;
 using algoat::searching::EytzingerSearchTree;
+using algoat::searching::GallopingSearch;
 using algoat::searching::HybridInterpolationSearch;
 using algoat::searching::InterpolationSearch;
 using algoat::searching::LinearSearch;
