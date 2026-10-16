@@ -203,5 +203,6 @@ using algoat::searching::GallopingSearch;
 using algoat::searching::HybridInterpolationSearch;
 using algoat::searching::InterpolationSearch;
 using algoat::searching::LinearSearch;
+using algoat::searching::StaticBTree;
 } // namespace searching
 } // namespace algoat

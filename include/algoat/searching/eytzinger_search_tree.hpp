@@ -5,34 +5,15 @@
 
 #pragma once
 
+#include "algoat/searching/detail/prefetch.hpp"
+
 #include <bit>
 #include <concepts>
 #include <cstddef>
 #include <span>
 #include <vector>
 
-#if defined(_MSC_VER)
-#include <xmmintrin.h>
-#endif
-
 namespace algoat::searching {
-
-namespace detail {
-
-/**
- * @brief Software memory prefetch instruction wrapper for GCC, Clang, and MSVC.
- */
-template <typename Ptr> inline void prefetch_read(const Ptr* ptr) noexcept {
-#if defined(__GNUC__) || defined(__clang__)
-    __builtin_prefetch(static_cast<const void*>(ptr), 0, 0);
-#elif defined(_MSC_VER)
-    _mm_prefetch(static_cast<const char*>(static_cast<const void*>(ptr)), _MM_HINT_T0);
-#else
-    (void)ptr;
-#endif
-}
-
-} // namespace detail
 
 /**
  * @class EytzingerSearchTree

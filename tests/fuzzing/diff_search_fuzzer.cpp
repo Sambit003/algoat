@@ -78,5 +78,26 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
             __builtin_trap();
     }
 
+    // Test StaticBTree on sorted unique data
+    if (!sorted_data.empty()) {
+        StaticBTree<int> btree(std::span<const int>{sorted_data});
+        auto btree_idx = btree.lower_bound(target);
+        auto std_lb = std::lower_bound(sorted_data.begin(), sorted_data.end(), target);
+        size_t expected_lb = static_cast<size_t>(std_lb - sorted_data.begin());
+        if (btree_idx != expected_lb)
+            __builtin_trap();
+
+        int batch_targets[4] = {target, target - 1, target + 1, target / 2};
+        std::size_t batch_results[4] = {};
+        btree.lower_bound_batch(batch_targets, batch_results);
+        for (int i = 0; i < 4; ++i) {
+            auto expected_it =
+                std::lower_bound(sorted_data.begin(), sorted_data.end(), batch_targets[i]);
+            size_t exp = static_cast<size_t>(expected_it - sorted_data.begin());
+            if (batch_results[i] != exp)
+                __builtin_trap();
+        }
+    }
+
     return 0;
 }

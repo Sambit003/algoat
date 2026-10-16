@@ -17,7 +17,9 @@
 #include "algoat/numerics/hybrid_sfc.hpp"
 #include "algoat/searching/binary_search.hpp"
 #include "algoat/searching/branchless_binary_search.hpp"
+#include "algoat/searching/eytzinger_search_tree.hpp"
 #include "algoat/searching/galloping_search.hpp"
+#include "algoat/searching/static_btree.hpp"
 #include "algoat/sorting/introsort.hpp"
 #include "algoat/sorting/pdqsort.hpp"
 
@@ -37,8 +39,10 @@ namespace algoat {
 using core::SearchHint;
 using searching::branchless_lower_bound;
 using searching::BranchlessBinarySearch;
+using searching::EytzingerSearchTree;
 using searching::galloping_search;
 using searching::GallopingSearch;
+using searching::StaticBTree;
 
 /**
  * @brief Retrieves the thread-safe global configuration instance.
