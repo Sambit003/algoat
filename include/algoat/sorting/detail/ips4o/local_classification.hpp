@@ -15,6 +15,8 @@
 #include "ips4o_fwd.hpp"
 #include "memory.hpp"
 
+#include <atomic>
+
 namespace algoat::sorting::detail::ips4o {
 namespace detail {
 
@@ -91,7 +93,7 @@ template <class Cfg> void Sorter<Cfg>::parallelClassification(const bool use_equ
         diff_t sum = 0;
         for (int i = 0, end = num_buckets_; i < end; ++i) {
             sum += local_.bucket_size[i];
-            __atomic_fetch_add(&bucket_start_[i + 1], sum, __ATOMIC_RELAXED);
+            std::atomic_ref<diff_t>(bucket_start_[i + 1]).fetch_add(sum, std::memory_order_relaxed);
         }
 
         local_.first_empty_block = my_first_empty_block;
