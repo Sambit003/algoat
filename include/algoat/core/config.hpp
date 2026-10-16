@@ -15,6 +15,15 @@
 namespace algoat::core {
 
 /**
+ * @enum SearchHint
+ * @brief Semantic hints guiding search algorithm selection.
+ */
+enum class SearchHint {
+    None,     ///< No specific distribution hint; use standard heuristics.
+    NearStart ///< Target element is expected to reside near the beginning of the sequence.
+};
+
+/**
  * @struct SortingConfig
  * @brief Configuration options specific to sorting algorithms.
  */

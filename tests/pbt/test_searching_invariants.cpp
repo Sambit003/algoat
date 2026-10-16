@@ -13,8 +13,9 @@ protected:
     Algo algo;
 };
 
-using SearchAlgos = ::testing::Types<LinearSearch, BinarySearch, InterpolationSearch,
-                                     AdaptiveBinarySearch, HybridInterpolationSearch>;
+using SearchAlgos =
+    ::testing::Types<LinearSearch, BinarySearch, InterpolationSearch, AdaptiveBinarySearch,
+                     HybridInterpolationSearch, BranchlessBinarySearch, GallopingSearch>;
 
 TYPED_TEST_SUITE(SearchingPBT, SearchAlgos);
 
@@ -36,6 +37,25 @@ TYPED_TEST(SearchingPBT, Invariants) {
             }
             RC_ASSERT(!found);
         }
+    });
+}
+
+TEST(BranchlessBinarySearchPBT, LowerBoundMatchesStdLowerBound) {
+    rc::check("BranchlessBinarySearch lower_bound invariants",
+              [](std::vector<int> data, int target) {
+                  std::sort(data.begin(), data.end());
+                  auto std_it = std::lower_bound(data.begin(), data.end(), target);
+                  auto actual_it = branchless_lower_bound(data.begin(), data.end(), target);
+                  RC_ASSERT(actual_it == std_it);
+              });
+}
+
+TEST(GallopingSearchPBT, LowerBoundMatchesStdLowerBound) {
+    rc::check("GallopingSearch lower_bound invariants", [](std::vector<int> data, int target) {
+        std::sort(data.begin(), data.end());
+        auto std_it = std::lower_bound(data.begin(), data.end(), target);
+        auto actual_it = galloping_search(data.begin(), data.end(), target);
+        RC_ASSERT(actual_it == std_it);
     });
 }
 

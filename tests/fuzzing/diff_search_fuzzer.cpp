@@ -56,6 +56,17 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     test_sorted_algo(InterpolationSearch{});
     test_sorted_algo(AdaptiveBinarySearch{});
     test_sorted_algo(HybridInterpolationSearch{});
+    test_sorted_algo(BranchlessBinarySearch{});
+    test_sorted_algo(GallopingSearch{});
+
+    // Test branchless_lower_bound and galloping_search directly against std::lower_bound
+    auto std_lb = std::lower_bound(sorted_data.begin(), sorted_data.end(), target);
+    auto bl_lb = branchless_lower_bound(sorted_data.begin(), sorted_data.end(), target);
+    if (bl_lb != std_lb)
+        __builtin_trap();
+    auto gs_lb = galloping_search(sorted_data.begin(), sorted_data.end(), target);
+    if (gs_lb != std_lb)
+        __builtin_trap();
 
     // Test EytzingerSearchTree on sorted unique data
     if (!sorted_data.empty()) {

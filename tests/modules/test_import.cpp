@@ -114,6 +114,26 @@ TEST(ModuleImportTest, SearchingSubnamespaceFunctions) {
     auto l_res = algoat::searching::linear_search(data, 20);
     ASSERT_TRUE(l_res.has_value());
     EXPECT_EQ(*l_res, 1);
+
+    auto bl_it = algoat::searching::branchless_lower_bound(data.begin(), data.end(), 35);
+    EXPECT_EQ(bl_it, data.begin() + 3);
+    EXPECT_EQ(*bl_it, 40);
+
+    auto gs_it = algoat::searching::galloping_search(data.begin(), data.end(), 20);
+    EXPECT_EQ(gs_it, data.begin() + 1);
+    EXPECT_EQ(*gs_it, 20);
+
+    algoat::searching::BranchlessBinarySearch bbs;
+    EXPECT_EQ(bbs.name(), "branchlessbinarysearch");
+    EXPECT_TRUE(bbs.search(std::span<const int>{data}, 30).has_value());
+
+    algoat::searching::GallopingSearch gs;
+    EXPECT_EQ(gs.name(), "gallopingsearch");
+    EXPECT_TRUE(gs.search(std::span<const int>{data}, 10).has_value());
+
+    auto hint_res = algoat::search(data, 20, algoat::SearchHint::NearStart);
+    ASSERT_TRUE(hint_res.has_value());
+    EXPECT_EQ(*hint_res, 1);
 }
 
 TEST(ModuleImportTest, PolicyChainingAndDescriptor) {
