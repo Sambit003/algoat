@@ -25,3 +25,6 @@ target_link_libraries(bench_config_dispatch PRIVATE algoat benchmark::benchmark)
 
 add_executable(bench_branchless_galloping_search bench_branchless_galloping_search.cpp)
 target_link_libraries(bench_branchless_galloping_search PRIVATE algoat benchmark::benchmark)
+
+add_executable(bench_selection bench_selection.cpp)
+target_link_libraries(bench_selection PRIVATE algoat benchmark::benchmark)

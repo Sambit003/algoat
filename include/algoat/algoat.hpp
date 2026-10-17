@@ -20,6 +20,7 @@
 #include "algoat/searching/eytzinger_search_tree.hpp"
 #include "algoat/searching/galloping_search.hpp"
 #include "algoat/searching/static_btree.hpp"
+#include "algoat/selection/selection.hpp"
 #include "algoat/sorting/introsort.hpp"
 #include "algoat/sorting/pdqsort.hpp"
 
@@ -43,6 +44,10 @@ using searching::EytzingerSearchTree;
 using searching::galloping_search;
 using searching::GallopingSearch;
 using searching::StaticBTree;
+using selection::nth_element;
+using selection::select_optimal;
+using selection::top_k_sorted;
+using selection::top_k_unsorted;
 
 /**
  * @brief Retrieves the thread-safe global configuration instance.

@@ -41,6 +41,7 @@ module;
 #include <algoat/numerics/hybrid_sfc.hpp>
 #include <algoat/numerics/morton.hpp>
 #include <algoat/searching/searching.hpp>
+#include <algoat/selection/selection.hpp>
 #include <algoat/sorting/boolean_sort.hpp>
 #include <algoat/sorting/sorting.hpp>
 #include <algoat/utils.hpp>
@@ -59,10 +60,21 @@ using algoat::GallopingSearch;
 using algoat::get_dispatcher;
 using algoat::get_global_config;
 using algoat::load_global_config;
+using algoat::nth_element;
 using algoat::search;
+using algoat::select_optimal;
 using algoat::sort;
 using algoat::SpaceFillingCurve;
+using algoat::top_k_sorted;
+using algoat::top_k_unsorted;
 using algoat::core::SearchHint;
+
+namespace selection {
+using algoat::selection::nth_element;
+using algoat::selection::select_optimal;
+using algoat::selection::top_k_sorted;
+using algoat::selection::top_k_unsorted;
+} // namespace selection
 
 namespace concepts {
 using algoat::concepts::Float16;

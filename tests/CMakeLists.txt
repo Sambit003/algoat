@@ -69,13 +69,21 @@ algoat_add_test(test_searching_dispatch searching/test_searching_dispatch.cpp)
 # SIMD tests
 algoat_add_test(test_simd simd/test_simd.cpp)
 
+# Selection tests
+algoat_add_test(test_nth_element selection/test_nth_element.cpp)
+algoat_add_test(test_select_optimal selection/test_select_optimal.cpp)
+algoat_add_test(test_top_k selection/test_top_k.cpp)
+
 # Property-Based Tests
 add_executable(test_sorting_invariants pbt/test_sorting_invariants.cpp)
 add_executable(test_searching_invariants pbt/test_searching_invariants.cpp)
+add_executable(test_selection_invariants pbt/test_selection_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_sorting_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_selection_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_selection_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -87,6 +95,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_sort_fuzzer PRIVATE algoat)
     target_compile_options(diff_sort_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_sort_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_selection_fuzzer fuzzing/diff_selection_fuzzer.cpp)
+    target_link_libraries(diff_selection_fuzzer PRIVATE algoat)
+    target_compile_options(diff_selection_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_selection_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)
