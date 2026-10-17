@@ -65,10 +65,10 @@ concept SortAlgorithm = requires(Algo algo, std::span<T> data) {
  * Used by @c algoat::core::Registry<SortVariant> for type-safe static dispatch
  * via @c std::visit without virtual function table overhead.
  */
-using SortVariant =
-    std::variant<InsertionSort, QuickSort, MergeSort, HeapSort, SelectionSort, BubbleSort,
-                 ShellSort, CombSort, GnomeSort, CycleSort, BitonicSort, CountingSort,
-                 PigeonholeSort, RadixSortLSD, RadixSortMSD, RadixSortInPlaceMSD, BucketSort,
-                 IntroSort, TimSort, BlockSort, HilbertSort, PdqSort, CrumSort, FluxSort, Ips4oSort>;
+using SortVariant = std::variant<InsertionSort, QuickSort, MergeSort, HeapSort, SelectionSort,
+                                 BubbleSort, ShellSort, CombSort, GnomeSort, CycleSort, BitonicSort,
+                                 CountingSort, PigeonholeSort, RadixSortLSD, RadixSortMSD,
+                                 RadixSortInPlaceMSD, BucketSort, IntroSort, TimSort, BlockSort,
+                                 HilbertSort, PdqSort, CrumSort, FluxSort, Ips4oSort>;
 
 } // namespace algoat::sorting

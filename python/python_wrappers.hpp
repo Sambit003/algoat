@@ -243,6 +243,11 @@ struct PyStringWrapper {
                 sv = std::string_view(ptr, len);
         }
     }
+
+    operator std::string_view() const noexcept {
+        return sv;
+    }
+
     bool operator<(const PyStringWrapper& other) const {
         if (obj == other.obj)
             return false;

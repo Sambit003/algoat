@@ -23,6 +23,8 @@
 #include "algoat/selection/selection.hpp"
 #include "algoat/sorting/introsort.hpp"
 #include "algoat/sorting/pdqsort.hpp"
+#include "algoat/strings/burstsort.hpp"
+#include "algoat/strings/multikey_quicksort.hpp"
 
 #include <concepts>
 #include <cstddef>

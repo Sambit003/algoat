@@ -368,3 +368,24 @@ def test_sorting_patterns_python_and_numpy():
     expected_np = np.sort(np_arr.copy())
     algoat.sort_inplace(np_arr)
     assert np.array_equal(np_arr, expected_np)
+
+
+def test_string_sorting_suite_burstsort_and_multikey():
+    words = ["banana", "apple", "cherry", "date", "fig", "elderberry", "apricot", "blueberry"]
+    expected = sorted(words)
+
+    # 1. Burstsort out-of-place
+    assert algoat.strings.burstsort(words) == expected
+
+    # 2. Burstsort in-place
+    words_copy1 = list(words)
+    algoat.strings.burstsort_inplace(words_copy1)
+    assert words_copy1 == expected
+
+    # 3. Multi-Key Quicksort out-of-place
+    assert algoat.strings.multikey_quicksort(words) == expected
+
+    # 4. Multi-Key Quicksort in-place
+    words_copy2 = list(words)
+    algoat.strings.multikey_quicksort_inplace(words_copy2)
+    assert words_copy2 == expected

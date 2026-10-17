@@ -44,6 +44,8 @@ module;
 #include <algoat/selection/selection.hpp>
 #include <algoat/sorting/boolean_sort.hpp>
 #include <algoat/sorting/sorting.hpp>
+#include <algoat/strings/burstsort.hpp>
+#include <algoat/strings/multikey_quicksort.hpp>
 #include <algoat/utils.hpp>
 
 export module algoat;
@@ -217,4 +219,9 @@ using algoat::searching::InterpolationSearch;
 using algoat::searching::LinearSearch;
 using algoat::searching::StaticBTree;
 } // namespace searching
+
+namespace strings {
+using algoat::strings::burstsort;
+using algoat::strings::multikey_quicksort;
+} // namespace strings
 } // namespace algoat

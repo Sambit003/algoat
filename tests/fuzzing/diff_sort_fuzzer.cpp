@@ -6,6 +6,8 @@
 #include "algoat/sorting/boolean_sort.hpp"
 #include "algoat/sorting/hilbert_sort.hpp"
 #include "algoat/sorting/sorting.hpp"
+#include "algoat/strings/burstsort.hpp"
+#include "algoat/strings/multikey_quicksort.hpp"
 
 #include <algorithm>
 #include <array>
@@ -347,6 +349,39 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         algoat::numerics::sort_float16(std::span<uint16_t>{f16_data});
         if (f16_data != expected_f16)
             __builtin_trap();
+    }
+
+    // String sorting suite differential fuzzing (Multi-Key Quicksort & Burstsort)
+    if (size >= 4) {
+        std::vector<std::string> fuzz_strings;
+        size_t offset = 0;
+        while (offset < size) {
+            uint8_t len = data[offset++];
+            size_t chunk_len = std::min(static_cast<size_t>(len % 32), size - offset);
+            fuzz_strings.emplace_back(reinterpret_cast<const char*>(data + offset), chunk_len);
+            offset += chunk_len;
+        }
+
+        std::vector<std::string> expected_strings = fuzz_strings;
+        std::sort(expected_strings.begin(), expected_strings.end());
+
+        // 1. Multi-Key Quicksort
+        {
+            std::vector<std::string> test_strings = fuzz_strings;
+            algoat::strings::multikey_quicksort(std::span<std::string>{test_strings});
+            if (test_strings != expected_strings) {
+                __builtin_trap();
+            }
+        }
+
+        // 2. Burstsort
+        {
+            std::vector<std::string> test_strings = fuzz_strings;
+            algoat::strings::burstsort(std::span<std::string>{test_strings});
+            if (test_strings != expected_strings) {
+                __builtin_trap();
+            }
+        }
     }
 
     return 0;

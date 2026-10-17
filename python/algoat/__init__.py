@@ -162,6 +162,8 @@ def search_many(
         return _search_many_impl(list_data, list_targets)
 
 
+strings = _algoat_impl.strings
+
 __all__ = [
     "sort",
     "sort_inplace",
@@ -169,4 +171,5 @@ __all__ = [
     "search_many",
     "load_global_config",
     "Rational",
+    "strings",
 ]

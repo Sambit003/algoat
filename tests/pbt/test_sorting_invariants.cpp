@@ -7,6 +7,8 @@
 #include "algoat/sorting/boolean_sort.hpp"
 #include "algoat/sorting/hilbert_sort.hpp"
 #include "algoat/sorting/sorting.hpp"
+#include "algoat/strings/burstsort.hpp"
+#include "algoat/strings/multikey_quicksort.hpp"
 
 #include <algorithm>
 #include <array>
@@ -396,4 +398,48 @@ TEST(Ips4oSortPBT, VaryingSizesAndDuplicates) {
         algoat::sorting::ips4o_parallel_sort(sorted_again);
         RC_ASSERT(input == sorted_again);
     });
+}
+
+TEST(StringsSortingPBT, MultiKeyQuicksortInvariants) {
+    rc::check("MultiKeyQuicksort conservation, sortedness, and idempotency",
+              [](std::vector<std::string> input) {
+                  auto original = input;
+                  algoat::strings::multikey_quicksort(std::span<std::string>{input});
+
+                  // 1. Conservation
+                  auto expected = original;
+                  std::sort(expected.begin(), expected.end());
+                  RC_ASSERT(input.size() == expected.size());
+                  RC_ASSERT(std::is_permutation(input.begin(), input.end(), original.begin()));
+
+                  // 2. Monotonic Sortedness
+                  RC_ASSERT(std::is_sorted(input.begin(), input.end()));
+
+                  // 3. Idempotency
+                  auto sorted_again = input;
+                  algoat::strings::multikey_quicksort(std::span<std::string>{sorted_again});
+                  RC_ASSERT(input == sorted_again);
+              });
+}
+
+TEST(StringsSortingPBT, BurstsortInvariants) {
+    rc::check("Burstsort conservation, sortedness, and idempotency",
+              [](std::vector<std::string> input) {
+                  auto original = input;
+                  algoat::strings::burstsort(std::span<std::string>{input});
+
+                  // 1. Conservation
+                  auto expected = original;
+                  std::sort(expected.begin(), expected.end());
+                  RC_ASSERT(input.size() == expected.size());
+                  RC_ASSERT(std::is_permutation(input.begin(), input.end(), original.begin()));
+
+                  // 2. Monotonic Sortedness
+                  RC_ASSERT(std::is_sorted(input.begin(), input.end()));
+
+                  // 3. Idempotency
+                  auto sorted_again = input;
+                  algoat::strings::burstsort(std::span<std::string>{sorted_again});
+                  RC_ASSERT(input == sorted_again);
+              });
 }
