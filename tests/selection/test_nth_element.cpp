@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <functional>
 #include <gtest/gtest.h>
+#include <initializer_list>
 #include <numeric>
 #include <random>
 #include <vector>
@@ -54,7 +55,8 @@ TEST(NthElementTest, ArbitraryPermutations) {
     std::iota(data.begin(), data.end(), 1);
     std::shuffle(data.begin(), data.end(), gen);
 
-    for (std::size_t k : {0UL, 1UL, n / 4, n / 2, 3 * n / 4, n - 2, n - 1}) {
+    for (std::size_t k :
+         std::initializer_list<std::size_t>{0, 1, n / 4, n / 2, 3 * n / 4, n - 2, n - 1}) {
         auto copy = data;
         algoat::selection::nth_element(copy.begin(), copy.begin() + k, copy.end());
 
@@ -86,7 +88,8 @@ TEST(NthElementTest, ManyDuplicates) {
     auto expected = data;
     std::sort(expected.begin(), expected.end());
 
-    for (std::size_t k : {0UL, 10UL, n / 3, n / 2, 2 * n / 3, n - 1}) {
+    for (std::size_t k :
+         std::initializer_list<std::size_t>{0, 10, n / 3, n / 2, 2 * n / 3, n - 1}) {
         auto copy = data;
         algoat::selection::nth_element(copy.begin(), copy.begin() + k, copy.end());
 

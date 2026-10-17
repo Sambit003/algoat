@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <functional>
 #include <gtest/gtest.h>
+#include <initializer_list>
 #include <numeric>
 #include <random>
 #include <vector>
@@ -51,7 +52,7 @@ TEST(SelectOptimalTest, SmallInputs) {
     std::iota(data.begin(), data.end(), 1);
     std::shuffle(data.begin(), data.end(), gen);
 
-    for (std::size_t k : {0UL, 1UL, n / 4, n / 2, 3 * n / 4, n - 1}) {
+    for (std::size_t k : std::initializer_list<std::size_t>{0, 1, n / 4, n / 2, 3 * n / 4, n - 1}) {
         auto copy = data;
         algoat::selection::select_optimal(copy.begin(), copy.begin() + k, copy.end());
         EXPECT_EQ(copy[k], static_cast<int>(k + 1));
@@ -67,7 +68,7 @@ TEST(SelectOptimalTest, LargeInputsFloydRivestSampling) {
     std::iota(data.begin(), data.end(), 1);
     std::shuffle(data.begin(), data.end(), gen);
 
-    for (std::size_t k : {0UL, 10UL, n / 10, n / 2, n - 100, n - 1}) {
+    for (std::size_t k : std::initializer_list<std::size_t>{0, 10, n / 10, n / 2, n - 100, n - 1}) {
         auto copy = data;
         algoat::selection::select_optimal(copy.begin(), copy.begin() + k, copy.end());
         EXPECT_EQ(copy[k], static_cast<int>(k + 1));
@@ -112,7 +113,7 @@ TEST(SelectOptimalTest, HighDuplicateFrequency) {
     auto expected = data;
     std::sort(expected.begin(), expected.end());
 
-    for (std::size_t k : {0UL, 100UL, n / 2, n - 100, n - 1}) {
+    for (std::size_t k : std::initializer_list<std::size_t>{0, 100, n / 2, n - 100, n - 1}) {
         auto copy = data;
         algoat::selection::select_optimal(copy.begin(), copy.begin() + k, copy.end());
         EXPECT_EQ(copy[k], expected[k]);

@@ -4,6 +4,7 @@
 #include <array>
 #include <functional>
 #include <gtest/gtest.h>
+#include <initializer_list>
 #include <numeric>
 #include <random>
 #include <vector>
@@ -61,7 +62,7 @@ TEST(TopKTest, TopKUnsortedInvariants) {
     std::iota(data.begin(), data.end(), 1);
     std::shuffle(data.begin(), data.end(), gen);
 
-    for (std::size_t k : {1UL, 5UL, 50UL, 100UL, 150UL, n - 1}) {
+    for (std::size_t k : std::initializer_list<std::size_t>{1, 5, 50, 100, 150, n - 1}) {
         auto copy = data;
         algoat::selection::top_k_unsorted(copy, k);
 
@@ -86,7 +87,7 @@ TEST(TopKTest, TopKSortedInvariants) {
     std::iota(data.begin(), data.end(), 1);
     std::shuffle(data.begin(), data.end(), gen);
 
-    for (std::size_t k : {1UL, 10UL, 50UL, 250UL, n - 1}) {
+    for (std::size_t k : std::initializer_list<std::size_t>{1, 10, 50, 250, n - 1}) {
         auto copy = data;
         algoat::selection::top_k_sorted(copy, k);
 
