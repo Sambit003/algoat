@@ -185,3 +185,13 @@ TEST(ModuleImportTest, BooleanAndFloat16Sorts) {
     std::vector<uint16_t> expected{0xBC00, 0x8000, 0x0000, 0x3C00};
     EXPECT_EQ(f16_data, expected);
 }
+
+TEST(ModuleImportTest, StringsSuiteBurstsortAndMultikeyQuicksort) {
+    std::vector<std::string> words1 = {"cherry", "banana", "apple", "date"};
+    algoat::strings::burstsort(std::span<std::string>{words1});
+    EXPECT_TRUE(std::is_sorted(words1.begin(), words1.end()));
+
+    std::vector<std::string_view> words2 = {"grape", "elderberry", "fig", "apricot"};
+    algoat::strings::multikey_quicksort(std::span<std::string_view>{words2});
+    EXPECT_TRUE(std::is_sorted(words2.begin(), words2.end()));
+}

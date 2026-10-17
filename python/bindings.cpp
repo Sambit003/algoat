@@ -13,6 +13,8 @@
 #include <algoat/algoat.hpp>
 #include <algoat/numerics/float16_sort.hpp>
 #include <algoat/sorting/boolean_sort.hpp>
+#include <algoat/strings/burstsort.hpp>
+#include <algoat/strings/multikey_quicksort.hpp>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/optional.h>
@@ -492,4 +494,88 @@ NB_MODULE(_algoat_impl, m) {
         .def_rw("den", &algoat::Rational::den)
         .def("__lt__", [](const algoat::Rational& a, const algoat::Rational& b) { return a < b; })
         .def("__eq__", [](const algoat::Rational& a, const algoat::Rational& b) { return a == b; });
+
+    auto strings_m =
+        m.def_submodule("strings", "String sorting suite (Burstsort & Multi-Key Quicksort)");
+    strings_m.def(
+        "burstsort",
+        [](nb::list data) -> nb::list {
+            size_t n = nb::len(data);
+            std::vector<algoat::pybind::PyStringWrapper> buf(n);
+            for (size_t i = 0; i < n; ++i) {
+                buf[i] = algoat::pybind::PyStringWrapper(data[i].ptr());
+            }
+            {
+                nb::gil_scoped_release release;
+                algoat::strings::burstsort(std::span<algoat::pybind::PyStringWrapper>{buf});
+            }
+            nb::list result = nb::steal<nb::list>(PyList_New(n));
+            for (size_t i = 0; i < n; ++i) {
+                PyObject* obj = buf[i].obj;
+                Py_INCREF(obj);
+                PyList_SET_ITEM(result.ptr(), i, obj);
+            }
+            return result;
+        },
+        nb::arg("data"));
+
+    strings_m.def(
+        "burstsort_inplace",
+        [](nb::list data) {
+            size_t n = nb::len(data);
+            std::vector<algoat::pybind::PyStringWrapper> buf(n);
+            for (size_t i = 0; i < n; ++i) {
+                buf[i] = algoat::pybind::PyStringWrapper(data[i].ptr());
+            }
+            {
+                nb::gil_scoped_release release;
+                algoat::strings::burstsort(std::span<algoat::pybind::PyStringWrapper>{buf});
+            }
+            for (size_t i = 0; i < n; ++i) {
+                PyList_SET_ITEM(data.ptr(), i, buf[i].obj);
+            }
+        },
+        nb::arg("data"));
+
+    strings_m.def(
+        "multikey_quicksort",
+        [](nb::list data) -> nb::list {
+            size_t n = nb::len(data);
+            std::vector<algoat::pybind::PyStringWrapper> buf(n);
+            for (size_t i = 0; i < n; ++i) {
+                buf[i] = algoat::pybind::PyStringWrapper(data[i].ptr());
+            }
+            {
+                nb::gil_scoped_release release;
+                algoat::strings::multikey_quicksort(
+                    std::span<algoat::pybind::PyStringWrapper>{buf});
+            }
+            nb::list result = nb::steal<nb::list>(PyList_New(n));
+            for (size_t i = 0; i < n; ++i) {
+                PyObject* obj = buf[i].obj;
+                Py_INCREF(obj);
+                PyList_SET_ITEM(result.ptr(), i, obj);
+            }
+            return result;
+        },
+        nb::arg("data"));
+
+    strings_m.def(
+        "multikey_quicksort_inplace",
+        [](nb::list data) {
+            size_t n = nb::len(data);
+            std::vector<algoat::pybind::PyStringWrapper> buf(n);
+            for (size_t i = 0; i < n; ++i) {
+                buf[i] = algoat::pybind::PyStringWrapper(data[i].ptr());
+            }
+            {
+                nb::gil_scoped_release release;
+                algoat::strings::multikey_quicksort(
+                    std::span<algoat::pybind::PyStringWrapper>{buf});
+            }
+            for (size_t i = 0; i < n; ++i) {
+                PyList_SET_ITEM(data.ptr(), i, buf[i].obj);
+            }
+        },
+        nb::arg("data"));
 }
