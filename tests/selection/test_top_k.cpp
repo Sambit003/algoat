@@ -7,6 +7,7 @@
 #include <initializer_list>
 #include <numeric>
 #include <random>
+#include <string>
 #include <vector>
 
 namespace {

@@ -2,6 +2,7 @@
 #include "test_selection_common.hpp"
 
 #include <algorithm>
+#include <array>
 #include <functional>
 #include <gtest/gtest.h>
 #include <initializer_list>
