@@ -1,0 +1,136 @@
+name: Go Interoperability CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'go/**'
+      - 'include/algoat/c_api/**'
+      - 'src/c_api/**'
+      - 'CMakeLists.txt'
+      - 'src/CMakeLists.txt'
+      - '.github/workflows/go.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'go/**'
+      - 'include/algoat/c_api/**'
+      - 'src/c_api/**'
+      - 'CMakeLists.txt'
+      - 'src/CMakeLists.txt'
+      - '.github/workflows/go.yml'
+
+jobs:
+  test-linux:
+    name: Linux (amd64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: go/algoat/go.sum
+
+      - name: Install C++ Build Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-14 g++-14 ninja-build cmake libatomic1
+
+      - name: Build Algoat C-ABI Library
+        run: |
+          cmake -B build -S . -G Ninja \
+            -DCMAKE_C_COMPILER=gcc-14 \
+            -DCMAKE_CXX_COMPILER=g++-14 \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target algoat algoat_c
+
+      - name: Run Go Unit Tests
+        run: |
+          cd go/algoat
+          go test -v ./...
+
+      - name: Run Go Race Detector
+        run: |
+          cd go/algoat
+          go test -race -v ./...
+
+      - name: Run Cgo Strict Pointer Checks (cgocheck2)
+        run: |
+          cd go/algoat
+          GOEXPERIMENT=cgocheck2 go test -v ./...
+
+      - name: Differential Fuzz Smoke Tests
+        run: |
+          cd go/algoat
+          go test -fuzz=FuzzSearch -fuzztime=5s
+          go test -fuzz=FuzzSort -fuzztime=5s
+          go test -fuzz=FuzzTopK -fuzztime=5s
+
+  test-macos:
+    name: macOS (arm64)
+    runs-on: macos-14
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: go/algoat/go.sum
+
+      - name: Build Algoat C-ABI Library
+        run: |
+          cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target algoat algoat_c
+
+      - name: Run Go Unit Tests
+        run: |
+          cd go/algoat
+          go test -v ./...
+
+      - name: Run Go Race Detector
+        run: |
+          cd go/algoat
+          go test -race -v ./...
+
+  test-windows:
+    name: Windows (amd64)
+    runs-on: windows-2022
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: go/algoat/go.sum
+
+      - name: Set up MSYS2 / MinGW-w64
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+
+      - name: Build Algoat C-ABI Library
+        shell: msys2 {0}
+        run: |
+          cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target algoat algoat_c
+
+      - name: Run Go Unit Tests
+        shell: msys2 {0}
+        run: |
+          cd go/algoat
+          go test -v ./...

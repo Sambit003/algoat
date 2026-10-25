@@ -3,7 +3,10 @@ package algoat
 /*
 #cgo CFLAGS: -I${SRCDIR}/../../include
 #cgo CXXFLAGS: -std=c++20 -I${SRCDIR}/../../include
-#cgo LDFLAGS: -L${SRCDIR}/../../build/src -L${SRCDIR}/../../build -L${SRCDIR}/../../build/release/src -L${SRCDIR}/../../build/debug/src -lalgoat -latomic -lstdc++ -lm -lpthread
+#cgo LDFLAGS: -L${SRCDIR}/../../build/src -L${SRCDIR}/../../build -L${SRCDIR}/../../build/release/src -L${SRCDIR}/../../build/debug/src -L${SRCDIR}/../../build/src/Release -L${SRCDIR}/../../build/src/Debug -lalgoat
+#cgo linux LDFLAGS: -latomic -lstdc++ -lm -lpthread
+#cgo darwin LDFLAGS: -lc++
+#cgo windows LDFLAGS: -lstdc++
 #include <algoat/c_api/algoat_c.h>
 */
 import "C"
