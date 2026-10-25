@@ -11,7 +11,6 @@ import "C"
 import (
 	"reflect"
 	"runtime"
-	"slices"
 	"unsafe"
 
 	"golang.org/x/exp/constraints"
@@ -24,7 +23,7 @@ type Number interface {
 
 // dispatchSort calls the appropriate C-ABI sorting entry point based on element reflection Kind.
 // Raw pointer is passed directly without memory copying or allocation.
-func dispatchSort(ptr unsafe.Pointer, n int, kind reflect.Kind, parallel int) bool {
+func dispatchSort(ptr unsafe.Pointer, n int, kind reflect.Kind, parallel int) {
 	cLen := C.size_t(n)
 	cPar := C.int(parallel)
 
@@ -49,18 +48,23 @@ func dispatchSort(ptr unsafe.Pointer, n int, kind reflect.Kind, parallel int) bo
 		C.algoat_sort_int32((*C.int32_t)(ptr), cLen, cPar)
 	case reflect.Uint32:
 		C.algoat_sort_uint32((*C.uint32_t)(ptr), cLen, cPar)
+	case reflect.Int16:
+		C.algoat_sort_int16((*C.int16_t)(ptr), cLen, cPar)
+	case reflect.Uint16:
+		C.algoat_sort_uint16((*C.uint16_t)(ptr), cLen, cPar)
+	case reflect.Int8:
+		C.algoat_sort_int8((*C.int8_t)(ptr), cLen, cPar)
+	case reflect.Uint8:
+		C.algoat_sort_uint8((*C.uint8_t)(ptr), cLen, cPar)
 	case reflect.Float64:
 		C.algoat_sort_float64((*C.double)(ptr), cLen, cPar)
 	case reflect.Float32:
 		C.algoat_sort_float32((*C.float)(ptr), cLen, cPar)
-	default:
-		return false
 	}
-	return true
 }
 
 // dispatchRadixSort calls the appropriate C-ABI radix sorting entry point.
-func dispatchRadixSort(ptr unsafe.Pointer, n int, kind reflect.Kind) bool {
+func dispatchRadixSort(ptr unsafe.Pointer, n int, kind reflect.Kind) {
 	cLen := C.size_t(n)
 
 	switch kind {
@@ -84,46 +88,101 @@ func dispatchRadixSort(ptr unsafe.Pointer, n int, kind reflect.Kind) bool {
 		C.algoat_radix_sort_int32((*C.int32_t)(ptr), cLen)
 	case reflect.Uint32:
 		C.algoat_radix_sort_uint32((*C.uint32_t)(ptr), cLen)
-	default:
-		return false
+	case reflect.Int16:
+		C.algoat_radix_sort_int16((*C.int16_t)(ptr), cLen)
+	case reflect.Uint16:
+		C.algoat_radix_sort_uint16((*C.uint16_t)(ptr), cLen)
+	case reflect.Int8:
+		C.algoat_radix_sort_int8((*C.int8_t)(ptr), cLen)
+	case reflect.Uint8:
+		C.algoat_radix_sort_uint8((*C.uint8_t)(ptr), cLen)
 	}
-	return true
 }
 
 // dispatchSearch calls the appropriate C-ABI branchless lower-bound search entry point.
-func dispatchSearch[T Number](ptr unsafe.Pointer, n int, kind reflect.Kind, target T) (int, bool) {
+func dispatchSearch[T Number](ptr unsafe.Pointer, n int, kind reflect.Kind, target T) int {
 	cLen := C.size_t(n)
 
 	switch kind {
 	case reflect.Int64:
-		return int(C.algoat_search_int64((*C.int64_t)(ptr), cLen, C.int64_t(int64(target)))), true
+		return int(C.algoat_search_int64((*C.int64_t)(ptr), cLen, C.int64_t(int64(target))))
 	case reflect.Uint64:
-		return int(C.algoat_search_uint64((*C.uint64_t)(ptr), cLen, C.uint64_t(uint64(target)))), true
+		return int(C.algoat_search_uint64((*C.uint64_t)(ptr), cLen, C.uint64_t(uint64(target))))
 	case reflect.Int:
 		if unsafe.Sizeof(int(0)) == 8 {
-			return int(C.algoat_search_int64((*C.int64_t)(ptr), cLen, C.int64_t(int(target)))), true
+			return int(C.algoat_search_int64((*C.int64_t)(ptr), cLen, C.int64_t(int(target))))
 		}
-		return int(C.algoat_search_int32((*C.int32_t)(ptr), cLen, C.int32_t(int(target)))), true
+		return int(C.algoat_search_int32((*C.int32_t)(ptr), cLen, C.int32_t(int(target))))
 	case reflect.Uint, reflect.Uintptr:
 		if unsafe.Sizeof(uint(0)) == 8 {
-			return int(C.algoat_search_uint64((*C.uint64_t)(ptr), cLen, C.uint64_t(uint(target)))), true
+			return int(C.algoat_search_uint64((*C.uint64_t)(ptr), cLen, C.uint64_t(uint(target))))
 		}
-		return int(C.algoat_search_uint32((*C.uint32_t)(ptr), cLen, C.uint32_t(uint(target)))), true
+		return int(C.algoat_search_uint32((*C.uint32_t)(ptr), cLen, C.uint32_t(uint(target))))
 	case reflect.Int32:
-		return int(C.algoat_search_int32((*C.int32_t)(ptr), cLen, C.int32_t(int32(target)))), true
+		return int(C.algoat_search_int32((*C.int32_t)(ptr), cLen, C.int32_t(int32(target))))
 	case reflect.Uint32:
-		return int(C.algoat_search_uint32((*C.uint32_t)(ptr), cLen, C.uint32_t(uint32(target)))), true
+		return int(C.algoat_search_uint32((*C.uint32_t)(ptr), cLen, C.uint32_t(uint32(target))))
+	case reflect.Int16:
+		return int(C.algoat_search_int16((*C.int16_t)(ptr), cLen, C.int16_t(int16(target))))
+	case reflect.Uint16:
+		return int(C.algoat_search_uint16((*C.uint16_t)(ptr), cLen, C.uint16_t(uint16(target))))
+	case reflect.Int8:
+		return int(C.algoat_search_int8((*C.int8_t)(ptr), cLen, C.int8_t(int8(target))))
+	case reflect.Uint8:
+		return int(C.algoat_search_uint8((*C.uint8_t)(ptr), cLen, C.uint8_t(uint8(target))))
 	case reflect.Float64:
-		return int(C.algoat_search_float64((*C.double)(ptr), cLen, C.double(float64(target)))), true
+		return int(C.algoat_search_float64((*C.double)(ptr), cLen, C.double(float64(target))))
 	case reflect.Float32:
-		return int(C.algoat_search_float32((*C.float)(ptr), cLen, C.float(float32(target)))), true
+		return int(C.algoat_search_float32((*C.float)(ptr), cLen, C.float(float32(target))))
 	default:
-		return 0, false
+		return 0
+	}
+}
+
+// dispatchSearchBatch calls the appropriate C-ABI batch branchless search entry point.
+func dispatchSearchBatch(ptr unsafe.Pointer, n int, targetPtr unsafe.Pointer, numTargets int, resultPtr unsafe.Pointer, kind reflect.Kind) {
+	cLen := C.size_t(n)
+	cNumTargets := C.size_t(numTargets)
+	cResults := (*C.int64_t)(resultPtr)
+
+	switch kind {
+	case reflect.Int64:
+		C.algoat_search_batch_int64((*C.int64_t)(ptr), cLen, (*C.int64_t)(targetPtr), cNumTargets, cResults)
+	case reflect.Uint64:
+		C.algoat_search_batch_uint64((*C.uint64_t)(ptr), cLen, (*C.uint64_t)(targetPtr), cNumTargets, cResults)
+	case reflect.Int:
+		if unsafe.Sizeof(int(0)) == 8 {
+			C.algoat_search_batch_int64((*C.int64_t)(ptr), cLen, (*C.int64_t)(targetPtr), cNumTargets, cResults)
+		} else {
+			C.algoat_search_batch_int32((*C.int32_t)(ptr), cLen, (*C.int32_t)(targetPtr), cNumTargets, cResults)
+		}
+	case reflect.Uint, reflect.Uintptr:
+		if unsafe.Sizeof(uint(0)) == 8 {
+			C.algoat_search_batch_uint64((*C.uint64_t)(ptr), cLen, (*C.uint64_t)(targetPtr), cNumTargets, cResults)
+		} else {
+			C.algoat_search_batch_uint32((*C.uint32_t)(ptr), cLen, (*C.uint32_t)(targetPtr), cNumTargets, cResults)
+		}
+	case reflect.Int32:
+		C.algoat_search_batch_int32((*C.int32_t)(ptr), cLen, (*C.int32_t)(targetPtr), cNumTargets, cResults)
+	case reflect.Uint32:
+		C.algoat_search_batch_uint32((*C.uint32_t)(ptr), cLen, (*C.uint32_t)(targetPtr), cNumTargets, cResults)
+	case reflect.Int16:
+		C.algoat_search_batch_int16((*C.int16_t)(ptr), cLen, (*C.int16_t)(targetPtr), cNumTargets, cResults)
+	case reflect.Uint16:
+		C.algoat_search_batch_uint16((*C.uint16_t)(ptr), cLen, (*C.uint16_t)(targetPtr), cNumTargets, cResults)
+	case reflect.Int8:
+		C.algoat_search_batch_int8((*C.int8_t)(ptr), cLen, (*C.int8_t)(targetPtr), cNumTargets, cResults)
+	case reflect.Uint8:
+		C.algoat_search_batch_uint8((*C.uint8_t)(ptr), cLen, (*C.uint8_t)(targetPtr), cNumTargets, cResults)
+	case reflect.Float64:
+		C.algoat_search_batch_float64((*C.double)(ptr), cLen, (*C.double)(targetPtr), cNumTargets, cResults)
+	case reflect.Float32:
+		C.algoat_search_batch_float32((*C.float)(ptr), cLen, (*C.float)(targetPtr), cNumTargets, cResults)
 	}
 }
 
 // dispatchTopK calls the appropriate C-ABI top-k selection entry point.
-func dispatchTopK(ptr unsafe.Pointer, n int, kind reflect.Kind, k int) bool {
+func dispatchTopK(ptr unsafe.Pointer, n int, kind reflect.Kind, k int) {
 	cLen := C.size_t(n)
 	cK := C.size_t(k)
 
@@ -148,14 +207,19 @@ func dispatchTopK(ptr unsafe.Pointer, n int, kind reflect.Kind, k int) bool {
 		C.algoat_topk_int32((*C.int32_t)(ptr), cLen, cK)
 	case reflect.Uint32:
 		C.algoat_topk_uint32((*C.uint32_t)(ptr), cLen, cK)
+	case reflect.Int16:
+		C.algoat_topk_int16((*C.int16_t)(ptr), cLen, cK)
+	case reflect.Uint16:
+		C.algoat_topk_uint16((*C.uint16_t)(ptr), cLen, cK)
+	case reflect.Int8:
+		C.algoat_topk_int8((*C.int8_t)(ptr), cLen, cK)
+	case reflect.Uint8:
+		C.algoat_topk_uint8((*C.uint8_t)(ptr), cLen, cK)
 	case reflect.Float64:
 		C.algoat_topk_float64((*C.double)(ptr), cLen, cK)
 	case reflect.Float32:
 		C.algoat_topk_float32((*C.float)(ptr), cLen, cK)
-	default:
-		return false
 	}
-	return true
 }
 
 // Sort sorts the given slice in-place in ascending order using Algoat's
@@ -172,9 +236,6 @@ func Sort[T Number](slice []T) {
 		}
 		return
 	}
-	if cap(slice) == 0 {
-		return
-	}
 
 	var p runtime.Pinner
 	ptr := unsafe.Pointer(unsafe.SliceData(slice))
@@ -182,9 +243,7 @@ func Sort[T Number](slice []T) {
 	defer p.Unpin()
 
 	kind := reflect.TypeOf(slice).Elem().Kind()
-	if !dispatchSort(ptr, n, kind, 1) {
-		slices.Sort(slice)
-	}
+	dispatchSort(ptr, n, kind, 1)
 }
 
 // SortSequential sorts the given slice in-place in ascending order using Algoat's
@@ -200,9 +259,6 @@ func SortSequential[T Number](slice []T) {
 		}
 		return
 	}
-	if cap(slice) == 0 {
-		return
-	}
 
 	var p runtime.Pinner
 	ptr := unsafe.Pointer(unsafe.SliceData(slice))
@@ -210,9 +266,7 @@ func SortSequential[T Number](slice []T) {
 	defer p.Unpin()
 
 	kind := reflect.TypeOf(slice).Elem().Kind()
-	if !dispatchSort(ptr, n, kind, 0) {
-		slices.Sort(slice)
-	}
+	dispatchSort(ptr, n, kind, 0)
 }
 
 // SortRadix sorts an integer slice in linear time using Algoat's Least Significant
@@ -228,9 +282,6 @@ func SortRadix[T constraints.Integer](slice []T) {
 		}
 		return
 	}
-	if cap(slice) == 0 {
-		return
-	}
 
 	var p runtime.Pinner
 	ptr := unsafe.Pointer(unsafe.SliceData(slice))
@@ -238,9 +289,7 @@ func SortRadix[T constraints.Integer](slice []T) {
 	defer p.Unpin()
 
 	kind := reflect.TypeOf(slice).Elem().Kind()
-	if !dispatchRadixSort(ptr, n, kind) {
-		slices.Sort(slice)
-	}
+	dispatchRadixSort(ptr, n, kind)
 }
 
 // Search performs a branchless lower-bound binary search for target in slice.
@@ -251,10 +300,6 @@ func Search[T Number](slice []T, target T) int {
 	if n == 0 {
 		return 0
 	}
-	if cap(slice) == 0 {
-		idx, _ := slices.BinarySearch(slice, target)
-		return idx
-	}
 
 	var p runtime.Pinner
 	ptr := unsafe.Pointer(unsafe.SliceData(slice))
@@ -262,12 +307,52 @@ func Search[T Number](slice []T, target T) int {
 	defer p.Unpin()
 
 	kind := reflect.TypeOf(slice).Elem().Kind()
-	if idx, ok := dispatchSearch(ptr, n, kind, target); ok {
-		return idx
+	return dispatchSearch(ptr, n, kind, target)
+}
+
+// SearchBatch performs branchless lower-bound binary searches for a slice of targets
+// against sorted slice. It amortizes Cgo context-switch overhead across all queries,
+// delivering optimal throughput for high-QPS lookups.
+// It returns a slice of indices where results[i] is the lower bound index for targets[i].
+func SearchBatch[T Number](slice []T, targets []T) []int {
+	numTargets := len(targets)
+	if numTargets == 0 {
+		return nil
+	}
+	n := len(slice)
+	if n == 0 {
+		return make([]int, numTargets)
 	}
 
-	idx, _ := slices.BinarySearch(slice, target)
-	return idx
+	var p runtime.Pinner
+
+	ptr := unsafe.Pointer(unsafe.SliceData(slice))
+	p.Pin(ptr)
+	defer p.Unpin()
+
+	targetPtr := unsafe.Pointer(unsafe.SliceData(targets))
+	p.Pin(targetPtr)
+
+	kind := reflect.TypeOf(slice).Elem().Kind()
+
+	if unsafe.Sizeof(int(0)) == 8 {
+		out := make([]int, numTargets)
+		resultPtr := unsafe.Pointer(unsafe.SliceData(out))
+		p.Pin(resultPtr)
+		dispatchSearchBatch(ptr, n, targetPtr, numTargets, resultPtr, kind)
+		return out
+	}
+
+	raw := make([]int64, numTargets)
+	resultPtr := unsafe.Pointer(unsafe.SliceData(raw))
+	p.Pin(resultPtr)
+	dispatchSearchBatch(ptr, n, targetPtr, numTargets, resultPtr, kind)
+
+	out := make([]int, numTargets)
+	for i, r := range raw {
+		out[i] = int(r)
+	}
+	return out
 }
 
 // TopK rearranges slice so that the prefix subrange [0, k) contains the k
@@ -284,10 +369,6 @@ func TopK[T Number](slice []T, k int) []T {
 	if n <= 1 {
 		return slice[:k]
 	}
-	if cap(slice) == 0 {
-		slices.Sort(slice)
-		return slice[:k]
-	}
 
 	var p runtime.Pinner
 	ptr := unsafe.Pointer(unsafe.SliceData(slice))
@@ -295,9 +376,7 @@ func TopK[T Number](slice []T, k int) []T {
 	defer p.Unpin()
 
 	kind := reflect.TypeOf(slice).Elem().Kind()
-	if !dispatchTopK(ptr, n, kind, k) {
-		slices.Sort(slice)
-	}
+	dispatchTopK(ptr, n, kind, k)
 
 	return slice[:k]
 }

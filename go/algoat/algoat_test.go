@@ -245,6 +245,80 @@ func TestTopK(t *testing.T) {
 	}
 }
 
+func TestSortInt16AndInt8(t *testing.T) {
+	d16 := []int16{500, -200, 32000, -32000, 0, 42}
+	algoat.Sort(d16)
+	if !slices.IsSorted(d16) {
+		t.Fatalf("int16 sort failed: %v", d16)
+	}
+
+	u16 := []uint16{50000, 10, 200, 0, 65535}
+	algoat.Sort(u16)
+	if !slices.IsSorted(u16) {
+		t.Fatalf("uint16 sort failed: %v", u16)
+	}
+
+	d8 := []int8{120, -100, 0, 42, -5, 127, -128}
+	algoat.Sort(d8)
+	if !slices.IsSorted(d8) {
+		t.Fatalf("int8 sort failed: %v", d8)
+	}
+
+	u8 := []uint8{255, 0, 12, 99, 42, 100}
+	algoat.Sort(u8)
+	if !slices.IsSorted(u8) {
+		t.Fatalf("uint8 sort failed: %v", u8)
+	}
+}
+
+func TestSearchBatch(t *testing.T) {
+	data := []int64{10, 20, 30, 40, 50, 60, 70, 80}
+	queries := []int64{5, 30, 35, 80, 100}
+	results := algoat.SearchBatch(data, queries)
+
+	expected := []int{0, 2, 3, 7, 8}
+	if len(results) != len(expected) {
+		t.Fatalf("expected len %d, got %d", len(expected), len(results))
+	}
+	for i := range expected {
+		if results[i] != expected[i] {
+			t.Fatalf("at %d: expected %d, got %d", i, expected[i], results[i])
+		}
+	}
+
+	// Empty targets
+	if res := algoat.SearchBatch(data, []int64{}); res != nil {
+		t.Fatalf("expected nil for empty targets")
+	}
+
+	// Empty data
+	var empty []int64
+	emptyRes := algoat.SearchBatch(empty, queries)
+	for i, r := range emptyRes {
+		if r != 0 {
+			t.Fatalf("at %d: expected 0 for empty data, got %d", i, r)
+		}
+	}
+}
+
+func TestSearchInt16AndInt8(t *testing.T) {
+	d16 := []int16{-100, 0, 50, 100, 200}
+	if idx := algoat.Search(d16, int16(50)); idx != 2 {
+		t.Fatalf("expected 2, got %d", idx)
+	}
+	if idx := algoat.Search(d16, int16(75)); idx != 3 {
+		t.Fatalf("expected 3, got %d", idx)
+	}
+
+	d8 := []int8{-50, -10, 0, 20, 60}
+	if idx := algoat.Search(d8, int8(20)); idx != 3 {
+		t.Fatalf("expected 3, got %d", idx)
+	}
+	if idx := algoat.Search(d8, int8(-60)); idx != 0 {
+		t.Fatalf("expected 0, got %d", idx)
+	}
+}
+
 func TestZeroAllocationsAndNoLeak(t *testing.T) {
 	// Preallocate buffer to test that Sort, Search, and TopK perform zero heap allocations
 	buf := make([]int64, 1000)

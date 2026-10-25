@@ -82,17 +82,51 @@ func BenchmarkSearch(b *testing.B) {
 		slices.Sort(data)
 		target := data[n/2]
 
-		b.Run(fmt.Sprintf("Algoat_Branchless/N=%d", n), func(b *testing.B) {
+		b.Run(fmt.Sprintf("Algoat_Branchless_Single/N=%d", n), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_ = algoat.Search(data, target)
 			}
 		})
 
-		b.Run(fmt.Sprintf("Go_BinarySearch/N=%d", n), func(b *testing.B) {
+		b.Run(fmt.Sprintf("Go_BinarySearch_Single/N=%d", n), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_, _ = slices.BinarySearch(data, target)
+			}
+		})
+	}
+}
+
+func BenchmarkSearchBatch(b *testing.B) {
+	sizes := []int{10_000, 100_000, 1_000_000}
+	numQueries := 10_000
+
+	for _, n := range sizes {
+		data := generateRandomInt64(n, 54321)
+		slices.Sort(data)
+
+		rng := rand.New(rand.NewSource(99999))
+		queries := make([]int64, numQueries)
+		for i := range queries {
+			queries[i] = data[rng.Intn(n)]
+		}
+
+		b.Run(fmt.Sprintf("Algoat_SearchBatch_10k/N=%d", n), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_ = algoat.SearchBatch(data, queries)
+			}
+		})
+
+		b.Run(fmt.Sprintf("Go_slices_BinarySearch_10k/N=%d", n), func(b *testing.B) {
+			out := make([]int, numQueries)
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				for j, q := range queries {
+					idx, _ := slices.BinarySearch(data, q)
+					out[j] = idx
+				}
 			}
 		})
 	}

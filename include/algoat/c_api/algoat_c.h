@@ -40,6 +40,10 @@ ALGOAT_C_EXPORT void algoat_sort_int64(int64_t* data, size_t len, int parallel);
 ALGOAT_C_EXPORT void algoat_sort_uint64(uint64_t* data, size_t len, int parallel);
 ALGOAT_C_EXPORT void algoat_sort_int32(int32_t* data, size_t len, int parallel);
 ALGOAT_C_EXPORT void algoat_sort_uint32(uint32_t* data, size_t len, int parallel);
+ALGOAT_C_EXPORT void algoat_sort_int16(int16_t* data, size_t len, int parallel);
+ALGOAT_C_EXPORT void algoat_sort_uint16(uint16_t* data, size_t len, int parallel);
+ALGOAT_C_EXPORT void algoat_sort_int8(int8_t* data, size_t len, int parallel);
+ALGOAT_C_EXPORT void algoat_sort_uint8(uint8_t* data, size_t len, int parallel);
 ALGOAT_C_EXPORT void algoat_sort_float64(double* data, size_t len, int parallel);
 ALGOAT_C_EXPORT void algoat_sort_float32(float* data, size_t len, int parallel);
 
@@ -50,6 +54,10 @@ ALGOAT_C_EXPORT void algoat_radix_sort_int64(int64_t* data, size_t len);
 ALGOAT_C_EXPORT void algoat_radix_sort_uint64(uint64_t* data, size_t len);
 ALGOAT_C_EXPORT void algoat_radix_sort_int32(int32_t* data, size_t len);
 ALGOAT_C_EXPORT void algoat_radix_sort_uint32(uint32_t* data, size_t len);
+ALGOAT_C_EXPORT void algoat_radix_sort_int16(int16_t* data, size_t len);
+ALGOAT_C_EXPORT void algoat_radix_sort_uint16(uint16_t* data, size_t len);
+ALGOAT_C_EXPORT void algoat_radix_sort_int8(int8_t* data, size_t len);
+ALGOAT_C_EXPORT void algoat_radix_sort_uint8(uint8_t* data, size_t len);
 
 /*
  * Branchless lower-bound searching entry points.
@@ -60,8 +68,46 @@ ALGOAT_C_EXPORT int64_t algoat_search_int64(const int64_t* data, size_t len, int
 ALGOAT_C_EXPORT int64_t algoat_search_uint64(const uint64_t* data, size_t len, uint64_t target);
 ALGOAT_C_EXPORT int64_t algoat_search_int32(const int32_t* data, size_t len, int32_t target);
 ALGOAT_C_EXPORT int64_t algoat_search_uint32(const uint32_t* data, size_t len, uint32_t target);
+ALGOAT_C_EXPORT int64_t algoat_search_int16(const int16_t* data, size_t len, int16_t target);
+ALGOAT_C_EXPORT int64_t algoat_search_uint16(const uint16_t* data, size_t len, uint16_t target);
+ALGOAT_C_EXPORT int64_t algoat_search_int8(const int8_t* data, size_t len, int8_t target);
+ALGOAT_C_EXPORT int64_t algoat_search_uint8(const uint8_t* data, size_t len, uint8_t target);
 ALGOAT_C_EXPORT int64_t algoat_search_float64(const double* data, size_t len, double target);
 ALGOAT_C_EXPORT int64_t algoat_search_float32(const float* data, size_t len, float target);
+
+/*
+ * Batch branchless lower-bound searching entry points.
+ * Amortizes Cgo context-switch overhead across multiple query lookups.
+ */
+ALGOAT_C_EXPORT void algoat_search_batch_int64(const int64_t* data, size_t len,
+                                               const int64_t* targets, size_t num_targets,
+                                               int64_t* results);
+ALGOAT_C_EXPORT void algoat_search_batch_uint64(const uint64_t* data, size_t len,
+                                                const uint64_t* targets, size_t num_targets,
+                                                int64_t* results);
+ALGOAT_C_EXPORT void algoat_search_batch_int32(const int32_t* data, size_t len,
+                                               const int32_t* targets, size_t num_targets,
+                                               int64_t* results);
+ALGOAT_C_EXPORT void algoat_search_batch_uint32(const uint32_t* data, size_t len,
+                                                const uint32_t* targets, size_t num_targets,
+                                                int64_t* results);
+ALGOAT_C_EXPORT void algoat_search_batch_int16(const int16_t* data, size_t len,
+                                               const int16_t* targets, size_t num_targets,
+                                               int64_t* results);
+ALGOAT_C_EXPORT void algoat_search_batch_uint16(const uint16_t* data, size_t len,
+                                                const uint16_t* targets, size_t num_targets,
+                                                int64_t* results);
+ALGOAT_C_EXPORT void algoat_search_batch_int8(const int8_t* data, size_t len, const int8_t* targets,
+                                              size_t num_targets, int64_t* results);
+ALGOAT_C_EXPORT void algoat_search_batch_uint8(const uint8_t* data, size_t len,
+                                               const uint8_t* targets, size_t num_targets,
+                                               int64_t* results);
+ALGOAT_C_EXPORT void algoat_search_batch_float64(const double* data, size_t len,
+                                                 const double* targets, size_t num_targets,
+                                                 int64_t* results);
+ALGOAT_C_EXPORT void algoat_search_batch_float32(const float* data, size_t len,
+                                                 const float* targets, size_t num_targets,
+                                                 int64_t* results);
 
 /*
  * Top-K selection entry points.
@@ -72,6 +118,10 @@ ALGOAT_C_EXPORT void algoat_topk_int64(int64_t* data, size_t len, size_t k);
 ALGOAT_C_EXPORT void algoat_topk_uint64(uint64_t* data, size_t len, size_t k);
 ALGOAT_C_EXPORT void algoat_topk_int32(int32_t* data, size_t len, size_t k);
 ALGOAT_C_EXPORT void algoat_topk_uint32(uint32_t* data, size_t len, size_t k);
+ALGOAT_C_EXPORT void algoat_topk_int16(int16_t* data, size_t len, size_t k);
+ALGOAT_C_EXPORT void algoat_topk_uint16(uint16_t* data, size_t len, size_t k);
+ALGOAT_C_EXPORT void algoat_topk_int8(int8_t* data, size_t len, size_t k);
+ALGOAT_C_EXPORT void algoat_topk_uint8(uint8_t* data, size_t len, size_t k);
 ALGOAT_C_EXPORT void algoat_topk_float64(double* data, size_t len, size_t k);
 ALGOAT_C_EXPORT void algoat_topk_float32(float* data, size_t len, size_t k);
 

@@ -57,6 +57,26 @@ template <typename T> int64_t dispatch_search(const T* data, size_t len, T targe
     }
 }
 
+template <typename T>
+void dispatch_search_batch(const T* data, size_t len, const T* targets, size_t num_targets,
+                           int64_t* results) noexcept {
+    if (!results || num_targets == 0) {
+        return;
+    }
+    if (!data || len == 0) {
+        std::fill_n(results, num_targets, 0);
+        return;
+    }
+    try {
+        for (size_t i = 0; i < num_targets; ++i) {
+            const auto it = algoat::searching::branchless_lower_bound(data, data + len, targets[i]);
+            results[i] = static_cast<int64_t>(std::distance(data, it));
+        }
+    } catch (...) {
+        // Guarantee no C++ exceptions cross C-ABI boundary
+    }
+}
+
 template <typename T> void dispatch_topk(T* data, size_t len, size_t k) noexcept {
     if (!data || len <= 1 || k == 0) {
         return;
@@ -92,6 +112,22 @@ void algoat_sort_uint32(uint32_t* data, size_t len, int parallel) {
     dispatch_sort(data, len, parallel);
 }
 
+void algoat_sort_int16(int16_t* data, size_t len, int parallel) {
+    dispatch_sort(data, len, parallel);
+}
+
+void algoat_sort_uint16(uint16_t* data, size_t len, int parallel) {
+    dispatch_sort(data, len, parallel);
+}
+
+void algoat_sort_int8(int8_t* data, size_t len, int parallel) {
+    dispatch_sort(data, len, parallel);
+}
+
+void algoat_sort_uint8(uint8_t* data, size_t len, int parallel) {
+    dispatch_sort(data, len, parallel);
+}
+
 void algoat_sort_float64(double* data, size_t len, int parallel) {
     dispatch_sort(data, len, parallel);
 }
@@ -116,6 +152,22 @@ void algoat_radix_sort_uint32(uint32_t* data, size_t len) {
     dispatch_radix_sort(data, len);
 }
 
+void algoat_radix_sort_int16(int16_t* data, size_t len) {
+    dispatch_radix_sort(data, len);
+}
+
+void algoat_radix_sort_uint16(uint16_t* data, size_t len) {
+    dispatch_radix_sort(data, len);
+}
+
+void algoat_radix_sort_int8(int8_t* data, size_t len) {
+    dispatch_radix_sort(data, len);
+}
+
+void algoat_radix_sort_uint8(uint8_t* data, size_t len) {
+    dispatch_radix_sort(data, len);
+}
+
 int64_t algoat_search_int64(const int64_t* data, size_t len, int64_t target) {
     return dispatch_search(data, len, target);
 }
@@ -132,12 +184,78 @@ int64_t algoat_search_uint32(const uint32_t* data, size_t len, uint32_t target) 
     return dispatch_search(data, len, target);
 }
 
+int64_t algoat_search_int16(const int16_t* data, size_t len, int16_t target) {
+    return dispatch_search(data, len, target);
+}
+
+int64_t algoat_search_uint16(const uint16_t* data, size_t len, uint16_t target) {
+    return dispatch_search(data, len, target);
+}
+
+int64_t algoat_search_int8(const int8_t* data, size_t len, int8_t target) {
+    return dispatch_search(data, len, target);
+}
+
+int64_t algoat_search_uint8(const uint8_t* data, size_t len, uint8_t target) {
+    return dispatch_search(data, len, target);
+}
+
 int64_t algoat_search_float64(const double* data, size_t len, double target) {
     return dispatch_search(data, len, target);
 }
 
 int64_t algoat_search_float32(const float* data, size_t len, float target) {
     return dispatch_search(data, len, target);
+}
+
+void algoat_search_batch_int64(const int64_t* data, size_t len, const int64_t* targets,
+                               size_t num_targets, int64_t* results) {
+    dispatch_search_batch(data, len, targets, num_targets, results);
+}
+
+void algoat_search_batch_uint64(const uint64_t* data, size_t len, const uint64_t* targets,
+                                size_t num_targets, int64_t* results) {
+    dispatch_search_batch(data, len, targets, num_targets, results);
+}
+
+void algoat_search_batch_int32(const int32_t* data, size_t len, const int32_t* targets,
+                               size_t num_targets, int64_t* results) {
+    dispatch_search_batch(data, len, targets, num_targets, results);
+}
+
+void algoat_search_batch_uint32(const uint32_t* data, size_t len, const uint32_t* targets,
+                                size_t num_targets, int64_t* results) {
+    dispatch_search_batch(data, len, targets, num_targets, results);
+}
+
+void algoat_search_batch_int16(const int16_t* data, size_t len, const int16_t* targets,
+                               size_t num_targets, int64_t* results) {
+    dispatch_search_batch(data, len, targets, num_targets, results);
+}
+
+void algoat_search_batch_uint16(const uint16_t* data, size_t len, const uint16_t* targets,
+                                size_t num_targets, int64_t* results) {
+    dispatch_search_batch(data, len, targets, num_targets, results);
+}
+
+void algoat_search_batch_int8(const int8_t* data, size_t len, const int8_t* targets,
+                              size_t num_targets, int64_t* results) {
+    dispatch_search_batch(data, len, targets, num_targets, results);
+}
+
+void algoat_search_batch_uint8(const uint8_t* data, size_t len, const uint8_t* targets,
+                               size_t num_targets, int64_t* results) {
+    dispatch_search_batch(data, len, targets, num_targets, results);
+}
+
+void algoat_search_batch_float64(const double* data, size_t len, const double* targets,
+                                 size_t num_targets, int64_t* results) {
+    dispatch_search_batch(data, len, targets, num_targets, results);
+}
+
+void algoat_search_batch_float32(const float* data, size_t len, const float* targets,
+                                 size_t num_targets, int64_t* results) {
+    dispatch_search_batch(data, len, targets, num_targets, results);
 }
 
 void algoat_topk_int64(int64_t* data, size_t len, size_t k) {
@@ -153,6 +271,22 @@ void algoat_topk_int32(int32_t* data, size_t len, size_t k) {
 }
 
 void algoat_topk_uint32(uint32_t* data, size_t len, size_t k) {
+    dispatch_topk(data, len, k);
+}
+
+void algoat_topk_int16(int16_t* data, size_t len, size_t k) {
+    dispatch_topk(data, len, k);
+}
+
+void algoat_topk_uint16(uint16_t* data, size_t len, size_t k) {
+    dispatch_topk(data, len, k);
+}
+
+void algoat_topk_int8(int8_t* data, size_t len, size_t k) {
+    dispatch_topk(data, len, k);
+}
+
+void algoat_topk_uint8(uint8_t* data, size_t len, size_t k) {
     dispatch_topk(data, len, k);
 }
 

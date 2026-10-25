@@ -90,6 +90,50 @@ TEST(AlgoatCTest, TopKSelection) {
     EXPECT_EQ(data[2], 30);
 }
 
+TEST(AlgoatCTest, SortInt16AndInt8) {
+    std::vector<int16_t> d16 = {1000, -500, 32000, -32000, 0, 42};
+    algoat_sort_int16(d16.data(), d16.size(), 0);
+    EXPECT_TRUE(std::is_sorted(d16.begin(), d16.end()));
+
+    std::vector<int8_t> d8 = {120, -100, 0, 42, -5, 127, -128};
+    algoat_sort_int8(d8.data(), d8.size(), 0);
+    EXPECT_TRUE(std::is_sorted(d8.begin(), d8.end()));
+}
+
+TEST(AlgoatCTest, RadixSortInt16AndInt8) {
+    std::vector<int16_t> d16 = {500, -200, 3000, 0, -1000, 42};
+    algoat_radix_sort_int16(d16.data(), d16.size());
+    EXPECT_TRUE(std::is_sorted(d16.begin(), d16.end()));
+
+    std::vector<int8_t> d8 = {100, -50, 20, 0, -120, 77};
+    algoat_radix_sort_int8(d8.data(), d8.size());
+    EXPECT_TRUE(std::is_sorted(d8.begin(), d8.end()));
+}
+
+TEST(AlgoatCTest, BranchlessSearchInt16AndInt8) {
+    std::vector<int16_t> d16 = {-100, 0, 50, 100, 200};
+    EXPECT_EQ(algoat_search_int16(d16.data(), d16.size(), 50), 2);
+    EXPECT_EQ(algoat_search_int16(d16.data(), d16.size(), 75), 3);
+
+    std::vector<int8_t> d8 = {-50, -10, 0, 20, 60};
+    EXPECT_EQ(algoat_search_int8(d8.data(), d8.size(), 20), 3);
+    EXPECT_EQ(algoat_search_int8(d8.data(), d8.size(), -60), 0);
+}
+
+TEST(AlgoatCTest, BatchSearchInt64) {
+    std::vector<int64_t> data = {10, 20, 30, 40, 50, 60, 70, 80};
+    std::vector<int64_t> queries = {5, 30, 35, 80, 100};
+    std::vector<int64_t> results(queries.size());
+
+    algoat_search_batch_int64(data.data(), data.size(), queries.data(), queries.size(),
+                              results.data());
+    EXPECT_EQ(results[0], 0);
+    EXPECT_EQ(results[1], 2);
+    EXPECT_EQ(results[2], 3);
+    EXPECT_EQ(results[3], 7);
+    EXPECT_EQ(results[4], 8);
+}
+
 TEST(AlgoatCTest, EdgeCasesNullAndEmpty) {
     algoat_sort_int64(nullptr, 0, 0);
     algoat_sort_int64(nullptr, 0, 1);
