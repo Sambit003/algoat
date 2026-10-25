@@ -16,6 +16,9 @@
 #include "memory.hpp"
 
 #include <atomic>
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
 
 namespace algoat::sorting::detail::ips4o {
 namespace detail {
@@ -93,7 +96,17 @@ template <class Cfg> void Sorter<Cfg>::parallelClassification(const bool use_equ
         diff_t sum = 0;
         for (int i = 0, end = num_buckets_; i < end; ++i) {
             sum += local_.bucket_size[i];
+#if defined(__cpp_lib_atomic_ref) && __cpp_lib_atomic_ref >= 201806L
             std::atomic_ref<diff_t>(bucket_start_[i + 1]).fetch_add(sum, std::memory_order_relaxed);
+#elif defined(_MSC_VER)
+            if constexpr (sizeof(diff_t) == 8) {
+                _InterlockedAdd64(reinterpret_cast<volatile __int64*>(&bucket_start_[i + 1]), sum);
+            } else {
+                _InterlockedAdd(reinterpret_cast<volatile long*>(&bucket_start_[i + 1]), sum);
+            }
+#else
+            __atomic_fetch_add(&bucket_start_[i + 1], sum, __ATOMIC_RELAXED);
+#endif
         }
 
         local_.first_empty_block = my_first_empty_block;

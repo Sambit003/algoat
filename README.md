@@ -1,6 +1,6 @@
 # Algoat
 
-Algoat is a high-performance C++20 and Python algorithm library featuring smart fallback and dynamic algorithm dispatch based on dataset traits and runtime configuration. It is designed to provide zero-overhead algorithmic primitives for high-performance computing, data processing, and scientific applications.
+Algoat is a high-performance C++20, Python, and Go algorithm library featuring smart fallback and dynamic algorithm dispatch based on dataset traits and runtime configuration. It is designed to provide zero-overhead algorithmic primitives for high-performance computing, data processing, and scientific applications.
 
 ---
 
@@ -127,6 +127,32 @@ algoat.sort_inplace(data) # [3, 7, 19, 21, 42, 55, 100]
 # Search in sorted data
 index = algoat.search(data, 19)
 print(index)  # 2
+```
+
+### Go Usage (`algoat-go`)
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/Sambit003/algoat/go/algoat"
+)
+
+func main() {
+	// Zero-copy in-place parallel sort (up to 7x-11x faster than slices.Sort on large slices)
+	data := []int64{42, 7, 19, 100, 3, 55, 21}
+	algoat.Sort(data)
+	fmt.Println(data) // [3 7 19 21 42 55 100]
+
+	// Branchless lower-bound search
+	idx := algoat.Search(data, int64(19))
+	fmt.Println("Found at index:", idx) // 2
+
+	// Zero-copy Top-K selection
+	top3 := algoat.TopK(data, 3)
+	fmt.Println("Top 3:", top3) // [3 7 19]
+}
 ```
 
 ---

@@ -285,6 +285,42 @@ pytest tests/python/ -v
 
 ---
 
+### Golang Interoperability Workflows (`algoat-go`)
+
+Algoat provides high-performance Golang interoperability via a zero-copy Cgo bridge in the `go/algoat` module, utilizing Go 1.21+ `unsafe.SliceData` and `runtime.Pinner`.
+
+#### 1. Building Prerequisites
+Ensure the C++ core library is compiled before running Go tests or benchmarks:
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+```
+
+#### 2. Running Go Tests
+Run the Go unit test and race detector suite:
+```bash
+cd go/algoat
+go test -v ./...
+go test -race -v ./...
+```
+
+#### 3. Running Go Fuzz Testing
+```bash
+cd go/algoat
+go test -fuzz=FuzzSort -fuzztime=10s
+go test -fuzz=FuzzSearch -fuzztime=10s
+go test -fuzz=FuzzTopK -fuzztime=10s
+```
+
+#### 4. Running Go Benchmarks
+Benchmark `algoat.Sort` against Go's standard library `slices.Sort`:
+```bash
+cd go/algoat
+go test -bench=. -benchmem -run=^$
+```
+
+---
+
 ### Running Benchmarks
 
 #### C++ Sorting Benchmarks
