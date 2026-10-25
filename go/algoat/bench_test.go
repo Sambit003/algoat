@@ -80,19 +80,24 @@ func BenchmarkSearch(b *testing.B) {
 	for _, n := range sizes {
 		data := generateRandomInt64(n, 54321)
 		slices.Sort(data)
-		target := data[n/2]
+
+		rng := rand.New(rand.NewSource(12345))
+		targets := make([]int64, 1024)
+		for i := range targets {
+			targets[i] = data[rng.Intn(n)]
+		}
 
 		b.Run(fmt.Sprintf("Algoat_Branchless_Single/N=%d", n), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_ = algoat.Search(data, target)
+				_ = algoat.Search(data, targets[i&1023])
 			}
 		})
 
 		b.Run(fmt.Sprintf("Go_BinarySearch_Single/N=%d", n), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = slices.BinarySearch(data, target)
+				_, _ = slices.BinarySearch(data, targets[i&1023])
 			}
 		})
 	}
