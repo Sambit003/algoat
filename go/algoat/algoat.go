@@ -6,7 +6,7 @@ package algoat
 #cgo LDFLAGS: -L${SRCDIR}/../../build/src -L${SRCDIR}/../../build -L${SRCDIR}/../../build/release/src -L${SRCDIR}/../../build/debug/src -L${SRCDIR}/../../build/src/Release -L${SRCDIR}/../../build/src/Debug -lalgoat
 #cgo linux LDFLAGS: -latomic -lstdc++ -lm -lpthread
 #cgo darwin LDFLAGS: -lc++
-#cgo windows LDFLAGS: -lstdc++
+#cgo windows LDFLAGS: -latomic -lstdc++
 #include <algoat/c_api/algoat_c.h>
 */
 import "C"
