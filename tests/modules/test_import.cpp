@@ -195,3 +195,17 @@ TEST(ModuleImportTest, StringsSuiteBurstsortAndMultikeyQuicksort) {
     algoat::strings::multikey_quicksort(std::span<std::string_view>{words2});
     EXPECT_TRUE(std::is_sorted(words2.begin(), words2.end()));
 }
+
+TEST(ModuleImportTest, StringsSuiteSubstringSearch) {
+    std::string text = "the quick brown fox jumps over the lazy dog";
+    EXPECT_EQ(algoat::find_substring(text, "quick"), 4);
+    EXPECT_EQ(algoat::strings::find_substring(text, "fox"), 16);
+
+    auto all_the = algoat::strings::find_all_substrings(text, "the");
+    std::vector<std::string_view::size_type> expected_the = {0, 31};
+    EXPECT_EQ(all_the, expected_the);
+
+    auto it = algoat::search_pattern(text, "lazy");
+    ASSERT_NE(it, text.end());
+    EXPECT_EQ(std::distance(text.begin(), it), 35);
+}

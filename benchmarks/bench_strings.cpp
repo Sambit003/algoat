@@ -1,5 +1,6 @@
 #include "algoat/strings/burstsort.hpp"
 #include "algoat/strings/multikey_quicksort.hpp"
+#include "algoat/strings/substring_search.hpp"
 
 #include <algorithm>
 #include <benchmark/benchmark.h>
@@ -224,5 +225,193 @@ static void BM_URLs_Burstsort(benchmark::State& state) {
     }
 }
 BENCHMARK(BM_URLs_Burstsort)->Range(10000, 100000);
+
+// 4. Substring Search Benchmarks
+std::string generate_large_corpus(size_t target_bytes) {
+    auto titles = generate_wikipedia_titles(target_bytes / 30);
+    std::string corpus;
+    corpus.reserve(target_bytes);
+    for (const auto& t : titles) {
+        corpus += t;
+        corpus += " ";
+        if (corpus.size() >= target_bytes)
+            break;
+    }
+    return corpus;
+}
+
+static void BM_Substring_StdFind_LargeCorpus(benchmark::State& state) {
+    const size_t corpus_size = state.range(0);
+    auto corpus = generate_large_corpus(corpus_size);
+    const size_t target_idx = (corpus.size() * 95) / 100;
+    const std::string needle = "List_of_Algorithms_Quantum_END";
+    std::memcpy(corpus.data() + target_idx, needle.data(), needle.size());
+    std::string_view hs(corpus);
+    std::string_view ne(needle);
+
+    for (auto _ : state) {
+        auto pos = hs.find(ne);
+        benchmark::DoNotOptimize(pos);
+    }
+    state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(target_idx));
+}
+BENCHMARK(BM_Substring_StdFind_LargeCorpus)->Range(64 * 1024, 4 * 1024 * 1024);
+
+static void BM_Substring_TwoWayScalar_LargeCorpus(benchmark::State& state) {
+    const size_t corpus_size = state.range(0);
+    auto corpus = generate_large_corpus(corpus_size);
+    const size_t target_idx = (corpus.size() * 95) / 100;
+    const std::string needle = "List_of_Algorithms_Quantum_END";
+    std::memcpy(corpus.data() + target_idx, needle.data(), needle.size());
+    std::string_view hs(corpus);
+    std::string_view ne(needle);
+
+    for (auto _ : state) {
+        auto pos = algoat::strings::detail::two_way_search(hs, ne);
+        benchmark::DoNotOptimize(pos);
+    }
+    state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(target_idx));
+}
+BENCHMARK(BM_Substring_TwoWayScalar_LargeCorpus)->Range(64 * 1024, 4 * 1024 * 1024);
+
+static void BM_Substring_HighwayTwoWay_LargeCorpus(benchmark::State& state) {
+    const size_t corpus_size = state.range(0);
+    auto corpus = generate_large_corpus(corpus_size);
+    const size_t target_idx = (corpus.size() * 95) / 100;
+    const std::string needle = "List_of_Algorithms_Quantum_END";
+    std::memcpy(corpus.data() + target_idx, needle.data(), needle.size());
+    std::string_view hs(corpus);
+    std::string_view ne(needle);
+
+    for (auto _ : state) {
+        auto pos = algoat::strings::find_substring(hs, ne);
+        benchmark::DoNotOptimize(pos);
+    }
+    state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(target_idx));
+}
+BENCHMARK(BM_Substring_HighwayTwoWay_LargeCorpus)->Range(64 * 1024, 4 * 1024 * 1024);
+
+static void BM_Substring_StdFind_Pathological(benchmark::State& state) {
+    const size_t len = state.range(0);
+    std::string haystack(len, 'a');
+    haystack += 'b';
+    std::string needle(500, 'a');
+    needle += 'b';
+
+    std::string_view hs(haystack);
+    std::string_view ne(needle);
+
+    for (auto _ : state) {
+        auto pos = hs.find(ne);
+        benchmark::DoNotOptimize(pos);
+    }
+    state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(len));
+}
+BENCHMARK(BM_Substring_StdFind_Pathological)->Range(10000, 100000);
+
+static void BM_Substring_TwoWayScalar_Pathological(benchmark::State& state) {
+    const size_t len = state.range(0);
+    std::string haystack(len, 'a');
+    haystack += 'b';
+    std::string needle(500, 'a');
+    needle += 'b';
+
+    std::string_view hs(haystack);
+    std::string_view ne(needle);
+
+    for (auto _ : state) {
+        auto pos = algoat::strings::detail::two_way_search(hs, ne);
+        benchmark::DoNotOptimize(pos);
+    }
+    state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(len));
+}
+BENCHMARK(BM_Substring_TwoWayScalar_Pathological)->Range(10000, 100000);
+
+static void BM_Substring_HighwayTwoWay_Pathological(benchmark::State& state) {
+    const size_t len = state.range(0);
+    std::string haystack(len, 'a');
+    haystack += 'b';
+    std::string needle(500, 'a');
+    needle += 'b';
+
+    std::string_view hs(haystack);
+    std::string_view ne(needle);
+
+    for (auto _ : state) {
+        auto pos = algoat::strings::find_substring(hs, ne);
+        benchmark::DoNotOptimize(pos);
+    }
+    state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(len));
+}
+BENCHMARK(BM_Substring_HighwayTwoWay_Pathological)->Range(10000, 100000);
+
+static void BM_Substring_StdFind_GenomicDNA(benchmark::State& state) {
+    const size_t len = state.range(0);
+    auto dna_vec = generate_genomic_dna(len / 40, 40);
+    std::string dna;
+    dna.reserve(len);
+    for (const auto& s : dna_vec) {
+        dna += s;
+        if (dna.size() >= len)
+            break;
+    }
+    const size_t target_idx = (dna.size() * 95) / 100;
+    const std::string needle = dna.substr(target_idx, 20);
+    std::string_view hs(dna);
+    std::string_view ne(needle);
+
+    for (auto _ : state) {
+        auto pos = hs.find(ne);
+        benchmark::DoNotOptimize(pos);
+    }
+    state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(target_idx));
+}
+BENCHMARK(BM_Substring_StdFind_GenomicDNA)->Range(64 * 1024, 1024 * 1024);
+
+static void BM_Substring_TwoWayScalar_GenomicDNA(benchmark::State& state) {
+    const size_t len = state.range(0);
+    auto dna_vec = generate_genomic_dna(len / 40, 40);
+    std::string dna;
+    dna.reserve(len);
+    for (const auto& s : dna_vec) {
+        dna += s;
+        if (dna.size() >= len)
+            break;
+    }
+    const size_t target_idx = (dna.size() * 95) / 100;
+    const std::string needle = dna.substr(target_idx, 20);
+    std::string_view hs(dna);
+    std::string_view ne(needle);
+
+    for (auto _ : state) {
+        auto pos = algoat::strings::detail::two_way_search(hs, ne);
+        benchmark::DoNotOptimize(pos);
+    }
+    state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(target_idx));
+}
+BENCHMARK(BM_Substring_TwoWayScalar_GenomicDNA)->Range(64 * 1024, 1024 * 1024);
+
+static void BM_Substring_HighwayTwoWay_GenomicDNA(benchmark::State& state) {
+    const size_t len = state.range(0);
+    auto dna_vec = generate_genomic_dna(len / 40, 40);
+    std::string dna;
+    dna.reserve(len);
+    for (const auto& s : dna_vec) {
+        dna += s;
+        if (dna.size() >= len)
+            break;
+    }
+    const size_t target_idx = (dna.size() * 95) / 100;
+    const std::string needle = dna.substr(target_idx, 20);
+    std::string_view hs(dna);
+    std::string_view ne(needle);
+
+    for (auto _ : state) {
+        auto pos = algoat::strings::find_substring(hs, ne);
+        benchmark::DoNotOptimize(pos);
+    }
+    state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(target_idx));
+}
+BENCHMARK(BM_Substring_HighwayTwoWay_GenomicDNA)->Range(64 * 1024, 1024 * 1024);
 
 } // namespace

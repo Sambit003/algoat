@@ -46,6 +46,7 @@ module;
 #include <algoat/sorting/sorting.hpp>
 #include <algoat/strings/burstsort.hpp>
 #include <algoat/strings/multikey_quicksort.hpp>
+#include <algoat/strings/substring_search.hpp>
 #include <algoat/utils.hpp>
 
 export module algoat;
@@ -57,6 +58,8 @@ export namespace algoat {
 using algoat::branchless_lower_bound;
 using algoat::BranchlessBinarySearch;
 using algoat::clamp;
+using algoat::find_all_substrings;
+using algoat::find_substring;
 using algoat::galloping_search;
 using algoat::GallopingSearch;
 using algoat::get_dispatcher;
@@ -64,6 +67,7 @@ using algoat::get_global_config;
 using algoat::load_global_config;
 using algoat::nth_element;
 using algoat::search;
+using algoat::search_pattern;
 using algoat::select_optimal;
 using algoat::sort;
 using algoat::SpaceFillingCurve;
@@ -222,6 +226,9 @@ using algoat::searching::StaticBTree;
 
 namespace strings {
 using algoat::strings::burstsort;
+using algoat::strings::find_all_substrings;
+using algoat::strings::find_substring;
 using algoat::strings::multikey_quicksort;
+using algoat::strings::search_pattern;
 } // namespace strings
 } // namespace algoat

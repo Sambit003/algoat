@@ -25,6 +25,7 @@
 #include "algoat/sorting/pdqsort.hpp"
 #include "algoat/strings/burstsort.hpp"
 #include "algoat/strings/multikey_quicksort.hpp"
+#include "algoat/strings/substring_search.hpp"
 
 #include <concepts>
 #include <cstddef>
@@ -50,6 +51,9 @@ using selection::nth_element;
 using selection::select_optimal;
 using selection::top_k_sorted;
 using selection::top_k_unsorted;
+using strings::find_all_substrings;
+using strings::find_substring;
+using strings::search_pattern;
 
 /**
  * @brief Retrieves the thread-safe global configuration instance.
