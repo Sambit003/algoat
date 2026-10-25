@@ -168,8 +168,8 @@ struct PyBigIntWrapper {
     int64_t small_val; ///< Unboxed 64-bit integer value if fitting.
     bool is_small;     ///< True if integer fits in 64 bits without overflow.
 
-    PyBigIntWrapper() : obj(nullptr), small_val(0), is_small(true) {}
-    explicit PyBigIntWrapper(PyObject* o) : obj(o), small_val(0), is_small(true) {
+    PyBigIntWrapper() : obj(nullptr), small_val(0), is_small(false) {}
+    explicit PyBigIntWrapper(PyObject* o) : obj(o), small_val(0), is_small(false) {
         if (PyLong_Check(o)) {
             int overflow = 0;
             long long v = PyLong_AsLongLongAndOverflow(o, &overflow);
@@ -182,6 +182,8 @@ struct PyBigIntWrapper {
         } else if (PyFloat_Check(o)) {
             small_val = static_cast<int64_t>(PyFloat_AsDouble(o));
             is_small = true;
+        } else {
+            is_small = false;
         }
     }
 

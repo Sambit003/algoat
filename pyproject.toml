@@ -44,6 +44,11 @@ cmake.define.ALGOAT_BUILD_TESTS = "OFF"
 cmake.define.ALGOAT_BUILD_BENCHMARKS = "OFF"
 cmake.define.ALGOAT_BUILD_EXAMPLES = "OFF"
 
+[tool.pytest.ini_options]
+markers = [
+    "benchmark: Performance benchmark tests",
+]
+
 [tool.cibuildwheel]
 build = "cp310-* cp311-* cp312-* cp313-* cp314-*"
 skip = "pp* *musllinux* *i686*"
