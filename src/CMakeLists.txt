@@ -10,6 +10,7 @@ add_library(algoat
     searching/binary_search.cpp
     searching/interpolation_search.cpp
     searching/hybrid_interpolation_search.cpp
+    strings/substring_search.cpp
 )
 
 target_include_directories(algoat

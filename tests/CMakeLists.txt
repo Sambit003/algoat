@@ -77,17 +77,21 @@ algoat_add_test(test_top_k selection/test_top_k.cpp)
 # String sorting suite tests
 algoat_add_test(test_multikey_quicksort strings/test_multikey_quicksort.cpp)
 algoat_add_test(test_burstsort strings/test_burstsort.cpp)
+algoat_add_test(test_substring_search strings/test_substring_search.cpp)
 
 # Property-Based Tests
 add_executable(test_sorting_invariants pbt/test_sorting_invariants.cpp)
 add_executable(test_searching_invariants pbt/test_searching_invariants.cpp)
 add_executable(test_selection_invariants pbt/test_selection_invariants.cpp)
+add_executable(test_substring_invariants pbt/test_substring_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_sorting_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_selection_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_selection_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_substring_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_substring_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -103,6 +107,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_selection_fuzzer PRIVATE algoat)
     target_compile_options(diff_selection_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_selection_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_substring_fuzzer fuzzing/diff_substring_fuzzer.cpp)
+    target_link_libraries(diff_substring_fuzzer PRIVATE algoat)
+    target_compile_options(diff_substring_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_substring_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)
