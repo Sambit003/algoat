@@ -33,6 +33,7 @@ module;
 #include <algoat/core/dispatcher.hpp>
 #include <algoat/core/registry.hpp>
 #include <algoat/core/traits.hpp>
+#include <algoat/geometry/kdtree.hpp>
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
 #include <algoat/meta/static_sort.hpp>
@@ -231,4 +232,10 @@ using algoat::strings::find_substring;
 using algoat::strings::multikey_quicksort;
 using algoat::strings::search_pattern;
 } // namespace strings
+
+namespace geometry {
+using algoat::geometry::KDTree;
+using algoat::geometry::MetricType;
+using algoat::geometry::SpatialPoint;
+} // namespace geometry
 } // namespace algoat
