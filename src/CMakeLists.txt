@@ -1,5 +1,6 @@
 add_library(algoat
     algoat.cpp
+    c_api/algoat_c.cpp
     core/config.cpp
     core/dispatcher.cpp
     simd/isa.cpp
@@ -73,6 +74,18 @@ if(ALGOAT_HAS_LIBATOMIC)
     target_link_libraries(algoat PUBLIC atomic)
 endif()
 
+add_library(algoat_c SHARED c_api/algoat_c.cpp)
+target_include_directories(algoat_c
+    PUBLIC
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_compile_features(algoat_c PUBLIC cxx_std_20)
+target_compile_definitions(algoat_c PRIVATE ALGOAT_C_BUILD_SHARED)
+target_link_libraries(algoat_c PRIVATE algoat)
+set_target_properties(algoat_c PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 include(GNUInstallDirs)
 
 set(_algoat_module_install_args "")
@@ -80,7 +93,7 @@ if(ALGOAT_BUILD_MODULES)
     set(_algoat_module_install_args FILE_SET CXX_MODULES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/algoat/modules)
 endif()
 
-install(TARGETS algoat
+install(TARGETS algoat algoat_c
     EXPORT AlgoatTargets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

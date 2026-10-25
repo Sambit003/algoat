@@ -79,6 +79,9 @@ algoat_add_test(test_multikey_quicksort strings/test_multikey_quicksort.cpp)
 algoat_add_test(test_burstsort strings/test_burstsort.cpp)
 algoat_add_test(test_substring_search strings/test_substring_search.cpp)
 
+# C-ABI tests
+algoat_add_test(test_algoat_c c_api/test_algoat_c.cpp)
+
 # Property-Based Tests
 add_executable(test_sorting_invariants pbt/test_sorting_invariants.cpp)
 add_executable(test_searching_invariants pbt/test_searching_invariants.cpp)
