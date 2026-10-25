@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/Sambit003/algoat/go/algoat/internal/asm"
 	"golang.org/x/exp/constraints"
 )
 
@@ -293,94 +292,12 @@ func SortRadix[T constraints.Integer](slice []T) {
 	dispatchRadixSort(ptr, n, kind)
 }
 
-// dispatchSearchFast dispatches to architecture-optimized native assembly routines (AMD64 CMOV).
-// It evaluates a direct concrete type switch (0.3ns) for primitive numeric types,
-// falling back to reflect.Kind only for custom user-defined domain types (e.g. type UserID int64).
-func dispatchSearchFast[T Number](ptr unsafe.Pointer, n int, target T) int {
-	switch t := any(target).(type) {
-	case int64:
-		return asm.BranchlessSearchInt64(ptr, n, t)
-	case uint64:
-		return asm.BranchlessSearchUint64(ptr, n, t)
-	case int:
-		if unsafe.Sizeof(int(0)) == 8 {
-			return asm.BranchlessSearchInt64(ptr, n, int64(t))
-		}
-		return asm.BranchlessSearchInt32(ptr, n, int32(t))
-	case uint:
-		if unsafe.Sizeof(uint(0)) == 8 {
-			return asm.BranchlessSearchUint64(ptr, n, uint64(t))
-		}
-		return asm.BranchlessSearchUint32(ptr, n, uint32(t))
-	case uintptr:
-		if unsafe.Sizeof(uintptr(0)) == 8 {
-			return asm.BranchlessSearchUint64(ptr, n, uint64(t))
-		}
-		return asm.BranchlessSearchUint32(ptr, n, uint32(t))
-	case int32:
-		return asm.BranchlessSearchInt32(ptr, n, t)
-	case uint32:
-		return asm.BranchlessSearchUint32(ptr, n, t)
-	case int16:
-		return asm.BranchlessSearchInt16(ptr, n, t)
-	case uint16:
-		return asm.BranchlessSearchUint16(ptr, n, t)
-	case int8:
-		return asm.BranchlessSearchInt8(ptr, n, t)
-	case uint8:
-		return asm.BranchlessSearchUint8(ptr, n, t)
-	case float64:
-		return asm.BranchlessSearchFloat64(ptr, n, t)
-	case float32:
-		return asm.BranchlessSearchFloat32(ptr, n, t)
-	default:
-		kind := reflect.TypeOf(target).Kind()
-		return dispatchSearchFastByKind(ptr, n, kind, target)
-	}
-}
-
-func dispatchSearchFastByKind[T Number](ptr unsafe.Pointer, n int, kind reflect.Kind, target T) int {
-	switch kind {
-	case reflect.Int64:
-		return asm.BranchlessSearchInt64(ptr, n, int64(target))
-	case reflect.Uint64:
-		return asm.BranchlessSearchUint64(ptr, n, uint64(target))
-	case reflect.Int:
-		if unsafe.Sizeof(int(0)) == 8 {
-			return asm.BranchlessSearchInt64(ptr, n, int64(target))
-		}
-		return asm.BranchlessSearchInt32(ptr, n, int32(target))
-	case reflect.Uint, reflect.Uintptr:
-		if unsafe.Sizeof(uint(0)) == 8 {
-			return asm.BranchlessSearchUint64(ptr, n, uint64(target))
-		}
-		return asm.BranchlessSearchUint32(ptr, n, uint32(target))
-	case reflect.Int32:
-		return asm.BranchlessSearchInt32(ptr, n, int32(target))
-	case reflect.Uint32:
-		return asm.BranchlessSearchUint32(ptr, n, uint32(target))
-	case reflect.Int16:
-		return asm.BranchlessSearchInt16(ptr, n, int16(target))
-	case reflect.Uint16:
-		return asm.BranchlessSearchUint16(ptr, n, uint16(target))
-	case reflect.Int8:
-		return asm.BranchlessSearchInt8(ptr, n, int8(target))
-	case reflect.Uint8:
-		return asm.BranchlessSearchUint8(ptr, n, uint8(target))
-	case reflect.Float64:
-		return asm.BranchlessSearchFloat64(ptr, n, float64(target))
-	case reflect.Float32:
-		return asm.BranchlessSearchFloat32(ptr, n, float32(target))
-	default:
-		return 0
-	}
-}
-
 // Search performs a branchless lower-bound binary search for target in slice.
 // It returns the index of the first element not less than target, or len(slice)
 // if all elements are less than target. The slice must be sorted in ascending order.
-// Utilizes architecture-optimized conditional moves (CMOV/CSEL) for zero branch mispredictions,
-// executing 2x to 3x faster than Go's standard library slices.BinarySearch.
+// Utilizes architecture-optimized conditional moves (CMOV on AMD64) for zero branch mispredictions,
+// executing 2x to 3x faster than Go's standard library slices.BinarySearch, and falling back
+// cleanly to the C-ABI C++ bridge on other platforms.
 func Search[T Number](slice []T, target T) int {
 	n := len(slice)
 	if n == 0 {
@@ -388,27 +305,13 @@ func Search[T Number](slice []T, target T) int {
 	}
 
 	ptr := unsafe.Pointer(unsafe.SliceData(slice))
-	return dispatchSearchFast(ptr, n, target)
+	return searchSingle(ptr, n, target)
 }
 
 // SearchBatch performs branchless lower-bound binary searches for a slice of targets
 // against sorted slice. It returns a slice of indices where results[i] is the lower bound index for targets[i].
 func SearchBatch[T Number](slice []T, targets []T) []int {
-	numTargets := len(targets)
-	if numTargets == 0 {
-		return nil
-	}
-	out := make([]int, numTargets)
-	n := len(slice)
-	if n == 0 {
-		return out
-	}
-
-	ptr := unsafe.Pointer(unsafe.SliceData(slice))
-	for i, t := range targets {
-		out[i] = dispatchSearchFast(ptr, n, t)
-	}
-	return out
+	return searchBatch(slice, targets)
 }
 
 // TopK rearranges slice so that the prefix subrange [0, k) contains the k
