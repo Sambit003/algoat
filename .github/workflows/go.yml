@@ -118,6 +118,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
+          path-type: inherit
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-cmake
@@ -132,5 +133,7 @@ jobs:
       - name: Run Go Unit Tests
         shell: msys2 {0}
         run: |
+          export PATH="$PWD/build/src:/mingw64/bin:$PATH"
+          export CGO_ENABLED=1
           cd go/algoat
           go test -v ./...
