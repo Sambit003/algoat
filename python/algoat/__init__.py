@@ -6,7 +6,13 @@ zero-copy PEP 3118 views, and fine-grained GIL release for multi-core speed.
 """
 
 from . import _algoat_impl
-from ._algoat_impl import load_global_config, Rational
+from ._algoat_impl import (
+    load_global_config,
+    Rational,
+    try_sort_inplace_int_fastpath,
+    try_sort_inplace_float_fastpath,
+    try_sort_out_of_place_fastpath,
+)
 import numpy as np
 from typing import Union, List, Any, Optional
 

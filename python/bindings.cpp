@@ -7,14 +7,18 @@
  * spatial sorting for complex numbers.
  */
 
+#include "python_fastpath.hpp"
 #include "python_types.hpp"
 #include "python_wrappers.hpp"
 
 #include <algoat/algoat.hpp>
 #include <algoat/numerics/float16_sort.hpp>
 #include <algoat/sorting/boolean_sort.hpp>
+#include <algoat/sorting/ips4o.hpp>
+#include <algoat/sorting/pdqsort.hpp>
 #include <algoat/strings/burstsort.hpp>
 #include <algoat/strings/multikey_quicksort.hpp>
+#include <cmath>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/optional.h>
@@ -134,6 +138,11 @@ nb::list sort_dispatch(nb::list data, const std::string& curve = "morton") {
         return bool_res;
     }
 
+    auto fast_res = algoat::python_fastpath::try_sort_out_of_place_fastpath(data);
+    if (fast_res.has_value()) {
+        return *fast_res;
+    }
+
     PyObject* first = data[0].ptr();
     if (PyFloat_Check(first)) {
         return sort_list_direct<algoat::pybind::PyFloatWrapper>(data);
@@ -192,7 +201,17 @@ void sort_inplace_dispatch(nb::list data, const std::string& curve = "morton") {
     }
 
     PyObject* first = data[0].ptr();
-    if (PyFloat_Check(first)) {
+    if (PyFloat_CheckExact(first)) {
+        if (algoat::python_fastpath::try_sort_inplace_float_fastpath(data)) {
+            return;
+        }
+        sort_list_inplace_impl<algoat::pybind::PyGenericWrapper>(data);
+    } else if (PyLong_CheckExact(first)) {
+        if (algoat::python_fastpath::try_sort_inplace_int_fastpath(data)) {
+            return;
+        }
+        sort_list_inplace_impl<algoat::pybind::PyGenericWrapper>(data);
+    } else if (PyFloat_Check(first)) {
         sort_list_inplace_impl<algoat::pybind::PyFloatWrapper>(data);
     } else if (PyUnicode_Check(first)) {
         sort_list_inplace_impl<algoat::pybind::PyStringWrapper>(data);
@@ -373,6 +392,16 @@ NB_MODULE(_algoat_impl, m) {
           "Search for a target in a list");
     m.def("search_many", &search_many_dispatch, nb::arg("data"), nb::arg("targets"),
           "Search for multiple targets in a list");
+
+    // Fast-path homogeneous list sorting functions
+    m.def("try_sort_inplace_int_fastpath", &algoat::python_fastpath::try_sort_inplace_int_fastpath,
+          nb::arg("data"), "Fast-path in-place sort for homogeneous 64-bit int lists");
+    m.def("try_sort_inplace_float_fastpath",
+          &algoat::python_fastpath::try_sort_inplace_float_fastpath, nb::arg("data"),
+          "Fast-path in-place sort for homogeneous float lists");
+    m.def("try_sort_out_of_place_fastpath",
+          &algoat::python_fastpath::try_sort_out_of_place_fastpath, nb::arg("data"),
+          "Fast-path out-of-place sort returning a new Python list");
 
     // Zero-copy array sorting bindings with fine-grained GIL release
     m.def("sort_numpy_f16", &sort_ndarray_float16_buffer, nb::arg("array").noconvert(),
