@@ -31,3 +31,6 @@ target_link_libraries(bench_selection PRIVATE algoat benchmark::benchmark)
 
 add_executable(bench_strings bench_strings.cpp)
 target_link_libraries(bench_strings PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_kdtree bench_kdtree.cpp)
+target_link_libraries(bench_kdtree PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
