@@ -34,6 +34,7 @@ module;
 #include <algoat/core/registry.hpp>
 #include <algoat/core/traits.hpp>
 #include <algoat/geometry/kdtree.hpp>
+#include <algoat/geometry/lbvh.hpp>
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
 #include <algoat/meta/static_sort.hpp>
@@ -234,8 +235,12 @@ using algoat::strings::search_pattern;
 } // namespace strings
 
 namespace geometry {
+using algoat::geometry::AABB;
+using algoat::geometry::BVHNode;
 using algoat::geometry::KDTree;
+using algoat::geometry::LBVH;
 using algoat::geometry::MetricType;
+using algoat::geometry::Ray;
 using algoat::geometry::SpatialPoint;
 } // namespace geometry
 } // namespace algoat

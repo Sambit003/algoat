@@ -12,6 +12,9 @@ Algoat is a high-performance C++20, Python, and Go algorithm library featuring s
   - **Distribution & Non-Comparative**: Radix Sort (LSD / MSD), Counting Sort, Bucket Sort, Pigeonhole Sort, Boolean Sort.
   - **Compile-Time Sorting Networks**: Optimal Batcher odd-even sorting networks for fixed extents ($N \le 16$) with branchless conditional swaps.
 - **Searching Suite**: Binary Search, Adaptive Binary Search, Interpolation Search, Hybrid Interpolation Search, Linear Search, and Cache-Oblivious **Eytzinger Search Tree** with software lookahead prefetching.
+- **Computational Geometry & Spatial Indexing**:
+  - **Linear Bounding Volume Hierarchy (`LBVH`)**: Parallel $O(N)$ BVH construction based on Tero Karras' 2012 algorithm with 3D Morton encoding (BMI2 `_pdep_u64`), 16-bit Radix Sort, 64-byte flat node layout, and AVX2 SIMD-vectorized Kay-Kajiya slab ray intersection.
+  - **Cache-Conscious Flat K-d Tree (`KDTree`)**: Complete binary tree (Eytzinger indexing) coordinate storage with zero pointer dereferences and Google Highway SIMD distance acceleration for fast k-NN, radius, and box queries.
 - **Zero-Overhead Compile-Time Algorithm Selector**: `algoat::meta::static_sort` selects and inlines optimal kernels at compile time via ISO C++20 structural NTTP policies and declarative tag chains (`p::stable | p::in_place`), completely eliminating vtables, branch tables, and runtime profiling passes.
 - **Smart Dynamic Dispatch**: Automatically analyzes data profiles in a single $O(N)$ pass to select the optimal algorithm (e.g., `InsertionSort` for $N < 32$, `TimSort` for partially ordered data, `RadixSortLSD` for large integers, `IntroSort` as default).
 - **Runtime JSON Configuration**: Dynamically override algorithms or fallback behavior via JSON configuration (`nlohmann/json`).

@@ -81,6 +81,7 @@ algoat_add_test(test_substring_search strings/test_substring_search.cpp)
 
 # Geometry tests
 algoat_add_test(test_kdtree geometry/test_kdtree.cpp)
+algoat_add_test(test_lbvh geometry/test_lbvh.cpp)
 
 # C-ABI tests
 algoat_add_test(test_algoat_c c_api/test_algoat_c.cpp)
@@ -91,6 +92,7 @@ add_executable(test_searching_invariants pbt/test_searching_invariants.cpp)
 add_executable(test_selection_invariants pbt/test_selection_invariants.cpp)
 add_executable(test_substring_invariants pbt/test_substring_invariants.cpp)
 add_executable(test_kdtree_invariants pbt/test_kdtree_invariants.cpp)
+add_executable(test_lbvh_invariants pbt/test_lbvh_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
@@ -101,6 +103,8 @@ target_link_libraries(test_substring_invariants PRIVATE algoat GTest::gtest_main
 gtest_discover_tests(test_substring_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_kdtree_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_kdtree_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_lbvh_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_lbvh_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -124,6 +128,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_kdtree_fuzzer PRIVATE algoat)
     target_compile_options(diff_kdtree_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_kdtree_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_lbvh_fuzzer fuzzing/diff_lbvh_fuzzer.cpp)
+    target_link_libraries(diff_lbvh_fuzzer PRIVATE algoat)
+    target_compile_options(diff_lbvh_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_lbvh_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)
