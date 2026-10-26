@@ -35,6 +35,7 @@ module;
 #include <algoat/core/traits.hpp>
 #include <algoat/geometry/kdtree.hpp>
 #include <algoat/geometry/lbvh.hpp>
+#include <algoat/geometry/predicates.hpp>
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
 #include <algoat/meta/static_sort.hpp>
@@ -59,6 +60,7 @@ export namespace algoat {
 // Primary public API
 using algoat::branchless_lower_bound;
 using algoat::BranchlessBinarySearch;
+using algoat::CircleLocation;
 using algoat::clamp;
 using algoat::find_all_substrings;
 using algoat::find_substring;
@@ -66,8 +68,15 @@ using algoat::galloping_search;
 using algoat::GallopingSearch;
 using algoat::get_dispatcher;
 using algoat::get_global_config;
+using algoat::incircle;
+using algoat::insphere;
 using algoat::load_global_config;
 using algoat::nth_element;
+using algoat::orient2d;
+using algoat::orient3d;
+using algoat::Orientation;
+using algoat::Point2D;
+using algoat::Point3D;
 using algoat::search;
 using algoat::search_pattern;
 using algoat::select_optimal;
@@ -237,9 +246,17 @@ using algoat::strings::search_pattern;
 namespace geometry {
 using algoat::geometry::AABB;
 using algoat::geometry::BVHNode;
+using algoat::geometry::CircleLocation;
+using algoat::geometry::incircle;
+using algoat::geometry::insphere;
 using algoat::geometry::KDTree;
 using algoat::geometry::LBVH;
 using algoat::geometry::MetricType;
+using algoat::geometry::orient2d;
+using algoat::geometry::orient3d;
+using algoat::geometry::Orientation;
+using algoat::geometry::Point2D;
+using algoat::geometry::Point3D;
 using algoat::geometry::Ray;
 using algoat::geometry::SpatialPoint;
 } // namespace geometry
