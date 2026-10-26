@@ -13,6 +13,7 @@
 #include "algoat/core/config_manager.hpp"
 #include "algoat/core/dispatcher.hpp"
 #include "algoat/geometry/kdtree.hpp"
+#include "algoat/geometry/lbvh.hpp"
 #include "algoat/meta/policy.hpp"
 #include "algoat/meta/static_sort.hpp"
 #include "algoat/numerics/hybrid_sfc.hpp"
@@ -42,8 +43,12 @@
 namespace algoat {
 
 using core::SearchHint;
+using geometry::AABB;
+using geometry::BVHNode;
 using geometry::KDTree;
+using geometry::LBVH;
 using geometry::MetricType;
+using geometry::Ray;
 using geometry::SpatialPoint;
 using searching::branchless_lower_bound;
 using searching::BranchlessBinarySearch;
