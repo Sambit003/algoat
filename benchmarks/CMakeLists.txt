@@ -40,3 +40,6 @@ target_link_libraries(bench_lbvh PRIVATE algoat benchmark::benchmark benchmark::
 if(OpenMP_CXX_FOUND)
     target_link_libraries(bench_lbvh PRIVATE OpenMP::OpenMP_CXX)
 endif()
+
+add_executable(bench_predicates bench_predicates.cpp)
+target_link_libraries(bench_predicates PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
