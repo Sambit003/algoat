@@ -33,6 +33,7 @@ module;
 #include <algoat/core/dispatcher.hpp>
 #include <algoat/core/registry.hpp>
 #include <algoat/core/traits.hpp>
+#include <algoat/geometry/convex_hull.hpp>
 #include <algoat/geometry/kdtree.hpp>
 #include <algoat/geometry/lbvh.hpp>
 #include <algoat/geometry/predicates.hpp>
@@ -247,6 +248,9 @@ namespace geometry {
 using algoat::geometry::AABB;
 using algoat::geometry::BVHNode;
 using algoat::geometry::CircleLocation;
+using algoat::geometry::convex_hull_2d_andrew;
+using algoat::geometry::convex_hull_2d_chan;
+using algoat::geometry::convex_hull_3d_quickhull;
 using algoat::geometry::incircle;
 using algoat::geometry::insphere;
 using algoat::geometry::KDTree;
@@ -257,6 +261,8 @@ using algoat::geometry::orient3d;
 using algoat::geometry::Orientation;
 using algoat::geometry::Point2D;
 using algoat::geometry::Point3D;
+using algoat::geometry::Polygon2D;
+using algoat::geometry::Polyhedron3D;
 using algoat::geometry::Ray;
 using algoat::geometry::SpatialPoint;
 } // namespace geometry
