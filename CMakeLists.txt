@@ -30,6 +30,10 @@ endif()
 
 # Hardware FMA support detection
 include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-ffp-contract=off" ALGOAT_SUPPORTS_FP_CONTRACT_OFF)
+if(ALGOAT_SUPPORTS_FP_CONTRACT_OFF)
+    add_compile_options("-ffp-contract=off")
+endif()
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
     check_cxx_compiler_flag("-mfma" ALGOAT_SUPPORTS_MFMA)
     if(ALGOAT_SUPPORTS_MFMA)

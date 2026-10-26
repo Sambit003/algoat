@@ -19,8 +19,6 @@
 
 #if defined(__clang__)
 #pragma STDC FP_CONTRACT OFF
-#elif defined(__GNUC__)
-#pragma GCC optimize("fp-contract=off")
 #endif
 
 namespace algoat::geometry {
