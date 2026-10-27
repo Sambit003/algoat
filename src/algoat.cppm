@@ -34,6 +34,7 @@ module;
 #include <algoat/core/registry.hpp>
 #include <algoat/core/traits.hpp>
 #include <algoat/geometry/convex_hull.hpp>
+#include <algoat/geometry/delaunay.hpp>
 #include <algoat/geometry/kdtree.hpp>
 #include <algoat/geometry/lbvh.hpp>
 #include <algoat/geometry/predicates.hpp>
@@ -63,6 +64,7 @@ using algoat::branchless_lower_bound;
 using algoat::BranchlessBinarySearch;
 using algoat::CircleLocation;
 using algoat::clamp;
+using algoat::DelaunayTriangulation2D;
 using algoat::find_all_substrings;
 using algoat::find_substring;
 using algoat::galloping_search;
@@ -85,6 +87,8 @@ using algoat::sort;
 using algoat::SpaceFillingCurve;
 using algoat::top_k_sorted;
 using algoat::top_k_unsorted;
+using algoat::Triangle;
+using algoat::VoronoiCell;
 using algoat::core::SearchHint;
 
 namespace selection {
@@ -251,6 +255,7 @@ using algoat::geometry::CircleLocation;
 using algoat::geometry::convex_hull_2d_andrew;
 using algoat::geometry::convex_hull_2d_chan;
 using algoat::geometry::convex_hull_3d_quickhull;
+using algoat::geometry::DelaunayTriangulation2D;
 using algoat::geometry::incircle;
 using algoat::geometry::insphere;
 using algoat::geometry::KDTree;
@@ -265,5 +270,7 @@ using algoat::geometry::Polygon2D;
 using algoat::geometry::Polyhedron3D;
 using algoat::geometry::Ray;
 using algoat::geometry::SpatialPoint;
+using algoat::geometry::Triangle;
+using algoat::geometry::VoronoiCell;
 } // namespace geometry
 } // namespace algoat

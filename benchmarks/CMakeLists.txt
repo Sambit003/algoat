@@ -43,3 +43,6 @@ endif()
 
 add_executable(bench_predicates bench_predicates.cpp)
 target_link_libraries(bench_predicates PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_delaunay bench_delaunay.cpp)
+target_link_libraries(bench_delaunay PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
