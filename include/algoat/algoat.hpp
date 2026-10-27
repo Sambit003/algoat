@@ -13,6 +13,7 @@
 #include "algoat/core/config_manager.hpp"
 #include "algoat/core/dispatcher.hpp"
 #include "algoat/geometry/convex_hull.hpp"
+#include "algoat/geometry/delaunay.hpp"
 #include "algoat/geometry/kdtree.hpp"
 #include "algoat/geometry/lbvh.hpp"
 #include "algoat/geometry/predicates.hpp"
@@ -51,6 +52,7 @@ using geometry::CircleLocation;
 using geometry::convex_hull_2d_andrew;
 using geometry::convex_hull_2d_chan;
 using geometry::convex_hull_3d_quickhull;
+using geometry::DelaunayTriangulation2D;
 using geometry::incircle;
 using geometry::insphere;
 using geometry::KDTree;
@@ -65,6 +67,8 @@ using geometry::Polygon2D;
 using geometry::Polyhedron3D;
 using geometry::Ray;
 using geometry::SpatialPoint;
+using geometry::Triangle;
+using geometry::VoronoiCell;
 using searching::branchless_lower_bound;
 using searching::BranchlessBinarySearch;
 using searching::EytzingerSearchTree;
