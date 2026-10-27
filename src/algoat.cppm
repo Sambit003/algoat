@@ -37,6 +37,7 @@ module;
 #include <algoat/geometry/delaunay.hpp>
 #include <algoat/geometry/kdtree.hpp>
 #include <algoat/geometry/lbvh.hpp>
+#include <algoat/geometry/polygon.hpp>
 #include <algoat/geometry/predicates.hpp>
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
@@ -257,6 +258,7 @@ using algoat::geometry::convex_hull_2d_chan;
 using algoat::geometry::convex_hull_3d_quickhull;
 using algoat::geometry::DelaunayTriangulation2D;
 using algoat::geometry::incircle;
+using algoat::geometry::InclusionRule;
 using algoat::geometry::insphere;
 using algoat::geometry::KDTree;
 using algoat::geometry::LBVH;
@@ -266,7 +268,9 @@ using algoat::geometry::orient3d;
 using algoat::geometry::Orientation;
 using algoat::geometry::Point2D;
 using algoat::geometry::Point3D;
+using algoat::geometry::Polygon;
 using algoat::geometry::Polygon2D;
+using algoat::geometry::PolygonInclusion;
 using algoat::geometry::Polyhedron3D;
 using algoat::geometry::Ray;
 using algoat::geometry::SpatialPoint;
