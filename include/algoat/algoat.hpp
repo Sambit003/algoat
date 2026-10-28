@@ -16,6 +16,7 @@
 #include "algoat/geometry/delaunay.hpp"
 #include "algoat/geometry/kdtree.hpp"
 #include "algoat/geometry/lbvh.hpp"
+#include "algoat/geometry/polygon.hpp"
 #include "algoat/geometry/predicates.hpp"
 #include "algoat/meta/policy.hpp"
 #include "algoat/meta/static_sort.hpp"
@@ -54,6 +55,7 @@ using geometry::convex_hull_2d_chan;
 using geometry::convex_hull_3d_quickhull;
 using geometry::DelaunayTriangulation2D;
 using geometry::incircle;
+using geometry::InclusionRule;
 using geometry::insphere;
 using geometry::KDTree;
 using geometry::LBVH;
@@ -63,7 +65,9 @@ using geometry::orient3d;
 using geometry::Orientation;
 using geometry::Point2D;
 using geometry::Point3D;
+using geometry::Polygon;
 using geometry::Polygon2D;
+using geometry::PolygonInclusion;
 using geometry::Polyhedron3D;
 using geometry::Ray;
 using geometry::SpatialPoint;

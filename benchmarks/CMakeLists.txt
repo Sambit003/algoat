@@ -46,3 +46,6 @@ target_link_libraries(bench_predicates PRIVATE algoat benchmark::benchmark bench
 
 add_executable(bench_delaunay bench_delaunay.cpp)
 target_link_libraries(bench_delaunay PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_polygon bench_polygon.cpp)
+target_link_libraries(bench_polygon PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)

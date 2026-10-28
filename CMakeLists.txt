@@ -34,7 +34,25 @@ check_cxx_compiler_flag("-ffp-contract=off" ALGOAT_SUPPORTS_FP_CONTRACT_OFF)
 if(ALGOAT_SUPPORTS_FP_CONTRACT_OFF)
     add_compile_options("-ffp-contract=off")
 endif()
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64" AND NOT CMAKE_CROSSCOMPILING)
+    check_cxx_compiler_flag("-mavx2" ALGOAT_SUPPORTS_MAVX2)
+    if(ALGOAT_SUPPORTS_MAVX2)
+        include(CheckCXXSourceRuns)
+        set(CMAKE_REQUIRED_FLAGS "-mavx2")
+        check_cxx_source_runs("
+            #include <immintrin.h>
+            int main() {
+                __m256d a = _mm256_set1_pd(1.0);
+                __m256d b = _mm256_set1_pd(2.0);
+                __m256d c = _mm256_add_pd(a, b);
+                return ((int)_mm256_cvtsd_f64(c) == 3) ? 0 : 1;
+            }
+        " ALGOAT_HOST_HAS_AVX2)
+        unset(CMAKE_REQUIRED_FLAGS)
+        if(ALGOAT_HOST_HAS_AVX2)
+            add_compile_options("-mavx2")
+        endif()
+    endif()
     check_cxx_compiler_flag("-mfma" ALGOAT_SUPPORTS_MFMA)
     if(ALGOAT_SUPPORTS_MFMA)
         include(CheckCXXSourceRuns)
