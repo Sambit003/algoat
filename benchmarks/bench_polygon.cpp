@@ -8,6 +8,7 @@
 
 #include <benchmark/benchmark.h>
 #include <cmath>
+#include <numbers>
 #include <random>
 #include <vector>
 
@@ -16,7 +17,7 @@ using namespace algoat::geometry;
 static std::vector<Point2D> generate_star_polygon(std::size_t n, double radius = 500.0) {
     std::vector<Point2D> pts(n);
     for (std::size_t i = 0; i < n; ++i) {
-        double theta = 2.0 * M_PI * static_cast<double>(i) / static_cast<double>(n);
+        double theta = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(n);
         // Perturb radius slightly to create non-convex concave features
         double r = radius * (1.0 + 0.25 * std::sin(7.0 * theta) + 0.1 * std::cos(13.0 * theta));
         pts[i] = {r * std::cos(theta), r * std::sin(theta)};

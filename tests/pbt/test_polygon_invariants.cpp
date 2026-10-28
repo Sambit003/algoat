@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <gtest/gtest.h>
+#include <numbers>
 #include <rapidcheck.h>
 #include <vector>
 
@@ -150,7 +151,8 @@ TEST(PolygonPBT, RegularPolygonCenterIsInside) {
                   std::vector<Point2D> pts;
                   pts.reserve(n);
                   for (int i = 0; i < n; ++i) {
-                      double theta = 2.0 * M_PI * static_cast<double>(i) / static_cast<double>(n);
+                      double theta =
+                          2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(n);
                       pts.push_back({r * std::cos(theta), r * std::sin(theta)});
                   }
 
