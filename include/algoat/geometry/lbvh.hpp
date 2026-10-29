@@ -407,12 +407,13 @@ public:
         float inv_ey = (extent_y > 1e-9f) ? (1.0f / extent_y) : 0.0f;
         float inv_ez = (extent_z > 1e-9f) ? (1.0f / extent_z) : 0.0f;
 
+        const auto signed_n = static_cast<std::ptrdiff_t>(n);
         std::vector<detail::MortonItem> morton_items(n);
 #if defined(_OPENMP)
 #pragma omp parallel for schedule(static) if (n > 10000)
 #endif
-        for (std::size_t i = 0; i < n; ++i) {
-            auto c = primitive_boxes[i].center();
+        for (std::ptrdiff_t i = 0; i < signed_n; ++i) {
+            auto c = primitive_boxes[static_cast<std::size_t>(i)].center();
             float nx = (c[0] - centroid_bounds.min_x) * inv_ex;
             float ny = (c[1] - centroid_bounds.min_y) * inv_ey;
             float nz = (c[2] - centroid_bounds.min_z) * inv_ez;
@@ -425,8 +426,8 @@ public:
             uint32_t qy = std::min(static_cast<uint32_t>(ny * 2097152.0f), 2097151u);
             uint32_t qz = std::min(static_cast<uint32_t>(nz * 2097152.0f), 2097151u);
 
-            morton_items[i] = detail::MortonItem{numerics::morton3d_encode(qx, qy, qz),
-                                                 static_cast<uint32_t>(i), 0};
+            morton_items[static_cast<std::size_t>(i)] = detail::MortonItem{
+                numerics::morton3d_encode(qx, qy, qz), static_cast<uint32_t>(i), 0};
         }
 
         detail::radix_sort_morton(morton_items);
@@ -435,8 +436,9 @@ public:
 #if defined(_OPENMP)
 #pragma omp parallel for schedule(static) if (n > 10000)
 #endif
-        for (std::size_t i = 0; i < n; ++i) {
-            morton_keys_[i] = morton_items[i].code;
+        for (std::ptrdiff_t i = 0; i < signed_n; ++i) {
+            const auto idx = static_cast<std::size_t>(i);
+            morton_keys_[idx] = morton_items[idx].code;
         }
 
         nodes_.resize(2 * n - 1);
@@ -444,10 +446,11 @@ public:
 #if defined(_OPENMP)
 #pragma omp parallel for schedule(static) if (n > 10000)
 #endif
-        for (std::size_t i = 0; i < n; ++i) {
-            uint32_t leaf_idx = static_cast<uint32_t>(n - 1 + i);
-            nodes_[leaf_idx].bbox = primitive_boxes[morton_items[i].index];
-            nodes_[leaf_idx].left_child = morton_items[i].index;
+        for (std::ptrdiff_t i = 0; i < signed_n; ++i) {
+            const auto idx = static_cast<std::size_t>(i);
+            uint32_t leaf_idx = static_cast<uint32_t>(n - 1 + idx);
+            nodes_[leaf_idx].bbox = primitive_boxes[morton_items[idx].index];
+            nodes_[leaf_idx].left_child = morton_items[idx].index;
             nodes_[leaf_idx].right_child = 0xFFFFFFFF;
             nodes_[leaf_idx].parent = 0xFFFFFFFF;
             nodes_[leaf_idx].is_leaf = true;
@@ -530,8 +533,9 @@ public:
 #if defined(_OPENMP)
 #pragma omp parallel for schedule(static) if (n > 10000)
 #endif
-        for (std::size_t i = 0; i < n; ++i) {
-            uint32_t curr = nodes_[n - 1 + i].parent;
+        for (std::ptrdiff_t i = 0; i < signed_n; ++i) {
+            const auto idx = static_cast<std::size_t>(i);
+            uint32_t curr = nodes_[n - 1 + idx].parent;
             while (curr != 0xFFFFFFFF) {
                 if (flags[curr].fetch_add(1, std::memory_order_acq_rel) == 0) {
                     break;
