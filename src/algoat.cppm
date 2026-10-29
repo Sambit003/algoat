@@ -39,6 +39,7 @@ module;
 #include <algoat/geometry/lbvh.hpp>
 #include <algoat/geometry/polygon.hpp>
 #include <algoat/geometry/predicates.hpp>
+#include <algoat/graph/centrality.hpp>
 #include <algoat/graph/csr_graph.hpp>
 #include <algoat/graph/d_ary_heap.hpp>
 #include <algoat/graph/max_flow.hpp>
@@ -104,13 +105,19 @@ using algoat::VoronoiCell;
 using algoat::core::SearchHint;
 
 namespace graph {
+using algoat::graph::betweenness_centrality;
+using algoat::graph::CentralityResult;
 using algoat::graph::CSRGraph;
 using algoat::graph::CSRGraphConcept;
 using algoat::graph::d_ary_heap;
+using algoat::graph::degree_centrality;
 using algoat::graph::EdgeIndex;
 using algoat::graph::FlowEdge;
 using algoat::graph::MaxFlowEngine;
 using algoat::graph::MaxFlowResult;
+using algoat::graph::pagerank;
+using algoat::graph::PageRankConfig;
+using algoat::graph::PageRankResult;
 using algoat::graph::ShortestPathEngine;
 using algoat::graph::ShortestPathResult;
 using algoat::graph::VertexId;

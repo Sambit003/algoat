@@ -18,6 +18,7 @@
 #include "algoat/geometry/lbvh.hpp"
 #include "algoat/geometry/polygon.hpp"
 #include "algoat/geometry/predicates.hpp"
+#include "algoat/graph/centrality.hpp"
 #include "algoat/graph/csr_graph.hpp"
 #include "algoat/graph/d_ary_heap.hpp"
 #include "algoat/graph/max_flow.hpp"
@@ -77,13 +78,19 @@ using geometry::Ray;
 using geometry::SpatialPoint;
 using geometry::Triangle;
 using geometry::VoronoiCell;
+using graph::betweenness_centrality;
+using graph::CentralityResult;
 using graph::CSRGraph;
 using graph::CSRGraphConcept;
 using graph::d_ary_heap;
+using graph::degree_centrality;
 using graph::EdgeIndex;
 using graph::FlowEdge;
 using graph::MaxFlowEngine;
 using graph::MaxFlowResult;
+using graph::pagerank;
+using graph::PageRankConfig;
+using graph::PageRankResult;
 using graph::ShortestPathEngine;
 using graph::ShortestPathResult;
 using graph::VertexId;
