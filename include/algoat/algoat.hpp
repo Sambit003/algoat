@@ -19,6 +19,8 @@
 #include "algoat/geometry/polygon.hpp"
 #include "algoat/geometry/predicates.hpp"
 #include "algoat/graph/csr_graph.hpp"
+#include "algoat/graph/d_ary_heap.hpp"
+#include "algoat/graph/shortest_path.hpp"
 #include "algoat/meta/policy.hpp"
 #include "algoat/meta/static_sort.hpp"
 #include "algoat/numerics/hybrid_sfc.hpp"
@@ -76,7 +78,10 @@ using geometry::Triangle;
 using geometry::VoronoiCell;
 using graph::CSRGraph;
 using graph::CSRGraphConcept;
+using graph::d_ary_heap;
 using graph::EdgeIndex;
+using graph::ShortestPathEngine;
+using graph::ShortestPathResult;
 using graph::VertexId;
 using searching::branchless_lower_bound;
 using searching::BranchlessBinarySearch;

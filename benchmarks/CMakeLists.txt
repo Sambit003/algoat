@@ -55,3 +55,9 @@ target_link_libraries(bench_graph PRIVATE algoat benchmark::benchmark benchmark:
 if(OpenMP_CXX_FOUND)
     target_link_libraries(bench_graph PRIVATE OpenMP::OpenMP_CXX)
 endif()
+
+add_executable(bench_shortest_path bench_shortest_path.cpp)
+target_link_libraries(bench_shortest_path PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(bench_shortest_path PRIVATE OpenMP::OpenMP_CXX)
+endif()

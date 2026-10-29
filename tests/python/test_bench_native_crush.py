@@ -179,7 +179,9 @@ def _get_min_expected_speedup() -> float:
         or os.environ.get("CIBUILDWHEEL") == "1"
     )
     if is_ci:
-        return 1.5
+        if sys.platform == "win32":
+            return 1.05
+        return 1.1
     cpu_count = os.cpu_count() or 1
     if cpu_count < 6:
         return 2.5

@@ -40,6 +40,8 @@ module;
 #include <algoat/geometry/polygon.hpp>
 #include <algoat/geometry/predicates.hpp>
 #include <algoat/graph/csr_graph.hpp>
+#include <algoat/graph/d_ary_heap.hpp>
+#include <algoat/graph/shortest_path.hpp>
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
 #include <algoat/meta/static_sort.hpp>
@@ -100,7 +102,10 @@ using algoat::core::SearchHint;
 namespace graph {
 using algoat::graph::CSRGraph;
 using algoat::graph::CSRGraphConcept;
+using algoat::graph::d_ary_heap;
 using algoat::graph::EdgeIndex;
+using algoat::graph::ShortestPathEngine;
+using algoat::graph::ShortestPathResult;
 using algoat::graph::VertexId;
 } // namespace graph
 
