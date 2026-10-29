@@ -41,6 +41,7 @@ module;
 #include <algoat/geometry/predicates.hpp>
 #include <algoat/graph/csr_graph.hpp>
 #include <algoat/graph/d_ary_heap.hpp>
+#include <algoat/graph/max_flow.hpp>
 #include <algoat/graph/shortest_path.hpp>
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
@@ -74,6 +75,7 @@ using algoat::DelaunayTriangulation2D;
 using algoat::EdgeIndex;
 using algoat::find_all_substrings;
 using algoat::find_substring;
+using algoat::FlowEdge;
 using algoat::galloping_search;
 using algoat::GallopingSearch;
 using algoat::get_dispatcher;
@@ -81,6 +83,8 @@ using algoat::get_global_config;
 using algoat::incircle;
 using algoat::insphere;
 using algoat::load_global_config;
+using algoat::MaxFlowEngine;
+using algoat::MaxFlowResult;
 using algoat::nth_element;
 using algoat::orient2d;
 using algoat::orient3d;
@@ -104,6 +108,9 @@ using algoat::graph::CSRGraph;
 using algoat::graph::CSRGraphConcept;
 using algoat::graph::d_ary_heap;
 using algoat::graph::EdgeIndex;
+using algoat::graph::FlowEdge;
+using algoat::graph::MaxFlowEngine;
+using algoat::graph::MaxFlowResult;
 using algoat::graph::ShortestPathEngine;
 using algoat::graph::ShortestPathResult;
 using algoat::graph::VertexId;
