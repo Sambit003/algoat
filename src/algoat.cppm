@@ -45,6 +45,7 @@ module;
 #include <algoat/graph/disjoint_set.hpp>
 #include <algoat/graph/max_flow.hpp>
 #include <algoat/graph/mst.hpp>
+#include <algoat/graph/scc.hpp>
 #include <algoat/graph/shortest_path.hpp>
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
@@ -130,8 +131,11 @@ using algoat::graph::MSTResult;
 using algoat::graph::pagerank;
 using algoat::graph::PageRankConfig;
 using algoat::graph::PageRankResult;
+using algoat::graph::SCCResult;
 using algoat::graph::ShortestPathEngine;
 using algoat::graph::ShortestPathResult;
+using algoat::graph::strongly_connected_components;
+using algoat::graph::StronglyConnectedComponents;
 using algoat::graph::VertexId;
 } // namespace graph
 

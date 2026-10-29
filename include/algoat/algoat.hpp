@@ -24,6 +24,7 @@
 #include "algoat/graph/disjoint_set.hpp"
 #include "algoat/graph/max_flow.hpp"
 #include "algoat/graph/mst.hpp"
+#include "algoat/graph/scc.hpp"
 #include "algoat/graph/shortest_path.hpp"
 #include "algoat/meta/policy.hpp"
 #include "algoat/meta/static_sort.hpp"
@@ -98,8 +99,11 @@ using graph::MSTResult;
 using graph::pagerank;
 using graph::PageRankConfig;
 using graph::PageRankResult;
+using graph::SCCResult;
 using graph::ShortestPathEngine;
 using graph::ShortestPathResult;
+using graph::strongly_connected_components;
+using graph::StronglyConnectedComponents;
 using graph::VertexId;
 using searching::branchless_lower_bound;
 using searching::BranchlessBinarySearch;

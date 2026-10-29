@@ -95,6 +95,7 @@ algoat_add_test(test_d_ary_heap graph/test_d_ary_heap.cpp)
 algoat_add_test(test_shortest_path graph/test_shortest_path.cpp)
 algoat_add_test(test_max_flow graph/test_max_flow.cpp)
 algoat_add_test(test_centrality graph/test_centrality.cpp)
+algoat_add_test(test_scc graph/test_scc.cpp)
 
 # C-ABI tests
 algoat_add_test(test_algoat_c c_api/test_algoat_c.cpp)
@@ -115,6 +116,7 @@ add_executable(test_shortest_path_invariants pbt/test_shortest_path_invariants.c
 add_executable(test_max_flow_invariants pbt/test_max_flow_invariants.cpp)
 add_executable(test_centrality_invariants pbt/test_centrality_invariants.cpp)
 add_executable(test_mst_invariants pbt/test_mst_invariants.cpp)
+add_executable(test_scc_invariants pbt/test_scc_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
@@ -145,6 +147,8 @@ target_link_libraries(test_centrality_invariants PRIVATE algoat GTest::gtest_mai
 gtest_discover_tests(test_centrality_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_mst_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_mst_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_scc_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_scc_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -208,6 +212,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_mst_fuzzer PRIVATE algoat)
     target_compile_options(diff_mst_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_mst_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_scc_fuzzer fuzzing/diff_scc_fuzzer.cpp)
+    target_link_libraries(diff_scc_fuzzer PRIVATE algoat)
+    target_compile_options(diff_scc_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_scc_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)
