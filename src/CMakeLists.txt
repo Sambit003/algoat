@@ -58,6 +58,7 @@ FetchContent_Declare(highway
 FetchContent_MakeAvailable(highway)
 
 find_package(Threads REQUIRED)
+find_package(OpenMP)
 
 include(CheckLibraryExists)
 check_library_exists(atomic __atomic_fetch_add_16 "" ALGOAT_HAS_LIBATOMIC)
@@ -72,6 +73,10 @@ target_link_libraries(algoat
 
 if(ALGOAT_HAS_LIBATOMIC)
     target_link_libraries(algoat PUBLIC atomic)
+endif()
+
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(algoat PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
 add_library(algoat_c SHARED c_api/algoat_c.cpp)

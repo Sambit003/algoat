@@ -18,6 +18,7 @@
 #include "algoat/geometry/lbvh.hpp"
 #include "algoat/geometry/polygon.hpp"
 #include "algoat/geometry/predicates.hpp"
+#include "algoat/graph/csr_graph.hpp"
 #include "algoat/meta/policy.hpp"
 #include "algoat/meta/static_sort.hpp"
 #include "algoat/numerics/hybrid_sfc.hpp"
@@ -73,6 +74,10 @@ using geometry::Ray;
 using geometry::SpatialPoint;
 using geometry::Triangle;
 using geometry::VoronoiCell;
+using graph::CSRGraph;
+using graph::CSRGraphConcept;
+using graph::EdgeIndex;
+using graph::VertexId;
 using searching::branchless_lower_bound;
 using searching::BranchlessBinarySearch;
 using searching::EytzingerSearchTree;
