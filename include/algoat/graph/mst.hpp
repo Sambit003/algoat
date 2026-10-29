@@ -18,6 +18,12 @@
 #include <omp.h>
 #endif
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+#elif defined(__x86_64__) || defined(__i386__)
+#include <immintrin.h>
+#endif
+
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -81,8 +87,16 @@ struct alignas(64) SpinLock {
 
     void lock() noexcept {
         while (flag.test_and_set(std::memory_order_acquire)) {
-#if defined(__x86_64__) || defined(_M_X64)
-            __builtin_ia32_pause();
+#if defined(_MSC_VER)
+#if defined(_M_X64) || defined(_M_IX86)
+            _mm_pause();
+#elif defined(_M_ARM64)
+            __yield();
+#endif
+#elif defined(__x86_64__) || defined(__i386__)
+            _mm_pause();
+#elif defined(__aarch64__)
+            asm volatile("yield" ::: "memory");
 #endif
         }
     }
