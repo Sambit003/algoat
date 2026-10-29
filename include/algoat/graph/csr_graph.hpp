@@ -99,13 +99,15 @@ inline void compress_neighborhoods(std::size_t v_count, const std::vector<EdgeIn
                                    AlignedVertexVector& raw_indices, AlignedEdgeVector& out_offsets,
                                    AlignedVertexVector& out_indices) {
     bool has_duplicates = false;
+    const auto signed_v_count = static_cast<std::ptrdiff_t>(v_count);
 
 #if defined(_OPENMP)
 #pragma omp parallel for reduction(| : has_duplicates) schedule(static)
 #endif
-    for (std::size_t u = 0; u < v_count; ++u) {
-        auto* start = raw_indices.data() + raw_offsets[u];
-        auto* end = raw_indices.data() + raw_offsets[u + 1];
+    for (std::ptrdiff_t u = 0; u < signed_v_count; ++u) {
+        const auto u_sz = static_cast<std::size_t>(u);
+        auto* start = raw_indices.data() + raw_offsets[u_sz];
+        auto* end = raw_indices.data() + raw_offsets[u_sz + 1];
         auto count = static_cast<std::size_t>(end - start);
         if (count <= 1) {
             // Already sorted and unique
@@ -132,20 +134,21 @@ inline void compress_neighborhoods(std::size_t v_count, const std::vector<EdgeIn
 #if defined(_OPENMP)
 #pragma omp parallel for schedule(static)
 #endif
-        for (std::size_t u = 0; u < v_count; ++u) {
-            const auto start_idx = raw_offsets[u];
-            const auto end_idx = raw_offsets[u + 1];
+        for (std::ptrdiff_t u = 0; u < signed_v_count; ++u) {
+            const auto u_sz = static_cast<std::size_t>(u);
+            const auto start_idx = raw_offsets[u_sz];
+            const auto end_idx = raw_offsets[u_sz + 1];
             const auto deg = end_idx - start_idx;
             if (deg <= 1) {
-                diff[u] = deg;
+                diff[u_sz] = deg;
             } else if (deg == 2) {
                 auto* ptr = raw_indices.data() + start_idx;
-                diff[u] = (ptr[0] == ptr[1]) ? 1 : 2;
+                diff[u_sz] = (ptr[0] == ptr[1]) ? 1 : 2;
             } else {
                 auto* start = raw_indices.data() + start_idx;
                 auto* end = raw_indices.data() + end_idx;
                 auto* new_end = std::unique(start, end);
-                diff[u] = static_cast<EdgeIndex>(new_end - start);
+                diff[u_sz] = static_cast<EdgeIndex>(new_end - start);
             }
         }
 
@@ -158,10 +161,11 @@ inline void compress_neighborhoods(std::size_t v_count, const std::vector<EdgeIn
 #if defined(_OPENMP)
 #pragma omp parallel for schedule(static)
 #endif
-        for (std::size_t u = 0; u < v_count; ++u) {
-            const auto* src = raw_indices.data() + raw_offsets[u];
-            auto* dst = out_indices.data() + out_offsets[u];
-            std::copy(src, src + diff[u], dst);
+        for (std::ptrdiff_t u = 0; u < signed_v_count; ++u) {
+            const auto u_sz = static_cast<std::size_t>(u);
+            const auto* src = raw_indices.data() + raw_offsets[u_sz];
+            auto* dst = out_indices.data() + out_offsets[u_sz];
+            std::copy(src, src + diff[u_sz], dst);
         }
     }
 }
@@ -264,17 +268,19 @@ public:
 
                 std::vector<EdgeIndex> raw_row_ptr(v_count + 1, 0);
                 std::vector<EdgeIndex> raw_col_ptr(v_count + 1, 0);
+                const auto signed_v_count = static_cast<std::ptrdiff_t>(v_count);
 
 #pragma omp parallel for schedule(static)
-                for (std::size_t u = 0; u < v_count; ++u) {
+                for (std::ptrdiff_t u = 0; u < signed_v_count; ++u) {
+                    const auto u_sz = static_cast<std::size_t>(u);
                     EdgeIndex out_sum = 0;
                     EdgeIndex in_sum = 0;
                     for (std::size_t t = 0; t < n_threads; ++t) {
-                        out_sum += thread_out[t * v_count + u];
-                        in_sum += thread_in[t * v_count + u];
+                        out_sum += thread_out[t * v_count + u_sz];
+                        in_sum += thread_in[t * v_count + u_sz];
                     }
-                    raw_row_ptr[u + 1] = out_sum;
-                    raw_col_ptr[u + 1] = in_sum;
+                    raw_row_ptr[u_sz + 1] = out_sum;
+                    raw_col_ptr[u_sz + 1] = in_sum;
                 }
 
                 raw_row_ptr[0] = 0;
@@ -285,11 +291,12 @@ public:
                 }
 
 #pragma omp parallel for schedule(static)
-                for (std::size_t u = 0; u < v_count; ++u) {
-                    EdgeIndex out_off = raw_row_ptr[u];
-                    EdgeIndex in_off = raw_col_ptr[u];
+                for (std::ptrdiff_t u = 0; u < signed_v_count; ++u) {
+                    const auto u_sz = static_cast<std::size_t>(u);
+                    EdgeIndex out_off = raw_row_ptr[u_sz];
+                    EdgeIndex in_off = raw_col_ptr[u_sz];
                     for (std::size_t t = 0; t < n_threads; ++t) {
-                        const std::size_t idx = t * v_count + u;
+                        const std::size_t idx = t * v_count + u_sz;
                         const EdgeIndex o_cnt = thread_out[idx];
                         const EdgeIndex i_cnt = thread_in[idx];
                         thread_out[idx] = out_off;
@@ -389,13 +396,15 @@ public:
                 }
 
                 std::vector<EdgeIndex> raw_row_ptr(v_count + 1, 0);
+                const auto signed_v_count = static_cast<std::ptrdiff_t>(v_count);
 #pragma omp parallel for schedule(static)
-                for (std::size_t u = 0; u < v_count; ++u) {
+                for (std::ptrdiff_t u = 0; u < signed_v_count; ++u) {
+                    const auto u_sz = static_cast<std::size_t>(u);
                     EdgeIndex deg_sum = 0;
                     for (std::size_t t = 0; t < n_threads; ++t) {
-                        deg_sum += thread_deg[t * v_count + u];
+                        deg_sum += thread_deg[t * v_count + u_sz];
                     }
-                    raw_row_ptr[u + 1] = deg_sum;
+                    raw_row_ptr[u_sz + 1] = deg_sum;
                 }
 
                 raw_row_ptr[0] = 0;
@@ -404,10 +413,11 @@ public:
                 }
 
 #pragma omp parallel for schedule(static)
-                for (std::size_t u = 0; u < v_count; ++u) {
-                    EdgeIndex off = raw_row_ptr[u];
+                for (std::ptrdiff_t u = 0; u < signed_v_count; ++u) {
+                    const auto u_sz = static_cast<std::size_t>(u);
+                    EdgeIndex off = raw_row_ptr[u_sz];
                     for (std::size_t t = 0; t < n_threads; ++t) {
-                        const std::size_t idx = t * v_count + u;
+                        const std::size_t idx = t * v_count + u_sz;
                         const EdgeIndex cnt = thread_deg[idx];
                         thread_deg[idx] = off;
                         off += cnt;
@@ -562,7 +572,7 @@ public:
         }
         const EdgeIndex start = row_ptr_[u];
         const EdgeIndex count = row_ptr_[u + 1] - start;
-        return {col_idx_.data() + start, count};
+        return {col_idx_.data() + static_cast<std::size_t>(start), static_cast<std::size_t>(count)};
     }
 
     /**
@@ -580,7 +590,7 @@ public:
         }
         const EdgeIndex start = col_ptr_[u];
         const EdgeIndex count = col_ptr_[u + 1] - start;
-        return {row_idx_.data() + start, count};
+        return {row_idx_.data() + static_cast<std::size_t>(start), static_cast<std::size_t>(count)};
     }
 
     /**
@@ -801,7 +811,7 @@ public:
         }
         const EdgeIndex start = base_.row_ptr_data()[u];
         const EdgeIndex count = base_.row_ptr_data()[u + 1] - start;
-        return {values_.data() + start, count};
+        return {values_.data() + static_cast<std::size_t>(start), static_cast<std::size_t>(count)};
     }
 
     [[nodiscard]] std::span<const WeightType> in_weights(VertexId u) const noexcept {
@@ -816,7 +826,8 @@ public:
         }
         const EdgeIndex start = base_.col_ptr_data()[u];
         const EdgeIndex count = base_.col_ptr_data()[u + 1] - start;
-        return {in_values_.data() + start, count};
+        return {in_values_.data() + static_cast<std::size_t>(start),
+                static_cast<std::size_t>(count)};
     }
 
     [[nodiscard]] CSRGraph transpose() const {
