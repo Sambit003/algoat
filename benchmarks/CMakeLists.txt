@@ -73,3 +73,9 @@ target_link_libraries(bench_centrality PRIVATE algoat benchmark::benchmark bench
 if(OpenMP_CXX_FOUND)
     target_link_libraries(bench_centrality PRIVATE OpenMP::OpenMP_CXX)
 endif()
+
+add_executable(bench_mst bench_mst.cpp)
+target_link_libraries(bench_mst PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(bench_mst PRIVATE OpenMP::OpenMP_CXX)
+endif()

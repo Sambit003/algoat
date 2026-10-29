@@ -42,7 +42,9 @@ module;
 #include <algoat/graph/centrality.hpp>
 #include <algoat/graph/csr_graph.hpp>
 #include <algoat/graph/d_ary_heap.hpp>
+#include <algoat/graph/disjoint_set.hpp>
 #include <algoat/graph/max_flow.hpp>
+#include <algoat/graph/mst.hpp>
 #include <algoat/graph/shortest_path.hpp>
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
@@ -70,9 +72,11 @@ using algoat::branchless_lower_bound;
 using algoat::BranchlessBinarySearch;
 using algoat::CircleLocation;
 using algoat::clamp;
+using algoat::ConcurrentDisjointSet;
 using algoat::CSRGraph;
 using algoat::CSRGraphConcept;
 using algoat::DelaunayTriangulation2D;
+using algoat::DisjointSetUnion;
 using algoat::EdgeIndex;
 using algoat::find_all_substrings;
 using algoat::find_substring;
@@ -86,6 +90,9 @@ using algoat::insphere;
 using algoat::load_global_config;
 using algoat::MaxFlowEngine;
 using algoat::MaxFlowResult;
+using algoat::MinimumSpanningTreeEngine;
+using algoat::MSTEdge;
+using algoat::MSTResult;
 using algoat::nth_element;
 using algoat::orient2d;
 using algoat::orient3d;
@@ -107,14 +114,19 @@ using algoat::core::SearchHint;
 namespace graph {
 using algoat::graph::betweenness_centrality;
 using algoat::graph::CentralityResult;
+using algoat::graph::ConcurrentDisjointSet;
 using algoat::graph::CSRGraph;
 using algoat::graph::CSRGraphConcept;
 using algoat::graph::d_ary_heap;
 using algoat::graph::degree_centrality;
+using algoat::graph::DisjointSetUnion;
 using algoat::graph::EdgeIndex;
 using algoat::graph::FlowEdge;
 using algoat::graph::MaxFlowEngine;
 using algoat::graph::MaxFlowResult;
+using algoat::graph::MinimumSpanningTreeEngine;
+using algoat::graph::MSTEdge;
+using algoat::graph::MSTResult;
 using algoat::graph::pagerank;
 using algoat::graph::PageRankConfig;
 using algoat::graph::PageRankResult;
