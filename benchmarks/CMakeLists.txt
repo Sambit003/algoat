@@ -61,3 +61,9 @@ target_link_libraries(bench_shortest_path PRIVATE algoat benchmark::benchmark be
 if(OpenMP_CXX_FOUND)
     target_link_libraries(bench_shortest_path PRIVATE OpenMP::OpenMP_CXX)
 endif()
+
+add_executable(bench_max_flow bench_max_flow.cpp)
+target_link_libraries(bench_max_flow PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(bench_max_flow PRIVATE OpenMP::OpenMP_CXX)
+endif()

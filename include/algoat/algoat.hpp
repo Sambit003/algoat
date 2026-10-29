@@ -20,6 +20,7 @@
 #include "algoat/geometry/predicates.hpp"
 #include "algoat/graph/csr_graph.hpp"
 #include "algoat/graph/d_ary_heap.hpp"
+#include "algoat/graph/max_flow.hpp"
 #include "algoat/graph/shortest_path.hpp"
 #include "algoat/meta/policy.hpp"
 #include "algoat/meta/static_sort.hpp"
@@ -80,6 +81,9 @@ using graph::CSRGraph;
 using graph::CSRGraphConcept;
 using graph::d_ary_heap;
 using graph::EdgeIndex;
+using graph::FlowEdge;
+using graph::MaxFlowEngine;
+using graph::MaxFlowResult;
 using graph::ShortestPathEngine;
 using graph::ShortestPathResult;
 using graph::VertexId;
