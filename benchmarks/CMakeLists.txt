@@ -49,3 +49,9 @@ target_link_libraries(bench_delaunay PRIVATE algoat benchmark::benchmark benchma
 
 add_executable(bench_polygon bench_polygon.cpp)
 target_link_libraries(bench_polygon PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_graph bench_graph.cpp)
+target_link_libraries(bench_graph PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(bench_graph PRIVATE OpenMP::OpenMP_CXX)
+endif()

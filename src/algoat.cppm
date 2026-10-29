@@ -39,6 +39,7 @@ module;
 #include <algoat/geometry/lbvh.hpp>
 #include <algoat/geometry/polygon.hpp>
 #include <algoat/geometry/predicates.hpp>
+#include <algoat/graph/csr_graph.hpp>
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
 #include <algoat/meta/static_sort.hpp>
@@ -65,7 +66,10 @@ using algoat::branchless_lower_bound;
 using algoat::BranchlessBinarySearch;
 using algoat::CircleLocation;
 using algoat::clamp;
+using algoat::CSRGraph;
+using algoat::CSRGraphConcept;
 using algoat::DelaunayTriangulation2D;
+using algoat::EdgeIndex;
 using algoat::find_all_substrings;
 using algoat::find_substring;
 using algoat::galloping_search;
@@ -89,8 +93,16 @@ using algoat::SpaceFillingCurve;
 using algoat::top_k_sorted;
 using algoat::top_k_unsorted;
 using algoat::Triangle;
+using algoat::VertexId;
 using algoat::VoronoiCell;
 using algoat::core::SearchHint;
+
+namespace graph {
+using algoat::graph::CSRGraph;
+using algoat::graph::CSRGraphConcept;
+using algoat::graph::EdgeIndex;
+using algoat::graph::VertexId;
+} // namespace graph
 
 namespace selection {
 using algoat::selection::nth_element;

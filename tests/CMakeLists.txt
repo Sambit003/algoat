@@ -87,6 +87,9 @@ algoat_add_test(test_convex_hull geometry/test_convex_hull.cpp)
 algoat_add_test(test_delaunay geometry/test_delaunay.cpp)
 algoat_add_test(test_polygon geometry/test_polygon.cpp)
 
+# Graph tests
+algoat_add_test(test_csr_graph graph/test_csr_graph.cpp)
+
 # C-ABI tests
 algoat_add_test(test_algoat_c c_api/test_algoat_c.cpp)
 
@@ -101,6 +104,7 @@ add_executable(test_predicates_invariants pbt/test_predicates_invariants.cpp)
 add_executable(test_convex_hull_invariants pbt/test_convex_hull_invariants.cpp)
 add_executable(test_delaunay_invariants pbt/test_delaunay_invariants.cpp)
 add_executable(test_polygon_invariants pbt/test_polygon_invariants.cpp)
+add_executable(test_csr_graph_invariants pbt/test_csr_graph_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
@@ -121,6 +125,8 @@ target_link_libraries(test_delaunay_invariants PRIVATE algoat GTest::gtest_main 
 gtest_discover_tests(test_delaunay_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_polygon_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_polygon_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_csr_graph_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_csr_graph_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -164,6 +170,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_polygon_fuzzer PRIVATE algoat)
     target_compile_options(diff_polygon_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_polygon_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_csr_graph_fuzzer fuzzing/diff_csr_graph_fuzzer.cpp)
+    target_link_libraries(diff_csr_graph_fuzzer PRIVATE algoat)
+    target_compile_options(diff_csr_graph_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_csr_graph_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)
