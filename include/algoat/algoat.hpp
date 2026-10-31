@@ -18,6 +18,7 @@
 #include "algoat/geometry/lbvh.hpp"
 #include "algoat/geometry/polygon.hpp"
 #include "algoat/geometry/predicates.hpp"
+#include "algoat/graph/bipartite_matching.hpp"
 #include "algoat/graph/centrality.hpp"
 #include "algoat/graph/csr_graph.hpp"
 #include "algoat/graph/d_ary_heap.hpp"
@@ -82,6 +83,8 @@ using geometry::SpatialPoint;
 using geometry::Triangle;
 using geometry::VoronoiCell;
 using graph::betweenness_centrality;
+using graph::BipartiteGraph;
+using graph::BipartiteMatchingResult;
 using graph::CentralityResult;
 using graph::ConcurrentDisjointSet;
 using graph::CSRGraph;
