@@ -85,3 +85,6 @@ target_link_libraries(bench_mst PRIVATE algoat benchmark::benchmark benchmark::b
 if(OpenMP_CXX_FOUND)
     target_link_libraries(bench_mst PRIVATE OpenMP::OpenMP_CXX)
 endif()
+
+add_executable(bench_hyperloglog bench_hyperloglog.cpp)
+target_link_libraries(bench_hyperloglog PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
