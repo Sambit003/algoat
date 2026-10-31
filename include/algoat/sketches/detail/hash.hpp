@@ -9,6 +9,14 @@
 #include <string_view>
 #include <type_traits>
 
+#if defined(__GNUC__) || defined(__clang__)
+#define ALGOAT_HASH_LIKELY(x) (__builtin_expect(!!(x), 1))
+#define ALGOAT_HASH_UNLIKELY(x) (__builtin_expect(!!(x), 0))
+#else
+#define ALGOAT_HASH_LIKELY(x) (x)
+#define ALGOAT_HASH_UNLIKELY(x) (x)
+#endif
+
 namespace algoat::sketches::detail {
 
 /// SplitMix64 fast 64-bit avalanche mixer (Guy Steele, Doug Lea, Christine Flood, 2014)
@@ -60,11 +68,11 @@ namespace algoat::sketches::detail {
     uint64_t a = 0;
     uint64_t b = 0;
     seed ^= wymum_mix128(seed ^ WYHASH_CONSTANTS[0], WYHASH_CONSTANTS[1]);
-    if (__builtin_expect(len <= 16, 1)) {
-        if (__builtin_expect(len >= 4, 1)) {
+    if (ALGOAT_HASH_LIKELY(len <= 16)) {
+        if (ALGOAT_HASH_LIKELY(len >= 4)) {
             a = (read_u32_le(p) << 32) | read_u32_le(p + ((len >> 3) << 2));
             b = (read_u32_le(p + len - 4) << 32) | read_u32_le(p + len - 4 - ((len >> 3) << 2));
-        } else if (__builtin_expect(len > 0, 1)) {
+        } else if (ALGOAT_HASH_LIKELY(len > 0)) {
             a = read_u24_le(p, len);
             b = 0;
         } else {
@@ -73,7 +81,7 @@ namespace algoat::sketches::detail {
         }
     } else {
         size_t i = len;
-        if (__builtin_expect(i > 48, 0)) {
+        if (ALGOAT_HASH_UNLIKELY(i > 48)) {
             uint64_t seed1 = seed;
             uint64_t seed2 = seed;
             do {
@@ -85,10 +93,10 @@ namespace algoat::sketches::detail {
                                      read_u64_le(p + 40) ^ seed2);
                 p += 48;
                 i -= 48;
-            } while (__builtin_expect(i > 48, 0));
+            } while (ALGOAT_HASH_UNLIKELY(i > 48));
             seed ^= seed1 ^ seed2;
         }
-        while (__builtin_expect(i > 16, 0)) {
+        while (ALGOAT_HASH_UNLIKELY(i > 16)) {
             seed = wymum_mix128(read_u64_le(p) ^ WYHASH_CONSTANTS[1], read_u64_le(p + 8) ^ seed);
             i -= 16;
             p += 16;
@@ -132,3 +140,6 @@ template <typename T> [[nodiscard]] inline uint64_t hash_item(const T& item) noe
 }
 
 } // namespace algoat::sketches::detail
+
+#undef ALGOAT_HASH_LIKELY
+#undef ALGOAT_HASH_UNLIKELY
