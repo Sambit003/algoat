@@ -39,6 +39,7 @@ module;
 #include <algoat/geometry/lbvh.hpp>
 #include <algoat/geometry/polygon.hpp>
 #include <algoat/geometry/predicates.hpp>
+#include <algoat/graph/bipartite_matching.hpp>
 #include <algoat/graph/centrality.hpp>
 #include <algoat/graph/csr_graph.hpp>
 #include <algoat/graph/d_ary_heap.hpp>
@@ -69,6 +70,8 @@ export module algoat;
 // Must export declarations explicitly via exported namespace blocks:
 export namespace algoat {
 // Primary public API
+using algoat::BipartiteGraph;
+using algoat::BipartiteMatchingResult;
 using algoat::branchless_lower_bound;
 using algoat::BranchlessBinarySearch;
 using algoat::CircleLocation;
@@ -114,6 +117,8 @@ using algoat::core::SearchHint;
 
 namespace graph {
 using algoat::graph::betweenness_centrality;
+using algoat::graph::BipartiteGraph;
+using algoat::graph::BipartiteMatchingResult;
 using algoat::graph::CentralityResult;
 using algoat::graph::ConcurrentDisjointSet;
 using algoat::graph::CSRGraph;
