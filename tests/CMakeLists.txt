@@ -98,6 +98,9 @@ algoat_add_test(test_bipartite_matching graph/test_bipartite_matching.cpp)
 algoat_add_test(test_centrality graph/test_centrality.cpp)
 algoat_add_test(test_scc graph/test_scc.cpp)
 
+# Sketches tests
+algoat_add_test(test_hyperloglog sketches/test_hyperloglog.cpp)
+
 # C-ABI tests
 algoat_add_test(test_algoat_c c_api/test_algoat_c.cpp)
 
@@ -119,6 +122,7 @@ add_executable(test_bipartite_matching_invariants pbt/test_bipartite_matching_in
 add_executable(test_centrality_invariants pbt/test_centrality_invariants.cpp)
 add_executable(test_mst_invariants pbt/test_mst_invariants.cpp)
 add_executable(test_scc_invariants pbt/test_scc_invariants.cpp)
+add_executable(test_hyperloglog_invariants pbt/test_hyperloglog_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
@@ -153,6 +157,8 @@ target_link_libraries(test_mst_invariants PRIVATE algoat GTest::gtest_main rapid
 gtest_discover_tests(test_mst_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_scc_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_scc_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_hyperloglog_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_hyperloglog_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -224,6 +230,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_scc_fuzzer PRIVATE algoat)
     target_compile_options(diff_scc_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_scc_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_hyperloglog_fuzzer fuzzing/diff_hyperloglog_fuzzer.cpp)
+    target_link_libraries(diff_hyperloglog_fuzzer PRIVATE algoat)
+    target_compile_options(diff_hyperloglog_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_hyperloglog_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)

@@ -36,6 +36,7 @@
 #include "algoat/searching/galloping_search.hpp"
 #include "algoat/searching/static_btree.hpp"
 #include "algoat/selection/selection.hpp"
+#include "algoat/sketches/sketches.hpp"
 #include "algoat/sorting/introsort.hpp"
 #include "algoat/sorting/pdqsort.hpp"
 #include "algoat/strings/burstsort.hpp"
@@ -118,6 +119,7 @@ using selection::nth_element;
 using selection::select_optimal;
 using selection::top_k_sorted;
 using selection::top_k_unsorted;
+using sketches::HyperLogLog;
 using strings::find_all_substrings;
 using strings::find_substring;
 using strings::search_pattern;

@@ -57,6 +57,7 @@ module;
 #include <algoat/numerics/morton.hpp>
 #include <algoat/searching/searching.hpp>
 #include <algoat/selection/selection.hpp>
+#include <algoat/sketches/sketches.hpp>
 #include <algoat/sorting/boolean_sort.hpp>
 #include <algoat/sorting/sorting.hpp>
 #include <algoat/strings/burstsort.hpp>
@@ -89,6 +90,7 @@ using algoat::galloping_search;
 using algoat::GallopingSearch;
 using algoat::get_dispatcher;
 using algoat::get_global_config;
+using algoat::HyperLogLog;
 using algoat::incircle;
 using algoat::insphere;
 using algoat::load_global_config;
@@ -329,4 +331,8 @@ using algoat::geometry::SpatialPoint;
 using algoat::geometry::Triangle;
 using algoat::geometry::VoronoiCell;
 } // namespace geometry
+
+namespace sketches {
+using algoat::sketches::HyperLogLog;
+} // namespace sketches
 } // namespace algoat
