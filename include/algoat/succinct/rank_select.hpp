@@ -501,6 +501,10 @@ private:
         }
         l0_.resize(num_l0, 0ULL);
 
+        size_t max_samples = (num_bits_ / kSelectSampleRate) + 2;
+        select1_samples_.reserve(max_samples);
+        select0_samples_.reserve(max_samples);
+
         uint64_t running_ones = 0;
         uint64_t running_zeros = 0;
 
@@ -600,10 +604,6 @@ private:
         }
 
         total_ones_ = running_ones;
-        select1_samples_.shrink_to_fit();
-        select0_samples_.shrink_to_fit();
-        l1l2_.shrink_to_fit();
-        l0_.shrink_to_fit();
     }
 };
 
