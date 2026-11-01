@@ -350,7 +350,7 @@ public:
         size_t candidate_end = n_;
         if (high_quotient < total_zeros) {
             size_t p1 = upper_bits_.select0(high_quotient + 1);
-            candidate_end = std::min(n_, p1 - high_quotient);
+            candidate_end = std::min(n_, static_cast<size_t>(p1 - high_quotient));
         }
 
         if (candidate_start == candidate_end) {
