@@ -42,6 +42,7 @@
 #include "algoat/strings/burstsort.hpp"
 #include "algoat/strings/multikey_quicksort.hpp"
 #include "algoat/strings/substring_search.hpp"
+#include "algoat/succinct/succinct.hpp"
 
 #include <concepts>
 #include <cstddef>
