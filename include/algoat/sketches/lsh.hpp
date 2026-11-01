@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
 #include <concepts>
 #include <cstddef>
@@ -83,10 +84,10 @@ public:
                     __m256i any_diff = _mm256_or_si256(_mm256_srli_epi64(diff, 1), diff);
                     __m256i m = _mm256_and_si256(any_diff, mask);
                     mismatches += static_cast<size_t>(
-                        __builtin_popcountll(static_cast<uint64_t>(_mm256_extract_epi64(m, 0))) +
-                        __builtin_popcountll(static_cast<uint64_t>(_mm256_extract_epi64(m, 1))) +
-                        __builtin_popcountll(static_cast<uint64_t>(_mm256_extract_epi64(m, 2))) +
-                        __builtin_popcountll(static_cast<uint64_t>(_mm256_extract_epi64(m, 3))));
+                        std::popcount(static_cast<uint64_t>(_mm256_extract_epi64(m, 0))) +
+                        std::popcount(static_cast<uint64_t>(_mm256_extract_epi64(m, 1))) +
+                        std::popcount(static_cast<uint64_t>(_mm256_extract_epi64(m, 2))) +
+                        std::popcount(static_cast<uint64_t>(_mm256_extract_epi64(m, 3))));
                 }
                 return mismatches;
             } else if constexpr (B == 1 && kNumWords % 4 == 0) {
@@ -98,10 +99,10 @@ public:
                         _mm256_load_si256(reinterpret_cast<const __m256i*>(other.words.data() + w));
                     __m256i diff = _mm256_xor_si256(a, b);
                     mismatches += static_cast<size_t>(
-                        __builtin_popcountll(static_cast<uint64_t>(_mm256_extract_epi64(diff, 0))) +
-                        __builtin_popcountll(static_cast<uint64_t>(_mm256_extract_epi64(diff, 1))) +
-                        __builtin_popcountll(static_cast<uint64_t>(_mm256_extract_epi64(diff, 2))) +
-                        __builtin_popcountll(static_cast<uint64_t>(_mm256_extract_epi64(diff, 3))));
+                        std::popcount(static_cast<uint64_t>(_mm256_extract_epi64(diff, 0))) +
+                        std::popcount(static_cast<uint64_t>(_mm256_extract_epi64(diff, 1))) +
+                        std::popcount(static_cast<uint64_t>(_mm256_extract_epi64(diff, 2))) +
+                        std::popcount(static_cast<uint64_t>(_mm256_extract_epi64(diff, 3))));
                 }
                 return mismatches;
             }
@@ -110,16 +111,16 @@ public:
             for (size_t w = 0; w < kNumWords; ++w) {
                 uint64_t diff = words[w] ^ other.words[w];
                 if constexpr (B == 1) {
-                    mismatches += static_cast<size_t>(__builtin_popcountll(diff));
+                    mismatches += static_cast<size_t>(std::popcount(diff));
                 } else if constexpr (B == 2) {
                     uint64_t any_diff = (diff >> 1) | diff;
                     uint64_t mismatch_mask = any_diff & 0x5555555555555555ULL;
-                    mismatches += static_cast<size_t>(__builtin_popcountll(mismatch_mask));
+                    mismatches += static_cast<size_t>(std::popcount(mismatch_mask));
                 } else if constexpr (B == 4) {
                     uint64_t t1 = (diff >> 2) | diff;
                     uint64_t t2 = (t1 >> 1) | t1;
                     uint64_t mismatch_mask = t2 & 0x1111111111111111ULL;
-                    mismatches += static_cast<size_t>(__builtin_popcountll(mismatch_mask));
+                    mismatches += static_cast<size_t>(std::popcount(mismatch_mask));
                 }
             }
             return mismatches;
@@ -323,13 +324,13 @@ public:
 
     /// \brief Hardware popcount Hamming distance for 64-bit fingerprints.
     [[nodiscard]] static inline uint32_t hamming_distance(uint64_t fp1, uint64_t fp2) noexcept {
-        return static_cast<uint32_t>(__builtin_popcountll(fp1 ^ fp2));
+        return static_cast<uint32_t>(std::popcount(fp1 ^ fp2));
     }
 
     /// \brief Hardware popcount Hamming distance for 128-bit fingerprints.
     [[nodiscard]] static inline uint32_t hamming_distance(SimHash128 fp1, SimHash128 fp2) noexcept {
-        return static_cast<uint32_t>(__builtin_popcountll(fp1.low ^ fp2.low) +
-                                     __builtin_popcountll(fp1.high ^ fp2.high));
+        return static_cast<uint32_t>(std::popcount(fp1.low ^ fp2.low) +
+                                     std::popcount(fp1.high ^ fp2.high));
     }
 };
 
