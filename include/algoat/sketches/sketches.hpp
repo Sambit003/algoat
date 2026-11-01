@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "algoat/sketches/bloom_cuckoo_filter.hpp"
 #include "algoat/sketches/count_min.hpp"
 #include "algoat/sketches/hyperloglog.hpp"
 
