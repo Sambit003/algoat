@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -18,7 +19,7 @@ inline constexpr uint32_t RUN_MAX_CAPACITY_IN_BITSET = 2047;
 enum class ContainerType : uint8_t { Array, Bitset, Run };
 
 struct Container {
-    virtual ~Container() = default;
+    virtual ~Container() noexcept {}
 
     [[nodiscard]] virtual ContainerType type() const noexcept = 0;
     [[nodiscard]] virtual uint32_t cardinality() const noexcept = 0;
@@ -132,12 +133,12 @@ struct BitsetContainer final : public Container {
         if (word_idx < BITSET_WORDS) {
             const uint64_t w = words[word_idx] >> bit_offset;
             if (w != 0) {
-                const auto next_bit = bit_offset + static_cast<uint32_t>(__builtin_ctzll(w));
+                const auto next_bit = bit_offset + static_cast<uint32_t>(std::countr_zero(w));
                 return {true, static_cast<uint32_t>(word_idx * 64 + next_bit)};
             }
             for (size_t wi = word_idx + 1; wi < BITSET_WORDS; ++wi) {
                 if (words[wi] != 0) {
-                    const auto next_bit = static_cast<uint32_t>(__builtin_ctzll(words[wi]));
+                    const auto next_bit = static_cast<uint32_t>(std::countr_zero(words[wi]));
                     return {true, static_cast<uint32_t>(wi * 64 + next_bit)};
                 }
             }
@@ -270,7 +271,7 @@ inline std::shared_ptr<ArrayContainer> bitset_to_array(const BitsetContainer& bc
     for (size_t i = 0; i < BITSET_WORDS; ++i) {
         uint64_t w = bc.words[i];
         while (w != 0) {
-            const auto bit = static_cast<uint32_t>(__builtin_ctzll(w));
+            const auto bit = static_cast<uint32_t>(std::countr_zero(w));
             ac->values.push_back(static_cast<uint16_t>(i * 64 + bit));
             w &= (w - 1);
         }
@@ -332,11 +333,11 @@ inline uint32_t count_runs_in_bitset(const BitsetContainer& bc) noexcept {
     for (size_t i = 0; i < BITSET_WORDS - 1; ++i) {
         uint64_t w = bc.words[i];
         uint64_t next_w = bc.words[i + 1];
-        r += static_cast<uint32_t>(__builtin_popcountll((w << 1) & ~w));
+        r += static_cast<uint32_t>(std::popcount((w << 1) & ~w));
         r += static_cast<uint32_t>((w >> 63) & ~next_w & 1ULL);
     }
     uint64_t last_w = bc.words[BITSET_WORDS - 1];
-    r += static_cast<uint32_t>(__builtin_popcountll((last_w << 1) & ~last_w));
+    r += static_cast<uint32_t>(std::popcount((last_w << 1) & ~last_w));
     r += static_cast<uint32_t>((last_w >> 63) & 1ULL);
     return r;
 }

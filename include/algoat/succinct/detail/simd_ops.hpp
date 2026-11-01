@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 
@@ -219,10 +220,10 @@ struct SimdOps {
         uint64_t sum2 = 0;
         uint64_t sum3 = 0;
         for (size_t i = 0; i < BITSET_WORDS; i += 4) {
-            sum0 += static_cast<uint64_t>(__builtin_popcountll(words[i + 0]));
-            sum1 += static_cast<uint64_t>(__builtin_popcountll(words[i + 1]));
-            sum2 += static_cast<uint64_t>(__builtin_popcountll(words[i + 2]));
-            sum3 += static_cast<uint64_t>(__builtin_popcountll(words[i + 3]));
+            sum0 += static_cast<uint64_t>(std::popcount(words[i + 0]));
+            sum1 += static_cast<uint64_t>(std::popcount(words[i + 1]));
+            sum2 += static_cast<uint64_t>(std::popcount(words[i + 2]));
+            sum3 += static_cast<uint64_t>(std::popcount(words[i + 3]));
         }
         return sum0 + sum1 + sum2 + sum3;
 #endif
@@ -246,10 +247,10 @@ struct SimdOps {
         uint64_t sum2 = 0;
         uint64_t sum3 = 0;
         for (size_t i = 0; i < BITSET_WORDS; i += 4) {
-            sum0 += static_cast<uint64_t>(__builtin_popcountll(a[i + 0] & b[i + 0]));
-            sum1 += static_cast<uint64_t>(__builtin_popcountll(a[i + 1] & b[i + 1]));
-            sum2 += static_cast<uint64_t>(__builtin_popcountll(a[i + 2] & b[i + 2]));
-            sum3 += static_cast<uint64_t>(__builtin_popcountll(a[i + 3] & b[i + 3]));
+            sum0 += static_cast<uint64_t>(std::popcount(a[i + 0] & b[i + 0]));
+            sum1 += static_cast<uint64_t>(std::popcount(a[i + 1] & b[i + 1]));
+            sum2 += static_cast<uint64_t>(std::popcount(a[i + 2] & b[i + 2]));
+            sum3 += static_cast<uint64_t>(std::popcount(a[i + 3] & b[i + 3]));
         }
         return sum0 + sum1 + sum2 + sum3;
 #endif

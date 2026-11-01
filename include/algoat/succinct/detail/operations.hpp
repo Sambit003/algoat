@@ -4,6 +4,7 @@
 #include "algoat/succinct/detail/simd_ops.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <memory>
 #include <vector>
 
@@ -281,7 +282,7 @@ inline std::shared_ptr<Container> intersect_containers(const Container& c1, cons
             for (size_t i = 0; i < BITSET_WORDS; ++i) {
                 uint64_t w = b1.words[i] & b2.words[i];
                 while (w != 0) {
-                    const auto bit = static_cast<uint32_t>(__builtin_ctzll(w));
+                    const auto bit = static_cast<uint32_t>(std::countr_zero(w));
                     out->values.push_back(static_cast<uint16_t>(i * 64 + bit));
                     w &= (w - 1);
                 }

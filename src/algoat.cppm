@@ -63,6 +63,7 @@ module;
 #include <algoat/strings/burstsort.hpp>
 #include <algoat/strings/multikey_quicksort.hpp>
 #include <algoat/strings/substring_search.hpp>
+#include <algoat/succinct/succinct.hpp>
 #include <algoat/utils.hpp>
 
 export module algoat;
@@ -108,6 +109,7 @@ using algoat::orient3d;
 using algoat::Orientation;
 using algoat::Point2D;
 using algoat::Point3D;
+using algoat::RoaringBitmap;
 using algoat::search;
 using algoat::search_pattern;
 using algoat::select_optimal;
@@ -349,4 +351,8 @@ using algoat::sketches::SpaceSaving;
 using algoat::sketches::SpaceSavingHeavyHitters;
 using algoat::sketches::TDigest;
 } // namespace sketches
+
+namespace succinct {
+using algoat::succinct::RoaringBitmap;
+} // namespace succinct
 } // namespace algoat
