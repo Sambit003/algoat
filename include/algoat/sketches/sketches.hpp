@@ -9,5 +9,6 @@
 #include "algoat/sketches/count_min.hpp"
 #include "algoat/sketches/hyperloglog.hpp"
 #include "algoat/sketches/lsh.hpp"
+#include "algoat/sketches/quantile_sketches.hpp"
 
 namespace algoat::sketches {} // namespace algoat::sketches
