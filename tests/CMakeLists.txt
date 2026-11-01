@@ -101,6 +101,7 @@ algoat_add_test(test_scc graph/test_scc.cpp)
 # Sketches tests
 algoat_add_test(test_hyperloglog sketches/test_hyperloglog.cpp)
 algoat_add_test(test_count_min sketches/test_count_min.cpp)
+algoat_add_test(test_bloom_cuckoo_filter sketches/test_bloom_cuckoo_filter.cpp)
 
 # C-ABI tests
 algoat_add_test(test_algoat_c c_api/test_algoat_c.cpp)
@@ -125,6 +126,7 @@ add_executable(test_mst_invariants pbt/test_mst_invariants.cpp)
 add_executable(test_scc_invariants pbt/test_scc_invariants.cpp)
 add_executable(test_hyperloglog_invariants pbt/test_hyperloglog_invariants.cpp)
 add_executable(test_count_min_invariants pbt/test_count_min_invariants.cpp)
+add_executable(test_bloom_cuckoo_filter_invariants pbt/test_bloom_cuckoo_filter_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
@@ -163,6 +165,8 @@ target_link_libraries(test_hyperloglog_invariants PRIVATE algoat GTest::gtest_ma
 gtest_discover_tests(test_hyperloglog_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_count_min_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_count_min_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_bloom_cuckoo_filter_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_bloom_cuckoo_filter_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -242,6 +246,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_count_min_fuzzer PRIVATE algoat)
     target_compile_options(diff_count_min_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_count_min_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_bloom_cuckoo_fuzzer fuzzing/diff_bloom_cuckoo_fuzzer.cpp)
+    target_link_libraries(diff_bloom_cuckoo_fuzzer PRIVATE algoat)
+    target_compile_options(diff_bloom_cuckoo_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_bloom_cuckoo_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)
