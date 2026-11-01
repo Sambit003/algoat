@@ -169,6 +169,14 @@ Located in [`include/algoat/sketches/`](include/algoat/sketches/).
 - **6-NN Empirical Bias Correction**: Interpolates empirical bias correction tables across $P \in [4, 18]$ in the transition range between Linear Counting and asymptotic Flajolet estimation ($E \le 5m$).
 - **Redis Wire Compatibility**: Serializes into Redis-compatible 16-byte `struct hllhdr` headers with dense 6-bit packed registers when $P = 14$ (12,304 bytes total).
 
+### 4.5 Count-Min Sketch with Conservative Update & Space-Saving Heavy Hitters (`count_min.hpp`)
+Located in [`include/algoat/sketches/`](include/algoat/sketches/).
+- **Count-Min Sketch (`CountMinSketch`)**: Implements Cormode & Muthukrishnan (2005) with Estan & Varghese (2002) Conservative Update (CU). Slashes false positive overestimation error by $50\%\text{--}70\%$ under Zipfian skew while strictly preserving the one-sided non-underestimation invariant ($\hat{f}(x) \ge f(x)$).
+- **Column-Interleaved Counter Matrix & Cache Locality**: Counters are laid out in column-interleaved order (`col * depth_ + j`) so that the $d$ row counters $[C[0, \text{col}], C[1, \text{col}], \dots, C[d-1, \text{col}]]$ corresponding to a shared column coordinate reside contiguously in 64-byte cache lines.
+- **Fast Independent Hashing & AVX2 Acceleration**: Computes row indices using Dietzfelbinger multiply-shift with precomputed `ROW_M1` and `ROW_M2` tables and Lemire's FastRange (`(hash32 * width) >> 32`), vectorized under AVX2 using `_mm256_mul_epu32` and `_mm256_srli_epi64`. Vectorized horizontal minimum reduction is evaluated in parallel using `_mm256_min_epu32` and `_mm_min_epu32`.
+- **Saturating Merge**: Combines sketch instances of identical dimensions with AVX2 saturating 32-bit unsigned arithmetic (`_mm256_add_epi32` clamped against bitwise inverted accumulator).
+- **Space-Saving Top-$k$ Engine (`SpaceSavingHeavyHitters` / `SpaceSaving`)**: Constant-space Metwally et al. (2005) `Stream-Summary` engine maintaining a contiguous doubly-linked frequency bucket pool with $O(1)$ fast-path tail insertion and an open-addressed power-of-two flat hash table with cyclic backward-shift deletion. Provides $O(1)$ stream ingestion with zero heap allocations during stream updates, recovering heavy hitters with guaranteed error bounds ($\hat{f}(x) - \text{error}(x) \le f(x) \le \hat{f}(x)$ and $\sum_{i=1}^K \hat{f}_i = N$).
+
 ---
 
 ## 5. Adding New Algorithms: Extensible Domain Architecture Guide

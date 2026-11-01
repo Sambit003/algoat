@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "algoat/sketches/count_min.hpp"
 #include "algoat/sketches/hyperloglog.hpp"
 
 namespace algoat::sketches {} // namespace algoat::sketches
