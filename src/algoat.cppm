@@ -109,6 +109,7 @@ using algoat::orient3d;
 using algoat::Orientation;
 using algoat::Point2D;
 using algoat::Point3D;
+using algoat::RankSelectBitVector;
 using algoat::RoaringBitmap;
 using algoat::search;
 using algoat::search_pattern;
@@ -353,6 +354,7 @@ using algoat::sketches::TDigest;
 } // namespace sketches
 
 namespace succinct {
+using algoat::succinct::RankSelectBitVector;
 using algoat::succinct::RoaringBitmap;
 } // namespace succinct
 } // namespace algoat

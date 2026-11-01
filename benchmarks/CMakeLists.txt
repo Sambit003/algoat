@@ -100,3 +100,6 @@ target_link_libraries(bench_lsh PRIVATE algoat benchmark::benchmark benchmark::b
 
 add_executable(bench_roaring_bitmap bench_roaring_bitmap.cpp)
 target_link_libraries(bench_roaring_bitmap PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_rank_select bench_rank_select.cpp)
+target_link_libraries(bench_rank_select PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)

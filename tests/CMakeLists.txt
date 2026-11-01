@@ -107,6 +107,7 @@ algoat_add_test(test_quantile_sketches sketches/test_quantile_sketches.cpp)
 
 # Succinct tests
 algoat_add_test(test_roaring_bitmap succinct/test_roaring_bitmap.cpp)
+algoat_add_test(test_rank_select succinct/test_rank_select.cpp)
 
 # C-ABI tests
 algoat_add_test(test_algoat_c c_api/test_algoat_c.cpp)
@@ -135,6 +136,7 @@ add_executable(test_bloom_cuckoo_filter_invariants pbt/test_bloom_cuckoo_filter_
 add_executable(test_lsh_invariants pbt/test_lsh_invariants.cpp)
 add_executable(test_quantile_sketches_invariants pbt/test_quantile_sketches_invariants.cpp)
 add_executable(test_roaring_bitmap_invariants pbt/test_roaring_bitmap_invariants.cpp)
+add_executable(test_rank_select_invariants pbt/test_rank_select_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
@@ -181,6 +183,8 @@ target_link_libraries(test_quantile_sketches_invariants PRIVATE algoat GTest::gt
 gtest_discover_tests(test_quantile_sketches_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_roaring_bitmap_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_roaring_bitmap_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_rank_select_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_rank_select_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -276,6 +280,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_roaring_bitmap_fuzzer PRIVATE algoat)
     target_compile_options(diff_roaring_bitmap_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_roaring_bitmap_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_rank_select_fuzzer fuzzing/diff_rank_select_fuzzer.cpp)
+    target_link_libraries(diff_rank_select_fuzzer PRIVATE algoat)
+    target_compile_options(diff_rank_select_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_rank_select_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)

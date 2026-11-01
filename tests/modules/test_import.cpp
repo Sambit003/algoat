@@ -223,3 +223,16 @@ TEST(ModuleImportTest, SuccinctSuiteRoaringBitmap) {
     rb_alias.add(7);
     EXPECT_TRUE(rb_alias.contains(7));
 }
+
+TEST(ModuleImportTest, SuccinctSuiteRankSelectBitVector) {
+    std::vector<bool> bits = {true, false, true, true, false, true};
+    algoat::succinct::RankSelectBitVector bv(bits);
+    EXPECT_EQ(bv.num_bits(), 6ULL);
+    EXPECT_EQ(bv.total_ones(), 4ULL);
+    EXPECT_EQ(bv.rank1(3), 2ULL);
+    EXPECT_EQ(bv.select1(1), 0ULL);
+    EXPECT_EQ(bv.select1(2), 2ULL);
+
+    algoat::RankSelectBitVector bv_alias(bits);
+    EXPECT_EQ(bv_alias.rank1(3), 2ULL);
+}
