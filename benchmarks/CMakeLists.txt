@@ -103,3 +103,6 @@ target_link_libraries(bench_roaring_bitmap PRIVATE algoat benchmark::benchmark b
 
 add_executable(bench_rank_select bench_rank_select.cpp)
 target_link_libraries(bench_rank_select PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_elias_fano bench_elias_fano.cpp)
+target_link_libraries(bench_elias_fano PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
