@@ -209,3 +209,17 @@ TEST(ModuleImportTest, StringsSuiteSubstringSearch) {
     ASSERT_NE(it, text.end());
     EXPECT_EQ(std::distance(text.begin(), it), 35);
 }
+
+TEST(ModuleImportTest, SuccinctSuiteRoaringBitmap) {
+    algoat::succinct::RoaringBitmap rb;
+    rb.add(42);
+    rb.add(100000);
+    EXPECT_EQ(rb.cardinality(), 2);
+    EXPECT_TRUE(rb.contains(42));
+    EXPECT_TRUE(rb.contains(100000));
+    EXPECT_FALSE(rb.contains(99));
+
+    algoat::RoaringBitmap rb_alias;
+    rb_alias.add(7);
+    EXPECT_TRUE(rb_alias.contains(7));
+}

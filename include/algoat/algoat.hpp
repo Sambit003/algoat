@@ -42,6 +42,7 @@
 #include "algoat/strings/burstsort.hpp"
 #include "algoat/strings/multikey_quicksort.hpp"
 #include "algoat/strings/substring_search.hpp"
+#include "algoat/succinct/succinct.hpp"
 
 #include <concepts>
 #include <cstddef>
@@ -129,6 +130,7 @@ using sketches::SpaceSavingHeavyHitters;
 using strings::find_all_substrings;
 using strings::find_substring;
 using strings::search_pattern;
+using succinct::RoaringBitmap;
 
 /**
  * @brief Retrieves the thread-safe global configuration instance.

@@ -97,3 +97,6 @@ target_link_libraries(bench_bloom_cuckoo PRIVATE algoat benchmark::benchmark ben
 
 add_executable(bench_lsh bench_lsh.cpp)
 target_link_libraries(bench_lsh PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_roaring_bitmap bench_roaring_bitmap.cpp)
+target_link_libraries(bench_roaring_bitmap PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
