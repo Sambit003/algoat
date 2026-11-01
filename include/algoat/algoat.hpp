@@ -130,6 +130,7 @@ using sketches::SpaceSavingHeavyHitters;
 using strings::find_all_substrings;
 using strings::find_substring;
 using strings::search_pattern;
+using succinct::RankSelectBitVector;
 using succinct::RoaringBitmap;
 
 /**
