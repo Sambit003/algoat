@@ -341,10 +341,12 @@ using algoat::geometry::VoronoiCell;
 namespace sketches {
 using algoat::sketches::BBitMinHash;
 using algoat::sketches::CountMinSketch;
+using algoat::sketches::DDSketch;
 using algoat::sketches::HyperLogLog;
 using algoat::sketches::LSHIndex;
 using algoat::sketches::SimHash;
 using algoat::sketches::SpaceSaving;
 using algoat::sketches::SpaceSavingHeavyHitters;
+using algoat::sketches::TDigest;
 } // namespace sketches
 } // namespace algoat
