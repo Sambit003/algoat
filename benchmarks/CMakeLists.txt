@@ -88,3 +88,6 @@ endif()
 
 add_executable(bench_hyperloglog bench_hyperloglog.cpp)
 target_link_libraries(bench_hyperloglog PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_count_min bench_count_min.cpp)
+target_link_libraries(bench_count_min PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)

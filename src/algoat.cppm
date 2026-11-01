@@ -78,6 +78,7 @@ using algoat::BranchlessBinarySearch;
 using algoat::CircleLocation;
 using algoat::clamp;
 using algoat::ConcurrentDisjointSet;
+using algoat::CountMinSketch;
 using algoat::CSRGraph;
 using algoat::CSRGraphConcept;
 using algoat::DelaunayTriangulation2D;
@@ -110,6 +111,8 @@ using algoat::search_pattern;
 using algoat::select_optimal;
 using algoat::sort;
 using algoat::SpaceFillingCurve;
+using algoat::SpaceSaving;
+using algoat::SpaceSavingHeavyHitters;
 using algoat::top_k_sorted;
 using algoat::top_k_unsorted;
 using algoat::Triangle;
@@ -333,6 +336,9 @@ using algoat::geometry::VoronoiCell;
 } // namespace geometry
 
 namespace sketches {
+using algoat::sketches::CountMinSketch;
 using algoat::sketches::HyperLogLog;
+using algoat::sketches::SpaceSaving;
+using algoat::sketches::SpaceSavingHeavyHitters;
 } // namespace sketches
 } // namespace algoat
