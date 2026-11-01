@@ -94,3 +94,6 @@ target_link_libraries(bench_count_min PRIVATE algoat benchmark::benchmark benchm
 
 add_executable(bench_bloom_cuckoo bench_bloom_cuckoo.cpp)
 target_link_libraries(bench_bloom_cuckoo PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_lsh bench_lsh.cpp)
+target_link_libraries(bench_lsh PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)

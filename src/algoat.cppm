@@ -71,6 +71,7 @@ export module algoat;
 // Must export declarations explicitly via exported namespace blocks:
 export namespace algoat {
 // Primary public API
+using algoat::BBitMinHash;
 using algoat::BipartiteGraph;
 using algoat::BipartiteMatchingResult;
 using algoat::branchless_lower_bound;
@@ -95,6 +96,7 @@ using algoat::HyperLogLog;
 using algoat::incircle;
 using algoat::insphere;
 using algoat::load_global_config;
+using algoat::LSHIndex;
 using algoat::MaxFlowEngine;
 using algoat::MaxFlowResult;
 using algoat::MinimumSpanningTreeEngine;
@@ -109,6 +111,7 @@ using algoat::Point3D;
 using algoat::search;
 using algoat::search_pattern;
 using algoat::select_optimal;
+using algoat::SimHash;
 using algoat::sort;
 using algoat::SpaceFillingCurve;
 using algoat::SpaceSaving;
@@ -336,8 +339,11 @@ using algoat::geometry::VoronoiCell;
 } // namespace geometry
 
 namespace sketches {
+using algoat::sketches::BBitMinHash;
 using algoat::sketches::CountMinSketch;
 using algoat::sketches::HyperLogLog;
+using algoat::sketches::LSHIndex;
+using algoat::sketches::SimHash;
 using algoat::sketches::SpaceSaving;
 using algoat::sketches::SpaceSavingHeavyHitters;
 } // namespace sketches
