@@ -594,20 +594,20 @@ private:
             throw std::invalid_argument("Invalid Elias-Fano serialized buffer header");
         }
 
-        n_ = header.n;
+        n_ = static_cast<size_t>(header.n);
         universe_ = header.universe;
-        lower_bits_ = header.lower_bits;
+        lower_bits_ = static_cast<size_t>(header.lower_bits);
         lower_mask_ = (lower_bits_ > 0) ? ((1ULL << lower_bits_) - 1ULL) : 0ULL;
-        lower_words_count_ = header.lower_words_count;
-        upper_words_count_ = header.upper_words_count;
+        lower_words_count_ = static_cast<size_t>(header.lower_words_count);
+        upper_words_count_ = static_cast<size_t>(header.upper_words_count);
 
         if (n_ == 0) {
             return;
         }
 
         size_t offset = sizeof(detail::EliasFanoHeader);
-        size_t lower_bytes = header.lower_words_count * sizeof(uint64_t);
-        size_t upper_bytes = header.upper_words_count * sizeof(uint64_t);
+        size_t lower_bytes = lower_words_count_ * sizeof(uint64_t);
+        size_t upper_bytes = upper_words_count_ * sizeof(uint64_t);
 
         if (buffer.size() < offset + lower_bytes + upper_bytes) {
             throw std::invalid_argument("Buffer underflow in Elias-Fano deserialization");
@@ -628,9 +628,9 @@ private:
 
         if (header.upper_words_count > 0 && header.upper_bits_count > 0) {
             upper_words_ = reinterpret_cast<const uint64_t*>(buffer.data() + offset);
-            upper_bits_ = RankSelectBitVector(
-                std::span<const uint64_t>{upper_words_, header.upper_words_count},
-                header.upper_bits_count);
+            upper_bits_ =
+                RankSelectBitVector(std::span<const uint64_t>{upper_words_, upper_words_count_},
+                                    static_cast<size_t>(header.upper_bits_count));
         }
     }
 };
