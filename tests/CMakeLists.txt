@@ -110,6 +110,8 @@ algoat_add_test(test_roaring_bitmap succinct/test_roaring_bitmap.cpp)
 algoat_add_test(test_rank_select succinct/test_rank_select.cpp)
 algoat_add_test(test_elias_fano succinct/test_elias_fano.cpp)
 algoat_add_test(test_wavelet_matrix succinct/test_wavelet_matrix.cpp)
+algoat_add_test(test_sais succinct/test_sais.cpp)
+algoat_add_test(test_fm_index succinct/test_fm_index.cpp)
 
 # C-ABI tests
 algoat_add_test(test_algoat_c c_api/test_algoat_c.cpp)
@@ -141,6 +143,7 @@ add_executable(test_roaring_bitmap_invariants pbt/test_roaring_bitmap_invariants
 add_executable(test_rank_select_invariants pbt/test_rank_select_invariants.cpp)
 add_executable(test_elias_fano_invariants pbt/test_elias_fano_invariants.cpp)
 add_executable(test_wavelet_matrix_invariants pbt/test_wavelet_matrix_invariants.cpp)
+add_executable(test_fm_index_invariants pbt/test_fm_index_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
@@ -193,6 +196,8 @@ target_link_libraries(test_elias_fano_invariants PRIVATE algoat GTest::gtest_mai
 gtest_discover_tests(test_elias_fano_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_wavelet_matrix_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_wavelet_matrix_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_fm_index_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_fm_index_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -300,6 +305,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_wavelet_matrix_fuzzer PRIVATE algoat)
     target_compile_options(diff_wavelet_matrix_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_wavelet_matrix_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_fm_index_fuzzer fuzzing/diff_fm_index_fuzzer.cpp)
+    target_link_libraries(diff_fm_index_fuzzer PRIVATE algoat)
+    target_compile_options(diff_fm_index_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_fm_index_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)

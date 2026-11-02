@@ -258,10 +258,10 @@ size_t WaveletMatrix<T>::range_freq_less(size_t l, size_t r, T upper) const noex
 
 template <std::unsigned_integral T>
 size_t WaveletMatrix<T>::range_count(size_t l, size_t r, T val_lo, T val_hi) const noexcept {
-    assert(l <= r && r <= n_);
     if (l >= r || val_lo > val_hi || l >= n_ || n_ == 0) {
         return 0;
     }
+    assert(r <= n_);
     r = std::min(r, n_);
     if (sigma_ > 0 && static_cast<size_t>(val_lo) >= sigma_) {
         return 0;
