@@ -109,3 +109,6 @@ target_link_libraries(bench_elias_fano PRIVATE algoat benchmark::benchmark bench
 
 add_executable(bench_wavelet_matrix bench_wavelet_matrix.cpp)
 target_link_libraries(bench_wavelet_matrix PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_fm_index bench_fm_index.cpp)
+target_link_libraries(bench_fm_index PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)

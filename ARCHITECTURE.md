@@ -183,6 +183,18 @@ Located in [`include/algoat/sketches/`](include/algoat/sketches/).
 - **Vectorized SimHash (`SimHash`)**: Implements Moses S. Charikar (STOC 2002) random hyperplane rounding for angular cosine similarity search. Employs 8 YMM registers (64 float accumulators) with zero stack spills, utilizing an 8 KB L1-cached byte-signs LUT with `_mm256_fmadd_ps` and `_mm256_movemask_ps` to achieve $> 400\text{ million}$ tokens/sec single-core throughput. Provides both 64-bit and 128-bit fingerprints with Charikar cosine distance inversion $\cos(\theta) = \cos(\pi \cdot d_H / f)$ mapped to single-cycle hardware popcount.
 - **Banded & Multi-Probe LSH Index (`LSHIndex`)**: Implements Broder (1997), Indyk & Motwani (1998), Rajaraman & Ullman (MMDS Ch. 3), and Lv et al. (VLDB 2007) multi-probe LSH. Structures signatures into $B$ bands of $R$ rows ($K = B \times R$) with SplitMix64 domain-separated band hashing, achieving S-curve candidate amplification $P(s) = 1 - (1 - s^R)^B$. Supports zero-allocation candidate retrieval with flat array deduplication and Radius-1 Hamming perturbation multi-probing.
 
+### 4.7 Compressed FM-Index with Burrows-Wheeler Transform (`fm_index.hpp`)
+Located in [`include/algoat/succinct/`](include/algoat/succinct/).
+- **Foundational Theory (Ferragina & Manzini 2000, Burrows & Wheeler 1994)**: Compressed self-indexing engine combining the Burrows-Wheeler Transform (BWT) with succinct rank queries for exact full-text pattern matching, occurrence localization, and arbitrary substring decompression.
+- **Microarchitectural Core & LF-Mapping**: The core search kernel executes right-to-left backward search using the Last-to-First (LF) mapping:
+  $$\mathrm{LF}(i) = C[\mathrm{BWT}[i]] + \mathrm{Occ}(\mathrm{BWT}[i], i)$$
+  The character occurrence count table $\mathrm{Occ}(c, i)$ is backed by `algoat::succinct::WaveletMatrix<uint8_t>` with $O(\log \sigma)$ rank queries.
+- **Dual Suffix Array Sampling**:
+  - **Sampled SA (`sa_samples_` & `sa_sample_marks_`)**: Samples suffix array values at configurable stride $s$ (default $s = 32$) marked in BWT order with `algoat::succinct::RankSelectBitVector`, resolving `locate(P)` within $\mathcal{O}(s)$ LF steps without storing uncompressed 64-bit suffix arrays.
+  - **Sampled ISA (`isa_samples_`)**: Text-order inverted suffix array samples at multiples of $s$, enabling `extract(pos, len)` to decompress text directly in $\mathcal{O}(s + len)$ time without retaining raw text.
+- **Linear-Time SA-IS Construction (`detail/sais.hpp`)**: Nong, Zhang & Chan (2009) induced sorting algorithm executing in strict $\mathcal{O}(N)$ time and space, parameterized with 64-bit signed indices (`int64_t`) to seamlessly support bioinformatics workloads up to $N = 3 \times 10^9$ bases without integer overflow.
+- **Portable Binary Serialization**: Encodes index configuration, alphabet count tables ($C$), BWT wavelet matrix, and sampled arrays into a contiguous binary payload supporting zero-allocation round-trip deserialization.
+
 ---
 
 ## 5. Adding New Algorithms: Extensible Domain Architecture Guide

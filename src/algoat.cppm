@@ -89,6 +89,8 @@ using algoat::EdgeIndex;
 using algoat::find_all_substrings;
 using algoat::find_substring;
 using algoat::FlowEdge;
+using algoat::FMIndex;
+using algoat::FMIndexConfig;
 using algoat::galloping_search;
 using algoat::GallopingSearch;
 using algoat::get_dispatcher;
@@ -354,6 +356,8 @@ using algoat::sketches::TDigest;
 } // namespace sketches
 
 namespace succinct {
+using algoat::succinct::FMIndex;
+using algoat::succinct::FMIndexConfig;
 using algoat::succinct::RankSelectBitVector;
 using algoat::succinct::RoaringBitmap;
 using algoat::succinct::WaveletMatrix;
