@@ -12,6 +12,7 @@ add_library(algoat
     searching/interpolation_search.cpp
     searching/hybrid_interpolation_search.cpp
     strings/substring_search.cpp
+    succinct/wavelet_matrix.cpp
 )
 
 target_include_directories(algoat

@@ -132,6 +132,7 @@ using strings::find_substring;
 using strings::search_pattern;
 using succinct::RankSelectBitVector;
 using succinct::RoaringBitmap;
+using succinct::WaveletMatrix;
 
 /**
  * @brief Retrieves the thread-safe global configuration instance.

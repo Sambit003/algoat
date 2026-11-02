@@ -356,5 +356,6 @@ using algoat::sketches::TDigest;
 namespace succinct {
 using algoat::succinct::RankSelectBitVector;
 using algoat::succinct::RoaringBitmap;
+using algoat::succinct::WaveletMatrix;
 } // namespace succinct
 } // namespace algoat
