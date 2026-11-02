@@ -27,7 +27,11 @@
 #include <type_traits>
 #include <vector>
 
-#if defined(_OPENMP)
+#if defined(_MSC_VER)
+#include <malloc.h>
+#endif
+
+#if defined(_OPENMP) && (_OPENMP >= 200805)
 #include <omp.h>
 #endif
 
@@ -55,15 +59,29 @@ template <typename T, size_t Alignment = 64> struct AlignedAllocator {
             return nullptr;
         size_t bytes = n * sizeof(T);
         constexpr size_t align = (Alignment < sizeof(void*)) ? sizeof(void*) : Alignment;
+#if defined(_MSC_VER)
+        void* ptr = _aligned_malloc(bytes, align);
+        if (!ptr) {
+            throw std::bad_alloc();
+        }
+        return static_cast<T*>(ptr);
+#else
         void* ptr = nullptr;
         if (posix_memalign(&ptr, align, bytes) != 0) {
             throw std::bad_alloc();
         }
         return static_cast<T*>(ptr);
+#endif
     }
 
     void deallocate(T* p, size_t) noexcept {
+        if (!p)
+            return;
+#if defined(_MSC_VER)
+        _aligned_free(p);
+#else
         free(p);
+#endif
     }
 
     bool operator==(const AlignedAllocator&) const noexcept = default;
@@ -149,7 +167,7 @@ inline void microkernel_8x16_fp32_avx512(size_t K, const float* A_ptr, size_t ld
 }
 #endif
 
-#if defined(__AVX2__) && defined(__FMA__)
+#if defined(__AVX2__) && (defined(__FMA__) || defined(_MSC_VER))
 inline void microkernel_6x16_fp32(size_t K, const float* A_ptr, size_t lda, const float* B_ptr,
                                   size_t ldb, float* C_ptr, size_t ldc) noexcept {
     __m256 c00 = _mm256_loadu_ps(C_ptr + 0 * ldc + 0);
@@ -302,7 +320,7 @@ inline void base_gemm(MatrixView<const T> A, MatrixView<const T> B, MatrixView<T
         }
         return;
     }
-#elif defined(__AVX2__) && defined(__FMA__)
+#elif defined(__AVX2__) && (defined(__FMA__) || defined(_MSC_VER))
     if constexpr (std::is_same_v<T, float>) {
         size_t i = 0;
         for (; i + 6 <= M; i += 6) {
@@ -683,7 +701,7 @@ void matmul_strassen(MatrixView<const T> A, MatrixView<const T> B, MatrixView<T>
 
 namespace detail {
 
-#if defined(_OPENMP)
+#if defined(_OPENMP) && (_OPENMP >= 200805)
 template <std::floating_point T>
 void matmul_parallel_omp_task(MatrixView<const T> A, MatrixView<const T> B, MatrixView<T> C) {
     const size_t M = A.rows;
@@ -774,7 +792,7 @@ void matmul_parallel_thread_impl(MatrixView<const T> A, MatrixView<const T> B, M
 /// \brief Parallelized cache-oblivious GEMM using divide-and-conquer tasking.
 template <std::floating_point T>
 void matmul_parallel(MatrixView<const T> A, MatrixView<const T> B, MatrixView<T> C) {
-#if defined(_OPENMP)
+#if defined(_OPENMP) && (_OPENMP >= 200805)
     if (omp_in_parallel()) {
         detail::matmul_parallel_omp_task(A, B, C);
     } else {
