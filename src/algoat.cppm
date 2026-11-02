@@ -54,6 +54,7 @@ module;
 #include <algoat/numerics/float16_sort.hpp>
 #include <algoat/numerics/hilbert.hpp>
 #include <algoat/numerics/hybrid_sfc.hpp>
+#include <algoat/numerics/matmul.hpp>
 #include <algoat/numerics/morton.hpp>
 #include <algoat/searching/searching.hpp>
 #include <algoat/selection/selection.hpp>
@@ -210,6 +211,11 @@ namespace numerics {
 using algoat::numerics::Float16Compare;
 using algoat::numerics::float_to_hilbert2d;
 using algoat::numerics::float_to_morton;
+using algoat::numerics::make_matrix;
+using algoat::numerics::matmul_cache_oblivious;
+using algoat::numerics::matmul_parallel;
+using algoat::numerics::matmul_strassen;
+using algoat::numerics::MatrixView;
 using algoat::numerics::morton_interleave;
 using algoat::numerics::MortonCompare;
 using algoat::numerics::sort_complex_hybrid;

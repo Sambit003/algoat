@@ -112,3 +112,9 @@ target_link_libraries(bench_wavelet_matrix PRIVATE algoat benchmark::benchmark b
 
 add_executable(bench_fm_index bench_fm_index.cpp)
 target_link_libraries(bench_fm_index PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_matmul bench_matmul.cpp)
+target_link_libraries(bench_matmul PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(bench_matmul PRIVATE OpenMP::OpenMP_CXX)
+endif()

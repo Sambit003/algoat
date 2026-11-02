@@ -30,6 +30,7 @@
 #include "algoat/meta/policy.hpp"
 #include "algoat/meta/static_sort.hpp"
 #include "algoat/numerics/hybrid_sfc.hpp"
+#include "algoat/numerics/matmul.hpp"
 #include "algoat/searching/binary_search.hpp"
 #include "algoat/searching/branchless_binary_search.hpp"
 #include "algoat/searching/eytzinger_search_tree.hpp"
