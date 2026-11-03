@@ -118,3 +118,6 @@ target_link_libraries(bench_matmul PRIVATE algoat benchmark::benchmark benchmark
 if(OpenMP_CXX_FOUND)
     target_link_libraries(bench_matmul PRIVATE OpenMP::OpenMP_CXX)
 endif()
+
+add_executable(bench_fft bench_fft.cpp)
+target_link_libraries(bench_fft PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)

@@ -51,6 +51,7 @@ module;
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
 #include <algoat/meta/static_sort.hpp>
+#include <algoat/numerics/fft.hpp>
 #include <algoat/numerics/float16_sort.hpp>
 #include <algoat/numerics/hilbert.hpp>
 #include <algoat/numerics/hybrid_sfc.hpp>
@@ -208,9 +209,15 @@ using algoat::meta::policy::operator|;
 } // namespace meta
 
 namespace numerics {
+using algoat::numerics::convolve_fft;
+using algoat::numerics::fft_1d;
+using algoat::numerics::fft_2d;
+using algoat::numerics::FFTDirection;
 using algoat::numerics::Float16Compare;
 using algoat::numerics::float_to_hilbert2d;
 using algoat::numerics::float_to_morton;
+using algoat::numerics::ifft_1d;
+using algoat::numerics::irfft_1d;
 using algoat::numerics::make_matrix;
 using algoat::numerics::matmul_cache_oblivious;
 using algoat::numerics::matmul_parallel;
@@ -218,6 +225,9 @@ using algoat::numerics::matmul_strassen;
 using algoat::numerics::MatrixView;
 using algoat::numerics::morton_interleave;
 using algoat::numerics::MortonCompare;
+using algoat::numerics::next_pow2;
+using algoat::numerics::precompute_twiddles;
+using algoat::numerics::rfft_1d;
 using algoat::numerics::sort_complex_hybrid;
 using algoat::numerics::sort_complex_morton;
 using algoat::numerics::sort_float16;
