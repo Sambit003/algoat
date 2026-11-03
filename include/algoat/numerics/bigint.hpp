@@ -49,10 +49,14 @@ inline unsigned char add_carry_u64(unsigned char c_in, uint64_t a, uint64_t b,
                                    uint64_t* out) noexcept {
 #if defined(__x86_64__) || defined(_M_X64)
     return _addcarry_u64(c_in, a, b, reinterpret_cast<unsigned long long*>(out));
-#else
+#elif defined(__SIZEOF_INT128__)
     unsigned __int128 sum = static_cast<unsigned __int128>(a) + b + c_in;
     *out = static_cast<uint64_t>(sum);
     return static_cast<unsigned char>(sum >> 64);
+#else
+    uint64_t s = a + b + c_in;
+    *out = s;
+    return (s < a || (c_in && s == a)) ? 1 : 0;
 #endif
 }
 
@@ -61,10 +65,14 @@ inline unsigned char sub_borrow_u64(unsigned char b_in, uint64_t a, uint64_t b,
                                     uint64_t* out) noexcept {
 #if defined(__x86_64__) || defined(_M_X64)
     return _subborrow_u64(b_in, a, b, reinterpret_cast<unsigned long long*>(out));
-#else
+#elif defined(__SIZEOF_INT128__)
     unsigned __int128 diff = static_cast<unsigned __int128>(a) - b - b_in;
     *out = static_cast<uint64_t>(diff);
     return static_cast<unsigned char>((diff >> 127) & 1);
+#else
+    uint64_t d = a - b - b_in;
+    *out = d;
+    return (a < b || (b_in && a == b)) ? 1 : 0;
 #endif
 }
 
@@ -121,6 +129,29 @@ inline uint64_t mul_add_carry(uint64_t a, uint64_t b, uint64_t carry_in, uint64_
     uint64_t hi_carry = 0;
     add_carry_u64(c1, hi, carry_in, &hi_carry);
     return hi_carry;
+#endif
+}
+
+// Portable 128 / 64 -> 64 division with remainder (hi must be < divisor)
+inline uint64_t div128_64(uint64_t hi, uint64_t lo, uint64_t divisor, uint64_t* rem) noexcept {
+#if defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || defined(_M_ARM64))
+    return _udiv128(hi, lo, divisor, rem);
+#elif defined(__SIZEOF_INT128__)
+    unsigned __int128 dividend = (static_cast<unsigned __int128>(hi) << 64) | lo;
+    *rem = static_cast<uint64_t>(dividend % divisor);
+    return static_cast<uint64_t>(dividend / divisor);
+#else
+    uint64_t q = 0;
+    uint64_t r = hi;
+    for (int i = 63; i >= 0; --i) {
+        r = (r << 1) | ((lo >> i) & 1ULL);
+        if (r >= divisor) {
+            r -= divisor;
+            q |= (1ULL << i);
+        }
+    }
+    *rem = r;
+    return q;
 #endif
 }
 
@@ -1116,7 +1147,7 @@ private:
         if (a_size != b_size) {
             return a_size <=> b_size;
         }
-        for (ssize_t i = static_cast<ssize_t>(a_size) - 1; i >= 0; --i) {
+        for (std::ptrdiff_t i = static_cast<std::ptrdiff_t>(a_size) - 1; i >= 0; --i) {
             if (a[i] != b[i]) {
                 return a[i] <=> b[i];
             }
@@ -1162,14 +1193,12 @@ private:
         assert(v != 0);
         q.allocate_exact(u.size());
         auto ql = q.limbs();
-        unsigned __int128 rem = 0;
+        uint64_t rem = 0;
         for (std::ptrdiff_t i = static_cast<std::ptrdiff_t>(u.size()) - 1; i >= 0; --i) {
-            unsigned __int128 cur = (rem << 64) | u[i];
-            ql[i] = static_cast<uint64_t>(cur / v);
-            rem = cur % v;
+            ql[i] = detail::div128_64(rem, u[i], v, &rem);
         }
         q.normalize();
-        return static_cast<uint64_t>(rem);
+        return rem;
     }
 
     // Multi-precision Knuth Algorithm D division
@@ -1239,59 +1268,60 @@ private:
         // Step D2: Loop j from m down to 0
         for (std::ptrdiff_t j = static_cast<std::ptrdiff_t>(m); j >= 0; --j) {
             // Step D3: Calculate trial quotient q_hat
-            unsigned __int128 num =
-                (static_cast<unsigned __int128>(un[j + n]) << 64) | un[j + n - 1];
-            unsigned __int128 q_hat, r_hat;
+            uint64_t q_hat = 0;
+            uint64_t r_hat = 0;
+            bool r_overflow = false;
 
             if (un[j + n] == vn[n - 1]) {
                 q_hat = UINT64_MAX;
-                r_hat = static_cast<unsigned __int128>(un[j + n - 1]) + vn[n - 1];
+                r_hat = un[j + n - 1] + vn[n - 1];
+                r_overflow = (r_hat < vn[n - 1]);
             } else {
-                q_hat = num / vn[n - 1];
-                r_hat = num % vn[n - 1];
+                q_hat = detail::div128_64(un[j + n], un[j + n - 1], vn[n - 1], &r_hat);
+                r_overflow = false;
             }
 
-            while (r_hat < (static_cast<unsigned __int128>(1) << 64)) {
-                unsigned __int128 lhs = q_hat * vn[n - 2];
-                unsigned __int128 rhs = (r_hat << 64) | un[j + n - 2];
-                if (lhs > rhs) {
+            while (!r_overflow) {
+                uint64_t p_hi = 0;
+                uint64_t p_lo = detail::mulx_u64(q_hat, vn[n - 2], &p_hi);
+                if (p_hi > r_hat || (p_hi == r_hat && p_lo > un[j + n - 2])) {
                     --q_hat;
-                    r_hat += vn[n - 1];
+                    unsigned char c = detail::add_carry_u64(0, r_hat, vn[n - 1], &r_hat);
+                    if (c != 0) {
+                        r_overflow = true;
+                    }
                 } else {
                     break;
                 }
             }
 
             // Step D4: Multiply and subtract
-            unsigned __int128 carry = 0;
+            uint64_t carry = 0;
             for (size_t i = 0; i < n; ++i) {
-                unsigned __int128 prod = q_hat * vn[i] + carry;
-                uint64_t prod_lo = static_cast<uint64_t>(prod);
-                carry = prod >> 64;
+                uint64_t p_hi = 0;
+                uint64_t p_lo = detail::mulx_u64(q_hat, vn[i], &p_hi);
+                unsigned char c = detail::add_carry_u64(0, p_lo, carry, &p_lo);
+                p_hi += c;
+                carry = p_hi;
 
-                if (un[j + i] < prod_lo) {
-                    ++carry;
-                }
-                un[j + i] -= prod_lo;
+                unsigned char b = detail::sub_borrow_u64(0, un[j + i], p_lo, &un[j + i]);
+                carry += b;
             }
 
             bool borrow = (un[j + n] < carry);
-            un[j + n] -= static_cast<uint64_t>(carry);
+            un[j + n] -= carry;
 
             // Step D5: Add-back if borrow
             if (borrow) {
                 --q_hat;
-                uint64_t add_carry = 0;
+                unsigned char add_carry = 0;
                 for (size_t i = 0; i < n; ++i) {
-                    unsigned __int128 sum =
-                        static_cast<unsigned __int128>(un[j + i]) + vn[i] + add_carry;
-                    un[j + i] = static_cast<uint64_t>(sum);
-                    add_carry = static_cast<uint64_t>(sum >> 64);
+                    add_carry = detail::add_carry_u64(add_carry, un[j + i], vn[i], &un[j + i]);
                 }
                 un[j + n] += add_carry;
             }
 
-            ql[j] = static_cast<uint64_t>(q_hat);
+            ql[j] = q_hat;
         }
 
         // Step D7: Unnormalize remainder

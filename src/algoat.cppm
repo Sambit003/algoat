@@ -76,7 +76,6 @@ export module algoat;
 export namespace algoat {
 // Primary public API
 using algoat::BBitMinHash;
-using algoat::BigInt;
 using algoat::BipartiteGraph;
 using algoat::BipartiteMatchingResult;
 using algoat::branchless_lower_bound;
