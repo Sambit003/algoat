@@ -13,6 +13,11 @@ from ._algoat_impl import (
     try_sort_inplace_float_fastpath,
     try_sort_out_of_place_fastpath,
 )
+
+try:
+    from ._algoat_impl import BigInt
+except (ImportError, AttributeError):
+    BigInt = getattr(_algoat_impl, "BigInt", None)
 import numpy as np
 from typing import Union, List, Any, Optional
 
@@ -179,3 +184,6 @@ __all__ = [
     "Rational",
     "strings",
 ]
+
+if BigInt is not None:
+    __all__.append("BigInt")

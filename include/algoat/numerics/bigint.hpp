@@ -384,9 +384,9 @@ public:
         }
     }
 
-    template <std::integral T>
-        requires(!std::is_same_v<T, int64_t> && !std::is_same_v<T, uint64_t> &&
-                 !std::is_same_v<T, bool>)
+    template <typename T,
+              typename = std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, int64_t> &&
+                                          !std::is_same_v<T, uint64_t> && !std::is_same_v<T, bool>>>
     explicit BigInt(T val) noexcept {
         if constexpr (std::is_signed_v<T>) {
             *this = BigInt(static_cast<int64_t>(val));
@@ -1426,7 +1426,7 @@ inline BigInt::MontgomeryContext BigInt::build_montgomery_context(const BigInt& 
 }
 
 inline BigInt BigInt::montgomery_multiply(const BigInt& a, const BigInt& b,
-                                          const MontgomeryContext& ctx) {
+                                          const BigInt::MontgomeryContext& ctx) {
     size_t k = ctx.k;
     std::vector<uint64_t> t(k + 2, 0);
 
