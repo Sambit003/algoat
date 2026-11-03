@@ -115,6 +115,7 @@ algoat_add_test(test_fm_index succinct/test_fm_index.cpp)
 
 # Numerics tests
 algoat_add_test(test_matmul numerics/test_matmul.cpp)
+algoat_add_test(test_fft numerics/test_fft.cpp)
 
 # C-ABI tests
 algoat_add_test(test_algoat_c c_api/test_algoat_c.cpp)
@@ -148,6 +149,7 @@ add_executable(test_elias_fano_invariants pbt/test_elias_fano_invariants.cpp)
 add_executable(test_wavelet_matrix_invariants pbt/test_wavelet_matrix_invariants.cpp)
 add_executable(test_fm_index_invariants pbt/test_fm_index_invariants.cpp)
 add_executable(test_matmul_invariants pbt/test_matmul_invariants.cpp)
+add_executable(test_fft_invariants pbt/test_fft_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
@@ -204,6 +206,8 @@ target_link_libraries(test_fm_index_invariants PRIVATE algoat GTest::gtest_main 
 gtest_discover_tests(test_fm_index_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_matmul_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_matmul_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_fft_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_fft_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -319,6 +323,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_matmul_fuzzer PRIVATE algoat)
     target_compile_options(diff_matmul_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_matmul_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_fft_fuzzer fuzzing/diff_fft_fuzzer.cpp)
+    target_link_libraries(diff_fft_fuzzer PRIVATE algoat)
+    target_compile_options(diff_fft_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_fft_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)

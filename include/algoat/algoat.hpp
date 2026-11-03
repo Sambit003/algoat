@@ -29,6 +29,7 @@
 #include "algoat/graph/shortest_path.hpp"
 #include "algoat/meta/policy.hpp"
 #include "algoat/meta/static_sort.hpp"
+#include "algoat/numerics/fft.hpp"
 #include "algoat/numerics/hybrid_sfc.hpp"
 #include "algoat/numerics/matmul.hpp"
 #include "algoat/searching/binary_search.hpp"
@@ -111,6 +112,15 @@ using graph::ShortestPathResult;
 using graph::strongly_connected_components;
 using graph::StronglyConnectedComponents;
 using graph::VertexId;
+using numerics::convolve_fft;
+using numerics::fft_1d;
+using numerics::fft_2d;
+using numerics::FFTDirection;
+using numerics::ifft_1d;
+using numerics::irfft_1d;
+using numerics::next_pow2;
+using numerics::precompute_twiddles;
+using numerics::rfft_1d;
 using searching::branchless_lower_bound;
 using searching::BranchlessBinarySearch;
 using searching::EytzingerSearchTree;
