@@ -47,7 +47,7 @@ namespace detail {
 // Portable 64-bit add with carry
 inline unsigned char add_carry_u64(unsigned char c_in, uint64_t a, uint64_t b,
                                    uint64_t* out) noexcept {
-#if defined(__x86_64__) || defined(_M_X64)
+#if (defined(__x86_64__) || defined(_M_X64)) && !defined(_M_IX86) && !defined(__i386__)
     return _addcarry_u64(c_in, a, b, reinterpret_cast<unsigned long long*>(out));
 #elif defined(__SIZEOF_INT128__)
     unsigned __int128 sum = static_cast<unsigned __int128>(a) + b + c_in;
@@ -63,7 +63,7 @@ inline unsigned char add_carry_u64(unsigned char c_in, uint64_t a, uint64_t b,
 // Portable 64-bit subtract with borrow
 inline unsigned char sub_borrow_u64(unsigned char b_in, uint64_t a, uint64_t b,
                                     uint64_t* out) noexcept {
-#if defined(__x86_64__) || defined(_M_X64)
+#if (defined(__x86_64__) || defined(_M_X64)) && !defined(_M_IX86) && !defined(__i386__)
     return _subborrow_u64(b_in, a, b, reinterpret_cast<unsigned long long*>(out));
 #elif defined(__SIZEOF_INT128__)
     unsigned __int128 diff = static_cast<unsigned __int128>(a) - b - b_in;
@@ -78,12 +78,13 @@ inline unsigned char sub_borrow_u64(unsigned char b_in, uint64_t a, uint64_t b,
 
 // Portable 64x64 -> 128 unsigned multiply
 inline uint64_t mulx_u64(uint64_t a, uint64_t b, uint64_t* hi) noexcept {
-#if defined(__BMI2__)
+#if defined(__BMI2__) && (defined(__x86_64__) || defined(_M_X64)) && !defined(_M_IX86) &&          \
+    !defined(__i386__)
     unsigned long long hi_val = 0;
     unsigned long long lo = _mulx_u64(a, b, &hi_val);
     *hi = static_cast<uint64_t>(hi_val);
     return static_cast<uint64_t>(lo);
-#elif defined(_MSC_VER) && !defined(__clang__)
+#elif defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || defined(_M_ARM64))
     return _umul128(a, b, hi);
 #elif defined(__SIZEOF_INT128__)
     unsigned __int128 prod = static_cast<unsigned __int128>(a) * b;
@@ -115,7 +116,7 @@ inline uint64_t mul_add_carry(uint64_t a, uint64_t b, uint64_t carry_in, uint64_
     unsigned __int128 sum = prod + *acc + carry_in;
     *acc = static_cast<uint64_t>(sum);
     return static_cast<uint64_t>(sum >> 64);
-#elif defined(_MSC_VER) && !defined(__clang__)
+#elif defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || defined(_M_ARM64))
     uint64_t hi = 0;
     uint64_t lo = _umul128(a, b, &hi);
     unsigned char c1 = _addcarry_u64(0, lo, *acc, acc);
@@ -689,7 +690,7 @@ public:
     }
 
     // Comparison operators
-    [[nodiscard]] std::strong_ordering operator<=>(const BigInt& rhs) const noexcept {
+    [[nodiscard]] std::strong_ordering compare(const BigInt& rhs) const noexcept {
         int s1 = sign();
         int s2 = rhs.sign();
         if (s1 != s2) {
@@ -721,6 +722,30 @@ public:
         auto l2 = rhs.limbs();
         return std::equal(l1.begin(), l1.end(), l2.begin());
     }
+
+    [[nodiscard]] bool operator!=(const BigInt& rhs) const noexcept {
+        return !(*this == rhs);
+    }
+    [[nodiscard]] bool operator<(const BigInt& rhs) const noexcept {
+        return compare(rhs) == std::strong_ordering::less;
+    }
+    [[nodiscard]] bool operator<=(const BigInt& rhs) const noexcept {
+        auto ord = compare(rhs);
+        return ord == std::strong_ordering::less || ord == std::strong_ordering::equal;
+    }
+    [[nodiscard]] bool operator>(const BigInt& rhs) const noexcept {
+        return compare(rhs) == std::strong_ordering::greater;
+    }
+    [[nodiscard]] bool operator>=(const BigInt& rhs) const noexcept {
+        auto ord = compare(rhs);
+        return ord == std::strong_ordering::greater || ord == std::strong_ordering::equal;
+    }
+
+#if !defined(__GNUC__) || defined(__clang__) || (__GNUC__ >= 15)
+    [[nodiscard]] std::strong_ordering operator<=>(const BigInt& rhs) const noexcept {
+        return compare(rhs);
+    }
+#endif
 
     // Unary negation
     [[nodiscard]] BigInt operator-() const {

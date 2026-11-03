@@ -9,6 +9,7 @@ module;
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <compare>
 #include <complex>
 #include <concepts>
 #include <cstddef>
