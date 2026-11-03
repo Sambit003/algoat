@@ -120,16 +120,14 @@ inline uint64_t mul_add_carry(uint64_t a, uint64_t b, uint64_t carry_in, uint64_
     uint64_t hi = 0;
     uint64_t lo = _umul128(a, b, &hi);
     unsigned char c1 = _addcarry_u64(0, lo, *acc, acc);
-    uint64_t hi_carry = 0;
-    _addcarry_u64(c1, hi, carry_in, &hi_carry);
-    return hi_carry;
+    unsigned char c2 = _addcarry_u64(0, *acc, carry_in, acc);
+    return hi + c1 + c2;
 #else
     uint64_t hi = 0;
     uint64_t lo = mulx_u64(a, b, &hi);
     unsigned char c1 = add_carry_u64(0, lo, *acc, acc);
-    uint64_t hi_carry = 0;
-    add_carry_u64(c1, hi, carry_in, &hi_carry);
-    return hi_carry;
+    unsigned char c2 = add_carry_u64(0, *acc, carry_in, acc);
+    return hi + c1 + c2;
 #endif
 }
 
@@ -145,8 +143,9 @@ inline uint64_t div128_64(uint64_t hi, uint64_t lo, uint64_t divisor, uint64_t* 
     uint64_t q = 0;
     uint64_t r = hi;
     for (int i = 63; i >= 0; --i) {
+        bool r_top = (r >> 63) != 0;
         r = (r << 1) | ((lo >> i) & 1ULL);
-        if (r >= divisor) {
+        if (r_top || r >= divisor) {
             r -= divisor;
             q |= (1ULL << i);
         }
@@ -1047,7 +1046,12 @@ public:
     }
 
     // Montgomery modular multiplication
-    struct MontgomeryContext;
+    struct MontgomeryContext {
+        std::vector<uint64_t> modulus;
+        size_t k{0};                     // Limb count of modulus
+        uint64_t n_prime{0};             // -N_0^(-1) mod 2^64
+        std::vector<uint64_t> r_squared; // (2^(128k)) mod modulus
+    };
     static MontgomeryContext build_montgomery_context(const BigInt& modulus);
     [[nodiscard]] static BigInt montgomery_multiply(const BigInt& a, const BigInt& b,
                                                     const MontgomeryContext& ctx);
@@ -1157,6 +1161,15 @@ private:
             heap_limbs_.clear();
             heap_limbs_.shrink_to_fit();
         }
+    }
+
+    [[nodiscard]] static BigInt from_limbs(std::span<const uint64_t> l, bool negative = false) {
+        BigInt res;
+        res.allocate_exact(l.size());
+        std::copy(l.begin(), l.end(), res.limbs().begin());
+        res.negative_ = negative;
+        res.normalize();
+        return res;
     }
 
     static std::strong_ordering compare_magnitudes(std::span<const uint64_t> a,
@@ -1458,25 +1471,19 @@ public:
     }
 };
 
-struct BigInt::MontgomeryContext {
-    BigInt modulus;
-    size_t k{0};         // Limb count of modulus
-    uint64_t n_prime{0}; // -N_0^(-1) mod 2^64
-    BigInt r_squared;    // (2^(128k)) mod modulus
-};
-
 inline BigInt::MontgomeryContext BigInt::build_montgomery_context(const BigInt& modulus) {
     if (modulus <= BigInt(0LL) || (modulus.limbs()[0] & 1ULL) == 0ULL) {
         throw std::invalid_argument("Montgomery context requires a strictly positive, odd modulus");
     }
     MontgomeryContext ctx;
-    ctx.modulus = modulus;
+    ctx.modulus.assign(modulus.limbs().begin(), modulus.limbs().end());
     ctx.k = modulus.size_;
     ctx.n_prime = detail::compute_montgomery_n_prime(modulus.limbs()[0]);
 
     // R^2 mod modulus: R = 2^(64k), R^2 = 2^(128k)
     BigInt r2 = BigInt(1LL) << (128 * ctx.k);
-    ctx.r_squared = r2 % modulus;
+    BigInt r_sq = r2 % modulus;
+    ctx.r_squared.assign(r_sq.limbs().begin(), r_sq.limbs().end());
     return ctx;
 }
 
@@ -1487,7 +1494,7 @@ inline BigInt BigInt::montgomery_multiply(const BigInt& a, const BigInt& b,
 
     auto al = a.limbs();
     auto bl = b.limbs();
-    auto nl = ctx.modulus.limbs();
+    const auto& nl = ctx.modulus;
 
     for (size_t i = 0; i < k; ++i) {
         uint64_t bi = (i < b.size_) ? bl[i] : 0;
@@ -1584,8 +1591,9 @@ inline BigInt BigInt::mod_pow(const BigInt& exp, const BigInt& modulus) const {
     // Use Montgomery representation when modulus is odd
     if ((mod_pos.limbs()[0] & 1ULL) != 0ULL) {
         MontgomeryContext ctx = build_montgomery_context(mod_pos);
-        BigInt a_hat = montgomery_multiply(base_val, ctx.r_squared, ctx);
-        BigInt c_hat = montgomery_multiply(BigInt(1LL), ctx.r_squared, ctx);
+        BigInt r_sq = from_limbs(ctx.r_squared);
+        BigInt a_hat = montgomery_multiply(base_val, r_sq, ctx);
+        BigInt c_hat = montgomery_multiply(BigInt(1LL), r_sq, ctx);
 
         size_t total_bits = exp.num_bits();
         for (std::ptrdiff_t i = static_cast<std::ptrdiff_t>(total_bits) - 1; i >= 0; --i) {
