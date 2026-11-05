@@ -34,6 +34,7 @@ module;
 #include <algoat/core/dispatcher.hpp>
 #include <algoat/core/registry.hpp>
 #include <algoat/core/traits.hpp>
+#include <algoat/dp/aho_corasick.hpp>
 #include <algoat/dp/alignment.hpp>
 #include <algoat/dp/levenshtein.hpp>
 #include <algoat/geometry/convex_hull.hpp>
@@ -399,6 +400,8 @@ using algoat::succinct::WaveletMatrix;
 } // namespace succinct
 
 namespace dp {
+using algoat::dp::AcMatch;
+using algoat::dp::AhoCorasick;
 using algoat::dp::Alignment;
 using algoat::dp::AlignmentResult;
 using algoat::dp::EditOp;

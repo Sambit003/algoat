@@ -13,6 +13,7 @@ add_library(algoat
     searching/hybrid_interpolation_search.cpp
     strings/substring_search.cpp
     succinct/wavelet_matrix.cpp
+    dp/aho_corasick.cpp
 )
 
 target_include_directories(algoat
