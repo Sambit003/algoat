@@ -12,6 +12,7 @@
 #include "python_wrappers.hpp"
 
 #include <algoat/algoat.hpp>
+#include <algoat/dp/levenshtein.hpp>
 #include <algoat/hash/hash.hpp>
 #include <algoat/numerics/bigint.hpp>
 #include <algoat/numerics/float16_sort.hpp>
@@ -800,4 +801,69 @@ NB_MODULE(_algoat_impl, m) {
             return nb::make_tuple(res[0], res[1], res[2], res[3]);
         },
         nb::arg("data"), nb::arg("key"), "Compute 256-bit HighwayHash hash as (h0, h1, h2, h3)");
+
+    auto dp_m = m.def_submodule(
+        "dp",
+        "Dynamic programming & edit distance suite (Myers bit-parallel, Ukkonen banded DP, LCS)");
+
+    nb::enum_<algoat::dp::EditOp>(dp_m, "EditOp")
+        .value("Match", algoat::dp::EditOp::Match)
+        .value("Substitute", algoat::dp::EditOp::Substitute)
+        .value("Insert", algoat::dp::EditOp::Insert)
+        .value("Delete", algoat::dp::EditOp::Delete);
+
+    nb::class_<algoat::dp::Alignment>(dp_m, "Alignment")
+        .def_ro("distance", &algoat::dp::Alignment::distance)
+        .def_ro("operations", &algoat::dp::Alignment::operations);
+
+    dp_m.def(
+        "levenshtein_distance",
+        [](const std::string& pattern, const std::string& text) -> size_t {
+            nb::gil_scoped_release release;
+            return algoat::dp::levenshtein_distance(pattern, text);
+        },
+        nb::arg("pattern"), nb::arg("text"),
+        "Compute exact Levenshtein edit distance using Myers' bit-parallel algorithm");
+
+    dp_m.def(
+        "levenshtein_within_k",
+        [](const std::string& pattern, const std::string& text, size_t k) -> size_t {
+            nb::gil_scoped_release release;
+            return algoat::dp::levenshtein_within_k(pattern, text, k);
+        },
+        nb::arg("pattern"), nb::arg("text"), nb::arg("k"),
+        "Compute edit distance within bound k using Ukkonen's banded DP");
+
+    dp_m.def(
+        "levenshtein_align",
+        [](const std::string& pattern, const std::string& text) -> algoat::dp::Alignment {
+            nb::gil_scoped_release release;
+            return algoat::dp::levenshtein_align(pattern, text);
+        },
+        nb::arg("pattern"), nb::arg("text"),
+        "Compute full alignment recovering step-by-step EditOp operations");
+
+    dp_m.def(
+        "levenshtein_batch",
+        [](const std::string& pattern,
+           const std::vector<std::string>& texts) -> std::vector<size_t> {
+            std::vector<std::string_view> views;
+            views.reserve(texts.size());
+            for (const auto& s : texts)
+                views.emplace_back(s);
+
+            nb::gil_scoped_release release;
+            return algoat::dp::levenshtein_batch(pattern, views);
+        },
+        nb::arg("pattern"), nb::arg("texts"),
+        "Compute batch edit distance from pattern to multiple texts using SIMD");
+
+    dp_m.def(
+        "lcs_length",
+        [](const std::string& a, const std::string& b) -> size_t {
+            nb::gil_scoped_release release;
+            return algoat::dp::lcs_length(a, b);
+        },
+        nb::arg("a"), nb::arg("b"),
+        "Compute Longest Common Subsequence length using bit-parallel algorithm");
 }

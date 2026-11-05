@@ -127,3 +127,9 @@ target_link_libraries(bench_bigint PRIVATE algoat benchmark::benchmark benchmark
 
 add_executable(bench_hash bench_hash.cpp)
 target_link_libraries(bench_hash PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_levenshtein bench_levenshtein.cpp)
+target_link_libraries(bench_levenshtein PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(bench_levenshtein PRIVATE OpenMP::OpenMP_CXX)
+endif()
