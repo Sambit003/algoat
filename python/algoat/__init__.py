@@ -174,6 +174,13 @@ def search_many(
 
 
 strings = _algoat_impl.strings
+hash = _algoat_impl.hash
+xxhash3_64 = _algoat_impl.hash.xxhash3_64
+xxhash3_128 = _algoat_impl.hash.xxhash3_128
+wyhash = _algoat_impl.hash.wyhash
+highway_hash_64 = _algoat_impl.hash.highway_hash_64
+highway_hash_128 = _algoat_impl.hash.highway_hash_128
+highway_hash_256 = _algoat_impl.hash.highway_hash_256
 
 __all__ = [
     "sort",
@@ -183,6 +190,12 @@ __all__ = [
     "load_global_config",
     "Rational",
     "strings",
+    "xxhash3_64",
+    "xxhash3_128",
+    "wyhash",
+    "highway_hash_64",
+    "highway_hash_128",
+    "highway_hash_256",
 ]
 
 if BigInt is not None:

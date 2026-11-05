@@ -49,6 +49,7 @@ module;
 #include <algoat/graph/mst.hpp>
 #include <algoat/graph/scc.hpp>
 #include <algoat/graph/shortest_path.hpp>
+#include <algoat/hash/hash.hpp>
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
 #include <algoat/meta/static_sort.hpp>
@@ -373,6 +374,19 @@ using algoat::sketches::SpaceSaving;
 using algoat::sketches::SpaceSavingHeavyHitters;
 using algoat::sketches::TDigest;
 } // namespace sketches
+
+namespace hash {
+using algoat::hash::ByteSpannable;
+using algoat::hash::highway_hash_128;
+using algoat::hash::highway_hash_256;
+using algoat::hash::highway_hash_64;
+using algoat::hash::HighwayKey;
+using algoat::hash::wyhash;
+using algoat::hash::WyHasher;
+using algoat::hash::xxhash3_128;
+using algoat::hash::xxhash3_64;
+using algoat::hash::XxHash3Hasher;
+} // namespace hash
 
 namespace succinct {
 using algoat::succinct::FMIndex;

@@ -124,3 +124,6 @@ target_link_libraries(bench_fft PRIVATE algoat benchmark::benchmark benchmark::b
 
 add_executable(bench_bigint bench_bigint.cpp)
 target_link_libraries(bench_bigint PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_hash bench_hash.cpp)
+target_link_libraries(bench_hash PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)

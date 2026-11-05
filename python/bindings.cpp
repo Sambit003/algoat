@@ -12,6 +12,7 @@
 #include "python_wrappers.hpp"
 
 #include <algoat/algoat.hpp>
+#include <algoat/hash/hash.hpp>
 #include <algoat/numerics/bigint.hpp>
 #include <algoat/numerics/float16_sort.hpp>
 #include <algoat/sorting/boolean_sort.hpp>
@@ -379,6 +380,66 @@ template <typename T> void sort_ndarray(nb::ndarray<T, nb::ndim<1>, nb::c_contig
     algoat::sort(std::span<T>(array.data(), array.size()));
 }
 
+namespace {
+
+algoat::hash::HighwayKey parse_highway_key(nb::object key_obj) {
+    if (nb::isinstance<nb::sequence>(key_obj)) {
+        nb::sequence seq = nb::cast<nb::sequence>(key_obj);
+        if (nb::len(seq) != 4) {
+            throw nb::value_error("HighwayKey must contain exactly 4 64-bit integers");
+        }
+        return algoat::hash::HighwayKey{nb::cast<uint64_t>(seq[0]), nb::cast<uint64_t>(seq[1]),
+                                        nb::cast<uint64_t>(seq[2]), nb::cast<uint64_t>(seq[3])};
+    }
+    throw nb::type_error("HighwayKey must be a sequence of 4 integers");
+}
+
+struct PyBufferGuard {
+    Py_buffer view;
+    bool active = false;
+
+    ~PyBufferGuard() noexcept {
+        if (active) {
+            PyBuffer_Release(&view);
+        }
+    }
+};
+
+template <typename Func> auto invoke_with_buffer(nb::handle obj, Func&& func) {
+    PyObject* p = obj.ptr();
+    if (PyUnicode_Check(p)) {
+        Py_ssize_t len = 0;
+        const char* s = PyUnicode_AsUTF8AndSize(p, &len);
+        if (!s)
+            throw nb::python_error();
+        auto span = std::as_bytes(std::span{s, static_cast<size_t>(len)});
+        decltype(func(span)) res;
+        {
+            nb::gil_scoped_release release;
+            res = func(span);
+        }
+        return res;
+    }
+
+    PyBufferGuard guard;
+    if (PyObject_GetBuffer(p, &guard.view, PyBUF_SIMPLE) != 0) {
+        PyErr_Clear();
+        throw nb::type_error("Expected a bytes-like object or str");
+    }
+    guard.active = true;
+
+    auto span = std::as_bytes(
+        std::span{static_cast<const char*>(guard.view.buf), static_cast<size_t>(guard.view.len)});
+    decltype(func(span)) res;
+    {
+        nb::gil_scoped_release release;
+        res = func(span);
+    }
+    return res;
+}
+
+} // namespace
+
 NB_MODULE(_algoat_impl, m) {
     m.doc() = "Algoat C++ algorithm library bindings";
 
@@ -676,4 +737,67 @@ NB_MODULE(_algoat_impl, m) {
             }
         },
         nb::arg("data"));
+
+    auto hash_m = m.def_submodule(
+        "hash", "Non-cryptographic fast hashing suite (xxHash3, WyHash, HighwayHash)");
+
+    hash_m.def(
+        "xxhash3_64",
+        [](nb::handle data, uint64_t seed) -> uint64_t {
+            return invoke_with_buffer(data, [seed](std::span<const std::byte> sp) {
+                return algoat::hash::xxhash3_64(sp, seed);
+            });
+        },
+        nb::arg("data"), nb::arg("seed") = 0, "Compute 64-bit xxHash3 hash");
+
+    hash_m.def(
+        "xxhash3_128",
+        [](nb::handle data, uint64_t seed) -> nb::tuple {
+            auto res = invoke_with_buffer(data, [seed](std::span<const std::byte> sp) {
+                return algoat::hash::xxhash3_128(sp, seed);
+            });
+            return nb::make_tuple(res[0], res[1]);
+        },
+        nb::arg("data"), nb::arg("seed") = 0, "Compute 128-bit xxHash3 hash as (low64, high64)");
+
+    hash_m.def(
+        "wyhash",
+        [](nb::handle data, uint64_t seed) -> uint64_t {
+            return invoke_with_buffer(data, [seed](std::span<const std::byte> sp) {
+                return algoat::hash::wyhash(sp, seed);
+            });
+        },
+        nb::arg("data"), nb::arg("seed") = 0, "Compute 64-bit WyHash hash");
+
+    hash_m.def(
+        "highway_hash_64",
+        [](nb::handle data, nb::object key) -> uint64_t {
+            auto hw_key = parse_highway_key(key);
+            return invoke_with_buffer(data, [&hw_key](std::span<const std::byte> sp) {
+                return algoat::hash::highway_hash_64(sp, hw_key);
+            });
+        },
+        nb::arg("data"), nb::arg("key"), "Compute 64-bit HighwayHash hash with 256-bit key");
+
+    hash_m.def(
+        "highway_hash_128",
+        [](nb::handle data, nb::object key) -> nb::tuple {
+            auto hw_key = parse_highway_key(key);
+            auto res = invoke_with_buffer(data, [&hw_key](std::span<const std::byte> sp) {
+                return algoat::hash::highway_hash_128(sp, hw_key);
+            });
+            return nb::make_tuple(res[0], res[1]);
+        },
+        nb::arg("data"), nb::arg("key"), "Compute 128-bit HighwayHash hash as (h0, h1)");
+
+    hash_m.def(
+        "highway_hash_256",
+        [](nb::handle data, nb::object key) -> nb::tuple {
+            auto hw_key = parse_highway_key(key);
+            auto res = invoke_with_buffer(data, [&hw_key](std::span<const std::byte> sp) {
+                return algoat::hash::highway_hash_256(sp, hw_key);
+            });
+            return nb::make_tuple(res[0], res[1], res[2], res[3]);
+        },
+        nb::arg("data"), nb::arg("key"), "Compute 256-bit HighwayHash hash as (h0, h1, h2, h3)");
 }
