@@ -5,6 +5,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <span>
 #include <string>
@@ -36,9 +37,17 @@ namespace detail {
 
 // Endian-safe helpers
 [[nodiscard]] inline constexpr uint64_t swap64(uint64_t x) noexcept {
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__cpp_lib_byteswap) && __cpp_lib_byteswap >= 202110L
+    return std::byteswap(x);
+#elif defined(__GNUC__) || defined(__clang__)
     return __builtin_bswap64(x);
 #elif defined(_MSC_VER)
+    if (std::is_constant_evaluated()) {
+        return (((x >> 56) & 0xffULL) | ((x >> 40) & 0xff00ULL) | ((x >> 24) & 0xff0000ULL) |
+                ((x >> 8) & 0xff000000ULL) | ((x << 8) & 0xff00000000ULL) |
+                ((x << 24) & 0xff0000000000ULL) | ((x << 40) & 0xff000000000000ULL) |
+                ((x << 56) & 0xff00000000000000ULL));
+    }
     return _byteswap_uint64(x);
 #else
     return (((x >> 56) & 0xffULL) | ((x >> 40) & 0xff00ULL) | ((x >> 24) & 0xff0000ULL) |
@@ -49,9 +58,15 @@ namespace detail {
 }
 
 [[nodiscard]] inline constexpr uint32_t swap32(uint32_t x) noexcept {
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__cpp_lib_byteswap) && __cpp_lib_byteswap >= 202110L
+    return std::byteswap(x);
+#elif defined(__GNUC__) || defined(__clang__)
     return __builtin_bswap32(x);
 #elif defined(_MSC_VER)
+    if (std::is_constant_evaluated()) {
+        return (((x >> 24) & 0xffU) | ((x >> 8) & 0xff00U) | ((x << 8) & 0xff0000U) |
+                ((x << 24) & 0xff000000U));
+    }
     return _byteswap_ulong(x);
 #else
     return (((x >> 24) & 0xffU) | ((x >> 8) & 0xff00U) | ((x << 8) & 0xff0000U) |
