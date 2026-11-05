@@ -34,6 +34,7 @@ module;
 #include <algoat/core/dispatcher.hpp>
 #include <algoat/core/registry.hpp>
 #include <algoat/core/traits.hpp>
+#include <algoat/dp/levenshtein.hpp>
 #include <algoat/geometry/convex_hull.hpp>
 #include <algoat/geometry/delaunay.hpp>
 #include <algoat/geometry/kdtree.hpp>
@@ -395,4 +396,14 @@ using algoat::succinct::RankSelectBitVector;
 using algoat::succinct::RoaringBitmap;
 using algoat::succinct::WaveletMatrix;
 } // namespace succinct
+
+namespace dp {
+using algoat::dp::Alignment;
+using algoat::dp::EditOp;
+using algoat::dp::lcs_length;
+using algoat::dp::levenshtein_align;
+using algoat::dp::levenshtein_batch;
+using algoat::dp::levenshtein_distance;
+using algoat::dp::levenshtein_within_k;
+} // namespace dp
 } // namespace algoat

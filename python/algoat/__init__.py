@@ -175,6 +175,15 @@ def search_many(
 
 strings = _algoat_impl.strings
 hash = _algoat_impl.hash
+dp = _algoat_impl.dp
+levenshtein_distance = _algoat_impl.dp.levenshtein_distance
+levenshtein_within_k = _algoat_impl.dp.levenshtein_within_k
+levenshtein_align = _algoat_impl.dp.levenshtein_align
+levenshtein_batch = _algoat_impl.dp.levenshtein_batch
+lcs_length = _algoat_impl.dp.lcs_length
+EditOp = _algoat_impl.dp.EditOp
+Alignment = _algoat_impl.dp.Alignment
+
 xxhash3_64 = _algoat_impl.hash.xxhash3_64
 xxhash3_128 = _algoat_impl.hash.xxhash3_128
 wyhash = _algoat_impl.hash.wyhash
@@ -190,6 +199,15 @@ __all__ = [
     "load_global_config",
     "Rational",
     "strings",
+    "hash",
+    "dp",
+    "levenshtein_distance",
+    "levenshtein_within_k",
+    "levenshtein_align",
+    "levenshtein_batch",
+    "lcs_length",
+    "EditOp",
+    "Alignment",
     "xxhash3_64",
     "xxhash3_128",
     "wyhash",
