@@ -20,7 +20,11 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#if (defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86))
+#if defined(__AVX2__) || defined(__BMI2__)
 #include <immintrin.h>
+#endif
+#endif
 #include <limits>
 #include <optional>
 #include <span>
@@ -47,28 +51,72 @@ struct Alignment {
 
 namespace detail {
 
+// Portable 64-bit add with carry
+inline unsigned char add_carry_u64(unsigned char c_in, uint64_t a, uint64_t b,
+                                   uint64_t* out) noexcept {
+#if defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || defined(_M_ARM64))
+    return _addcarry_u64(c_in, a, b, reinterpret_cast<unsigned long long*>(out));
+#elif defined(__SIZEOF_INT128__)
+    unsigned __int128 sum = static_cast<unsigned __int128>(a) + b + c_in;
+    *out = static_cast<uint64_t>(sum);
+    return static_cast<unsigned char>(sum >> 64);
+#else
+    uint64_t s = a + b + c_in;
+    *out = s;
+    return (s < a || (c_in && s == a)) ? 1 : 0;
+#endif
+}
+
+// Portable 64-bit subtract with borrow
+inline unsigned char sub_borrow_u64(unsigned char b_in, uint64_t a, uint64_t b,
+                                    uint64_t* out) noexcept {
+#if defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || defined(_M_ARM64))
+    return _subborrow_u64(b_in, a, b, reinterpret_cast<unsigned long long*>(out));
+#elif defined(__SIZEOF_INT128__)
+    unsigned __int128 diff = static_cast<unsigned __int128>(a) - b - b_in;
+    *out = static_cast<uint64_t>(diff);
+    return static_cast<unsigned char>((diff >> 127) & 1);
+#else
+    uint64_t d = a - b - b_in;
+    *out = d;
+    return (a < b || (b_in && a == b)) ? 1 : 0;
+#endif
+}
+
 // ----------------------------------------------------------------------------
-// 256-bit AVX2 vector state and operations for M in [65, 256]
+// 256-bit bit-vector state and operations for M in [65, 256]
 // ----------------------------------------------------------------------------
 struct alignas(32) Vec256 {
-    union {
-        __m256i v;
-        uint64_t w[4];
-    };
+    uint64_t w[4]{0, 0, 0, 0};
 
-    constexpr Vec256() noexcept : w{0, 0, 0, 0} {}
-    Vec256(__m256i val) noexcept : v(val) {}
+    constexpr Vec256() noexcept = default;
     constexpr Vec256(uint64_t w0, uint64_t w1, uint64_t w2, uint64_t w3) noexcept
         : w{w0, w1, w2, w3} {}
 };
 
+[[nodiscard]] inline Vec256 vec256_or(Vec256 a, Vec256 b) noexcept {
+    return Vec256{a.w[0] | b.w[0], a.w[1] | b.w[1], a.w[2] | b.w[2], a.w[3] | b.w[3]};
+}
+
+[[nodiscard]] inline Vec256 vec256_and(Vec256 a, Vec256 b) noexcept {
+    return Vec256{a.w[0] & b.w[0], a.w[1] & b.w[1], a.w[2] & b.w[2], a.w[3] & b.w[3]};
+}
+
+[[nodiscard]] inline Vec256 vec256_xor(Vec256 a, Vec256 b) noexcept {
+    return Vec256{a.w[0] ^ b.w[0], a.w[1] ^ b.w[1], a.w[2] ^ b.w[2], a.w[3] ^ b.w[3]};
+}
+
+[[nodiscard]] inline Vec256 vec256_andnot(Vec256 a, Vec256 b) noexcept {
+    return Vec256{(~a.w[0]) & b.w[0], (~a.w[1]) & b.w[1], (~a.w[2]) & b.w[2], (~a.w[3]) & b.w[3]};
+}
+
 [[nodiscard]] inline Vec256 add256_carry(Vec256 a, Vec256 b) noexcept {
     Vec256 res;
     unsigned char c = 0;
-    c = _addcarry_u64(c, a.w[0], b.w[0], reinterpret_cast<unsigned long long*>(&res.w[0]));
-    c = _addcarry_u64(c, a.w[1], b.w[1], reinterpret_cast<unsigned long long*>(&res.w[1]));
-    c = _addcarry_u64(c, a.w[2], b.w[2], reinterpret_cast<unsigned long long*>(&res.w[2]));
-    _addcarry_u64(c, a.w[3], b.w[3], reinterpret_cast<unsigned long long*>(&res.w[3]));
+    c = add_carry_u64(c, a.w[0], b.w[0], &res.w[0]);
+    c = add_carry_u64(c, a.w[1], b.w[1], &res.w[1]);
+    c = add_carry_u64(c, a.w[2], b.w[2], &res.w[2]);
+    add_carry_u64(c, a.w[3], b.w[3], &res.w[3]);
     return res;
 }
 
@@ -81,8 +129,7 @@ struct alignas(32) Vec256 {
     return res;
 }
 
-[[nodiscard]] inline size_t myers_avx2_256(std::string_view pattern,
-                                           std::string_view text) noexcept {
+[[nodiscard]] inline size_t myers_vec256(std::string_view pattern, std::string_view text) noexcept {
     const size_t m = pattern.size();
     const size_t n = text.size();
 
@@ -105,17 +152,15 @@ struct alignas(32) Vec256 {
     for (size_t j = 0; j < n; ++j) {
         const Vec256 eq = peq[static_cast<uint8_t>(text[j])];
 
-        // AVX2 256-bit vector bitwise combinations
-        const Vec256 xv = _mm256_or_si256(eq.v, mv.v);
-        const Vec256 eq_and_pv = _mm256_and_si256(eq.v, pv.v);
+        const Vec256 xv = vec256_or(eq, mv);
+        const Vec256 eq_and_pv = vec256_and(eq, pv);
         const Vec256 sum = add256_carry(eq_and_pv, pv);
-        const Vec256 xh = _mm256_or_si256(_mm256_xor_si256(sum.v, pv.v), eq.v);
+        const Vec256 xh = vec256_or(vec256_xor(sum, pv), eq);
 
-        // Horizontal deltas via AVX2 vector instructions
-        const Vec256 xh_or_pv = _mm256_or_si256(xh.v, pv.v);
-        const Vec256 not_xh_or_pv = _mm256_andnot_si256(xh_or_pv.v, mask.v);
-        Vec256 ph = _mm256_or_si256(mv.v, not_xh_or_pv.v);
-        Vec256 mh = _mm256_and_si256(pv.v, xh.v);
+        const Vec256 xh_or_pv = vec256_or(xh, pv);
+        const Vec256 not_xh_or_pv = vec256_andnot(xh_or_pv, mask);
+        Vec256 ph = vec256_or(mv, not_xh_or_pv);
+        Vec256 mh = vec256_and(pv, xh);
 
         if (ph.w[top_word] & top_bit)
             ++dist;
@@ -124,13 +169,13 @@ struct alignas(32) Vec256 {
 
         ph = shl256_1(ph, 1);
         mh = shl256_1(mh, 0);
-        ph.v = _mm256_and_si256(ph.v, mask.v);
-        mh.v = _mm256_and_si256(mh.v, mask.v);
+        ph = vec256_and(ph, mask);
+        mh = vec256_and(mh, mask);
 
-        const Vec256 xv_or_ph = _mm256_or_si256(xv.v, ph.v);
-        const Vec256 not_xv_or_ph = _mm256_andnot_si256(xv_or_ph.v, mask.v);
-        pv.v = _mm256_or_si256(mh.v, not_xv_or_ph.v);
-        mv.v = _mm256_and_si256(ph.v, xv.v);
+        const Vec256 xv_or_ph = vec256_or(xv, ph);
+        const Vec256 not_xv_or_ph = vec256_andnot(xv_or_ph, mask);
+        pv = vec256_or(mh, not_xv_or_ph);
+        mv = vec256_and(ph, xv);
     }
     return dist;
 }
@@ -219,6 +264,7 @@ struct BlockStepResult {
     return dist;
 }
 
+#if defined(__AVX2__)
 // ----------------------------------------------------------------------------
 // AVX2 Data-Parallel Myers kernel: 4 texts against 1 pattern (M <= 64)
 // ----------------------------------------------------------------------------
@@ -298,6 +344,7 @@ inline void myers_avx2_batch4(std::string_view pattern, const std::string_view t
         dist_out[i] = static_cast<size_t>(res[i]);
     }
 }
+#endif
 
 } // namespace detail
 
@@ -355,9 +402,9 @@ inline void myers_avx2_batch4(std::string_view pattern, const std::string_view t
         return dist;
     }
 
-    // Fast-path: pattern fits in 256 bits via AVX2 SIMD vectorization
+    // Fast-path: pattern fits in 256 bits via bit-vector operations
     if (m <= 256) {
-        return detail::myers_avx2_256(pattern, text);
+        return detail::myers_vec256(pattern, text);
     }
 
     // Arbitrary length fallback
@@ -699,15 +746,15 @@ inline void myers_avx2_batch4(std::string_view pattern, const std::string_view t
 
         for (size_t j = 0; j < n; ++j) {
             const detail::Vec256 eq = peq[static_cast<uint8_t>(text[j])];
-            const detail::Vec256 xv = _mm256_or_si256(eq.v, mv.v);
-            const detail::Vec256 eq_and_pv = _mm256_and_si256(eq.v, pv.v);
+            const detail::Vec256 xv = detail::vec256_or(eq, mv);
+            const detail::Vec256 eq_and_pv = detail::vec256_and(eq, pv);
             const detail::Vec256 sum = detail::add256_carry(eq_and_pv, pv);
-            const detail::Vec256 xh = _mm256_or_si256(_mm256_xor_si256(sum.v, pv.v), eq.v);
+            const detail::Vec256 xh = detail::vec256_or(detail::vec256_xor(sum, pv), eq);
 
-            const detail::Vec256 xh_or_pv = _mm256_or_si256(xh.v, pv.v);
-            const detail::Vec256 not_xh_or_pv = _mm256_andnot_si256(xh_or_pv.v, mask.v);
-            detail::Vec256 ph = _mm256_or_si256(mv.v, not_xh_or_pv.v);
-            detail::Vec256 mh = _mm256_and_si256(pv.v, xh.v);
+            const detail::Vec256 xh_or_pv = detail::vec256_or(xh, pv);
+            const detail::Vec256 not_xh_or_pv = detail::vec256_andnot(xh_or_pv, mask);
+            detail::Vec256 ph = detail::vec256_or(mv, not_xh_or_pv);
+            detail::Vec256 mh = detail::vec256_and(pv, xh);
 
             if (ph.w[top_word] & top_bit)
                 ++dist;
@@ -716,13 +763,13 @@ inline void myers_avx2_batch4(std::string_view pattern, const std::string_view t
 
             ph = detail::shl256_1(ph, 1);
             mh = detail::shl256_1(mh, 0);
-            ph.v = _mm256_and_si256(ph.v, mask.v);
-            mh.v = _mm256_and_si256(mh.v, mask.v);
+            ph = detail::vec256_and(ph, mask);
+            mh = detail::vec256_and(mh, mask);
 
-            const detail::Vec256 xv_or_ph = _mm256_or_si256(xv.v, ph.v);
-            const detail::Vec256 not_xv_or_ph = _mm256_andnot_si256(xv_or_ph.v, mask.v);
-            pv.v = _mm256_or_si256(mh.v, not_xv_or_ph.v);
-            mv.v = _mm256_and_si256(ph.v, xv.v);
+            const detail::Vec256 xv_or_ph = detail::vec256_or(xv, ph);
+            const detail::Vec256 not_xv_or_ph = detail::vec256_andnot(xv_or_ph, mask);
+            pv = detail::vec256_or(mh, not_xv_or_ph);
+            mv = detail::vec256_and(ph, xv);
 
             vp_table.push_back(pv);
             vn_table.push_back(mv);
@@ -830,6 +877,7 @@ levenshtein_batch(std::string_view pattern, std::span<const std::string_view> te
 
     const size_t m = pattern.size();
 
+#if defined(__AVX2__)
     if (m <= 64 && m > 0) {
         size_t i = 0;
         for (; i + 4 <= texts.size(); i += 4) {
@@ -842,10 +890,12 @@ levenshtein_batch(std::string_view pattern, std::span<const std::string_view> te
             detail::myers_avx2_batch4(pattern, batch, d);
             results[i] = d[0];
         }
-    } else {
-        for (size_t i = 0; i < texts.size(); ++i) {
-            results[i] = levenshtein_distance(pattern, texts[i]);
-        }
+        return results;
+    }
+#endif
+
+    for (size_t i = 0; i < texts.size(); ++i) {
+        results[i] = levenshtein_distance(pattern, texts[i]);
     }
 
     return results;
@@ -927,8 +977,7 @@ levenshtein_batch(std::string_view pattern, std::span<const std::string_view> te
             for (size_t k = 0; k < num_words; ++k) {
                 const uint64_t x = row[k] | eq_masks[k][ch];
                 uint64_t diff = 0;
-                borrow = _subborrow_u64(borrow, x, shifted_row[k],
-                                        reinterpret_cast<unsigned long long*>(&diff));
+                borrow = detail::sub_borrow_u64(borrow, x, shifted_row[k], &diff);
                 row[k] = (x & ~diff) & masks[k];
             }
         }
