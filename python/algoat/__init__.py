@@ -183,6 +183,13 @@ levenshtein_batch = _algoat_impl.dp.levenshtein_batch
 lcs_length = _algoat_impl.dp.lcs_length
 EditOp = _algoat_impl.dp.EditOp
 Alignment = _algoat_impl.dp.Alignment
+needleman_wunsch = _algoat_impl.dp.needleman_wunsch
+smith_waterman = _algoat_impl.dp.smith_waterman
+smith_waterman_score = _algoat_impl.dp.smith_waterman_score
+smith_waterman_batch = _algoat_impl.dp.smith_waterman_batch
+ScoringMatrix = _algoat_impl.dp.ScoringMatrix
+GapPenalty = _algoat_impl.dp.GapPenalty
+AlignmentResult = _algoat_impl.dp.AlignmentResult
 
 xxhash3_64 = _algoat_impl.hash.xxhash3_64
 xxhash3_128 = _algoat_impl.hash.xxhash3_128
@@ -208,6 +215,13 @@ __all__ = [
     "lcs_length",
     "EditOp",
     "Alignment",
+    "needleman_wunsch",
+    "smith_waterman",
+    "smith_waterman_score",
+    "smith_waterman_batch",
+    "ScoringMatrix",
+    "GapPenalty",
+    "AlignmentResult",
     "xxhash3_64",
     "xxhash3_128",
     "wyhash",

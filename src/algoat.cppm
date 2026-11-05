@@ -34,6 +34,7 @@ module;
 #include <algoat/core/dispatcher.hpp>
 #include <algoat/core/registry.hpp>
 #include <algoat/core/traits.hpp>
+#include <algoat/dp/alignment.hpp>
 #include <algoat/dp/levenshtein.hpp>
 #include <algoat/geometry/convex_hull.hpp>
 #include <algoat/geometry/delaunay.hpp>
@@ -399,11 +400,18 @@ using algoat::succinct::WaveletMatrix;
 
 namespace dp {
 using algoat::dp::Alignment;
+using algoat::dp::AlignmentResult;
 using algoat::dp::EditOp;
+using algoat::dp::GapPenalty;
 using algoat::dp::lcs_length;
 using algoat::dp::levenshtein_align;
 using algoat::dp::levenshtein_batch;
 using algoat::dp::levenshtein_distance;
 using algoat::dp::levenshtein_within_k;
+using algoat::dp::needleman_wunsch;
+using algoat::dp::ScoringMatrix;
+using algoat::dp::smith_waterman;
+using algoat::dp::smith_waterman_batch;
+using algoat::dp::smith_waterman_score;
 } // namespace dp
 } // namespace algoat

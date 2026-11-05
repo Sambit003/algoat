@@ -12,6 +12,7 @@
 #include "algoat/core/config.hpp"
 #include "algoat/core/config_manager.hpp"
 #include "algoat/core/dispatcher.hpp"
+#include "algoat/dp/alignment.hpp"
 #include "algoat/dp/levenshtein.hpp"
 #include "algoat/geometry/convex_hull.hpp"
 #include "algoat/geometry/delaunay.hpp"

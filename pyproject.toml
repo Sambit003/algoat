@@ -30,7 +30,7 @@ classifiers = [
 dependencies = ["numpy"]
 
 [project.optional-dependencies]
-test = ["pytest"]
+test = ["pytest", "biopython"]
 
 [project.urls]
 Homepage = "https://github.com/user/algoat"
