@@ -36,7 +36,9 @@
 #include <utility>
 #include <vector>
 
-#if defined(__x86_64__) || defined(_M_X64)
+#if defined(_MSC_VER)
+#include <immintrin.h>
+#elif defined(__BMI2__)
 #include <immintrin.h>
 #endif
 
@@ -47,7 +49,7 @@ namespace detail {
 // Portable 64-bit add with carry
 inline unsigned char add_carry_u64(unsigned char c_in, uint64_t a, uint64_t b,
                                    uint64_t* out) noexcept {
-#if (defined(__x86_64__) || defined(_M_X64)) && !defined(_M_IX86) && !defined(__i386__)
+#if defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || defined(_M_ARM64))
     return _addcarry_u64(c_in, a, b, reinterpret_cast<unsigned long long*>(out));
 #elif defined(__SIZEOF_INT128__)
     unsigned __int128 sum = static_cast<unsigned __int128>(a) + b + c_in;
@@ -63,7 +65,7 @@ inline unsigned char add_carry_u64(unsigned char c_in, uint64_t a, uint64_t b,
 // Portable 64-bit subtract with borrow
 inline unsigned char sub_borrow_u64(unsigned char b_in, uint64_t a, uint64_t b,
                                     uint64_t* out) noexcept {
-#if (defined(__x86_64__) || defined(_M_X64)) && !defined(_M_IX86) && !defined(__i386__)
+#if defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || defined(_M_ARM64))
     return _subborrow_u64(b_in, a, b, reinterpret_cast<unsigned long long*>(out));
 #elif defined(__SIZEOF_INT128__)
     unsigned __int128 diff = static_cast<unsigned __int128>(a) - b - b_in;
