@@ -29,6 +29,7 @@
 #include "algoat/graph/shortest_path.hpp"
 #include "algoat/meta/policy.hpp"
 #include "algoat/meta/static_sort.hpp"
+#include "algoat/numerics/bigint.hpp"
 #include "algoat/numerics/fft.hpp"
 #include "algoat/numerics/hybrid_sfc.hpp"
 #include "algoat/numerics/matmul.hpp"
@@ -112,6 +113,7 @@ using graph::ShortestPathResult;
 using graph::strongly_connected_components;
 using graph::StronglyConnectedComponents;
 using graph::VertexId;
+using numerics::BigInt;
 using numerics::convolve_fft;
 using numerics::fft_1d;
 using numerics::fft_2d;

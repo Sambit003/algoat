@@ -9,6 +9,7 @@ module;
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <compare>
 #include <complex>
 #include <concepts>
 #include <cstddef>
@@ -51,6 +52,7 @@ module;
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
 #include <algoat/meta/static_sort.hpp>
+#include <algoat/numerics/bigint.hpp>
 #include <algoat/numerics/fft.hpp>
 #include <algoat/numerics/float16_sort.hpp>
 #include <algoat/numerics/hilbert.hpp>
@@ -209,6 +211,7 @@ using algoat::meta::policy::operator|;
 } // namespace meta
 
 namespace numerics {
+using algoat::numerics::BigInt;
 using algoat::numerics::convolve_fft;
 using algoat::numerics::fft_1d;
 using algoat::numerics::fft_2d;

@@ -12,6 +12,7 @@
 #include "python_wrappers.hpp"
 
 #include <algoat/algoat.hpp>
+#include <algoat/numerics/bigint.hpp>
 #include <algoat/numerics/float16_sort.hpp>
 #include <algoat/sorting/boolean_sort.hpp>
 #include <algoat/sorting/ips4o.hpp>
@@ -523,6 +524,74 @@ NB_MODULE(_algoat_impl, m) {
         .def_rw("den", &algoat::Rational::den)
         .def("__lt__", [](const algoat::Rational& a, const algoat::Rational& b) { return a < b; })
         .def("__eq__", [](const algoat::Rational& a, const algoat::Rational& b) { return a == b; });
+
+    nb::class_<algoat::numerics::BigInt>(m, "BigInt")
+        .def(nb::init<>())
+        .def(nb::init<int64_t>())
+        .def("__init__", [](algoat::numerics::BigInt* self,
+                            const std::string& str) { new (self) algoat::numerics::BigInt(str); })
+        .def("__init__", [](algoat::numerics::BigInt* self, const std::string& str,
+                            int base) { new (self) algoat::numerics::BigInt(str, base); })
+        .def("__add__", [](const algoat::numerics::BigInt& a,
+                           const algoat::numerics::BigInt& b) { return a + b; })
+        .def("__sub__", [](const algoat::numerics::BigInt& a,
+                           const algoat::numerics::BigInt& b) { return a - b; })
+        .def(
+            "__mul__",
+            [](const algoat::numerics::BigInt& a, const algoat::numerics::BigInt& b) {
+                return a * b;
+            },
+            nb::call_guard<nb::gil_scoped_release>())
+        .def(
+            "__floordiv__",
+            [](const algoat::numerics::BigInt& a, const algoat::numerics::BigInt& b) {
+                return a / b;
+            },
+            nb::call_guard<nb::gil_scoped_release>())
+        .def(
+            "__mod__",
+            [](const algoat::numerics::BigInt& a, const algoat::numerics::BigInt& b) {
+                return a % b;
+            },
+            nb::call_guard<nb::gil_scoped_release>())
+        .def("__neg__", [](const algoat::numerics::BigInt& a) { return -a; })
+        .def("__invert__", [](const algoat::numerics::BigInt& a) { return ~a; })
+        .def("__and__", [](const algoat::numerics::BigInt& a,
+                           const algoat::numerics::BigInt& b) { return a & b; })
+        .def("__or__", [](const algoat::numerics::BigInt& a,
+                          const algoat::numerics::BigInt& b) { return a | b; })
+        .def("__xor__", [](const algoat::numerics::BigInt& a,
+                           const algoat::numerics::BigInt& b) { return a ^ b; })
+        .def("__lshift__", [](const algoat::numerics::BigInt& a, size_t bits) { return a << bits; })
+        .def("__rshift__", [](const algoat::numerics::BigInt& a, size_t bits) { return a >> bits; })
+        .def("__eq__", [](const algoat::numerics::BigInt& a,
+                          const algoat::numerics::BigInt& b) { return a == b; })
+        .def("__lt__", [](const algoat::numerics::BigInt& a,
+                          const algoat::numerics::BigInt& b) { return a < b; })
+        .def("__le__", [](const algoat::numerics::BigInt& a,
+                          const algoat::numerics::BigInt& b) { return a <= b; })
+        .def("__gt__", [](const algoat::numerics::BigInt& a,
+                          const algoat::numerics::BigInt& b) { return a > b; })
+        .def("__ge__", [](const algoat::numerics::BigInt& a,
+                          const algoat::numerics::BigInt& b) { return a >= b; })
+        .def("to_string", &algoat::numerics::BigInt::to_string, nb::arg("base") = 10,
+             nb::call_guard<nb::gil_scoped_release>())
+        .def("to_hex", &algoat::numerics::BigInt::to_hex)
+        .def("to_int64", &algoat::numerics::BigInt::to_int64)
+        .def("fits_int64", &algoat::numerics::BigInt::fits_int64)
+        .def("num_bits", &algoat::numerics::BigInt::num_bits)
+        .def("num_limbs", &algoat::numerics::BigInt::num_limbs)
+        .def("is_zero", &algoat::numerics::BigInt::is_zero)
+        .def("is_negative", &algoat::numerics::BigInt::is_negative)
+        .def("sign", &algoat::numerics::BigInt::sign)
+        .def("mod_pow", &algoat::numerics::BigInt::mod_pow, nb::arg("exp"), nb::arg("modulus"),
+             nb::call_guard<nb::gil_scoped_release>())
+        .def("mod_inverse", &algoat::numerics::BigInt::mod_inverse, nb::arg("modulus"),
+             nb::call_guard<nb::gil_scoped_release>())
+        .def("__str__", [](const algoat::numerics::BigInt& a) { return a.to_string(10); })
+        .def("__repr__", [](const algoat::numerics::BigInt& a) {
+            return "BigInt(\"" + a.to_string(10) + "\")";
+        });
 
     auto strings_m =
         m.def_submodule("strings", "String sorting suite (Burstsort & Multi-Key Quicksort)");
