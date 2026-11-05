@@ -12,6 +12,7 @@
 #include "python_wrappers.hpp"
 
 #include <algoat/algoat.hpp>
+#include <algoat/dp/aho_corasick.hpp>
 #include <algoat/dp/alignment.hpp>
 #include <algoat/dp/levenshtein.hpp>
 #include <algoat/hash/hash.hpp>
@@ -27,6 +28,7 @@
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
 #include <nanobind/stl/vector.h>
 #include <span>
 #include <stdexcept>
@@ -946,4 +948,54 @@ NB_MODULE(_algoat_impl, m) {
         nb::arg("query"), nb::arg("refs"), nb::arg("matrix") = algoat::dp::ScoringMatrix{},
         nb::arg("gap") = algoat::dp::GapPenalty{},
         "Batch Farrar Striped SIMD local alignment scoring against multiple reference targets");
+
+    nb::class_<algoat::dp::AcMatch>(dp_m, "AcMatch")
+        .def_ro("end_pos", &algoat::dp::AcMatch::end_pos)
+        .def_ro("pattern_id", &algoat::dp::AcMatch::pattern_id)
+        .def_ro("length", &algoat::dp::AcMatch::length);
+
+    nb::class_<algoat::dp::AhoCorasick<char>>(dp_m, "AhoCorasick")
+        .def(nb::init<>())
+        .def(
+            "add_keyword",
+            [](algoat::dp::AhoCorasick<char>& ac, std::string_view kw, std::optional<size_t> id) {
+                ac.add_keyword(kw, id);
+            },
+            nb::arg("keyword"), nb::arg("id") = nb::none(),
+            "Add a keyword pattern to the automaton before build()")
+        .def(
+            "build",
+            [](algoat::dp::AhoCorasick<char>& ac) {
+                nb::gil_scoped_release release;
+                ac.build();
+            },
+            "Finalize DFA and Double-Array Trie construction")
+        .def(
+            "find_all",
+            [](const algoat::dp::AhoCorasick<char>& ac,
+               std::string_view text) -> std::vector<algoat::dp::AcMatch> {
+                nb::gil_scoped_release release;
+                return ac.find_all(text);
+            },
+            nb::arg("text"), "Return all non-overlapping matches")
+        .def(
+            "find_all_bytes",
+            [](const algoat::dp::AhoCorasick<char>& ac,
+               nb::ndarray<const char, nb::c_contig> array) -> std::vector<algoat::dp::AcMatch> {
+                nb::gil_scoped_release release;
+                std::string_view text(array.data(), array.size());
+                return ac.find_all(text);
+            },
+            nb::arg("array"), "Return all non-overlapping matches from a 1D NumPy array or buffer")
+        .def(
+            "find_first",
+            [](const algoat::dp::AhoCorasick<char>& ac,
+               std::string_view text) -> std::optional<algoat::dp::AcMatch> {
+                nb::gil_scoped_release release;
+                return ac.find_first(text);
+            },
+            nb::arg("text"), "Return the first match found")
+        .def("num_keywords", &algoat::dp::AhoCorasick<char>::num_keywords)
+        .def("num_states", &algoat::dp::AhoCorasick<char>::num_states)
+        .def("memory_usage_bytes", &algoat::dp::AhoCorasick<char>::memory_usage_bytes);
 }

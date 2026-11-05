@@ -389,3 +389,32 @@ def test_string_sorting_suite_burstsort_and_multikey():
     words_copy2 = list(words)
     algoat.strings.multikey_quicksort_inplace(words_copy2)
     assert words_copy2 == expected
+
+
+def test_aho_corasick_suite():
+    ac = algoat.dp.AhoCorasick()
+    keywords = ["he", "she", "his", "hers"]
+    for i, kw in enumerate(keywords):
+        ac.add_keyword(kw, 100 + i)
+    ac.build()
+
+    assert ac.num_keywords() == 4
+    assert ac.num_states() >= 5
+    assert ac.memory_usage_bytes() > 0
+
+    text = "ushers"
+    matches = ac.find_all(text)
+    assert len(matches) > 0
+    for m in matches:
+        orig_id = m.pattern_id - 100
+        assert text[m.end_pos - m.length : m.end_pos] == keywords[orig_id]
+
+    first = ac.find_first(text)
+    assert first is not None
+    orig_id = first.pattern_id - 100
+    assert text[first.end_pos - first.length : first.end_pos] == keywords[orig_id]
+
+    # NumPy array buffer interoperability
+    arr = np.frombuffer(b"ushers and his dog", dtype=np.int8)
+    arr_matches = ac.find_all_bytes(arr)
+    assert len(arr_matches) >= 2

@@ -136,3 +136,6 @@ endif()
 
 add_executable(bench_alignment bench_alignment.cpp)
 target_link_libraries(bench_alignment PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
+add_executable(bench_aho_corasick bench_aho_corasick.cpp)
+target_link_libraries(bench_aho_corasick PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
