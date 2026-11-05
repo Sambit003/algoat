@@ -123,6 +123,7 @@ algoat_add_test(test_hash hash/test_hash.cpp)
 
 # DP tests
 algoat_add_test(test_levenshtein dp/test_levenshtein.cpp)
+algoat_add_test(test_alignment dp/test_alignment.cpp)
 
 # C-ABI tests
 algoat_add_test(test_algoat_c c_api/test_algoat_c.cpp)
@@ -160,6 +161,7 @@ add_executable(test_fft_invariants pbt/test_fft_invariants.cpp)
 add_executable(test_bigint_invariants pbt/test_bigint_invariants.cpp)
 add_executable(test_hash_invariants pbt/test_hash_invariants.cpp)
 add_executable(test_levenshtein_invariants pbt/test_levenshtein_invariants.cpp)
+add_executable(test_alignment_invariants pbt/test_alignment_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
@@ -224,6 +226,8 @@ target_link_libraries(test_hash_invariants PRIVATE algoat GTest::gtest_main rapi
 gtest_discover_tests(test_hash_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_levenshtein_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_levenshtein_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_alignment_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_alignment_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -355,6 +359,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_levenshtein_fuzzer PRIVATE algoat)
     target_compile_options(diff_levenshtein_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_levenshtein_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_alignment_fuzzer fuzzing/diff_alignment_fuzzer.cpp)
+    target_link_libraries(diff_alignment_fuzzer PRIVATE algoat)
+    target_compile_options(diff_alignment_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_alignment_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)

@@ -133,3 +133,6 @@ target_link_libraries(bench_levenshtein PRIVATE algoat benchmark::benchmark benc
 if(OpenMP_CXX_FOUND)
     target_link_libraries(bench_levenshtein PRIVATE OpenMP::OpenMP_CXX)
 endif()
+
+add_executable(bench_alignment bench_alignment.cpp)
+target_link_libraries(bench_alignment PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)

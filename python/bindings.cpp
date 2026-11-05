@@ -12,6 +12,7 @@
 #include "python_wrappers.hpp"
 
 #include <algoat/algoat.hpp>
+#include <algoat/dp/alignment.hpp>
 #include <algoat/dp/levenshtein.hpp>
 #include <algoat/hash/hash.hpp>
 #include <algoat/numerics/bigint.hpp>
@@ -866,4 +867,83 @@ NB_MODULE(_algoat_impl, m) {
         },
         nb::arg("a"), nb::arg("b"),
         "Compute Longest Common Subsequence length using bit-parallel algorithm");
+
+    nb::class_<algoat::dp::ScoringMatrix>(dp_m, "ScoringMatrix")
+        .def(nb::init<int32_t, int32_t>(), nb::arg("match") = 2, nb::arg("mismatch") = -1)
+        .def_static("blosum62", &algoat::dp::ScoringMatrix::blosum62)
+        .def_static("pam250", &algoat::dp::ScoringMatrix::pam250)
+        .def_static("dna", &algoat::dp::ScoringMatrix::dna, nb::arg("match") = 2,
+                    nb::arg("mismatch") = -3)
+        .def(
+            "score",
+            [](const algoat::dp::ScoringMatrix& m, char a, char b) -> int32_t {
+                return m.score(a, b);
+            },
+            nb::arg("a"), nb::arg("b"));
+
+    nb::class_<algoat::dp::GapPenalty>(dp_m, "GapPenalty")
+        .def(nb::init<int32_t, int32_t>(), nb::arg("open") = -5, nb::arg("extend") = -1)
+        .def_rw("open", &algoat::dp::GapPenalty::open)
+        .def_rw("extend", &algoat::dp::GapPenalty::extend);
+
+    nb::class_<algoat::dp::AlignmentResult>(dp_m, "AlignmentResult")
+        .def_ro("score", &algoat::dp::AlignmentResult::score)
+        .def_ro("cigar", &algoat::dp::AlignmentResult::cigar)
+        .def_ro("query_start", &algoat::dp::AlignmentResult::query_start)
+        .def_ro("query_end", &algoat::dp::AlignmentResult::query_end)
+        .def_ro("ref_start", &algoat::dp::AlignmentResult::ref_start)
+        .def_ro("ref_end", &algoat::dp::AlignmentResult::ref_end)
+        .def_ro("aligned_query", &algoat::dp::AlignmentResult::aligned_query)
+        .def_ro("aligned_ref", &algoat::dp::AlignmentResult::aligned_ref);
+
+    dp_m.def(
+        "needleman_wunsch",
+        [](const std::string& query, const std::string& ref,
+           const algoat::dp::ScoringMatrix& matrix,
+           const algoat::dp::GapPenalty& gap) -> algoat::dp::AlignmentResult {
+            nb::gil_scoped_release release;
+            return algoat::dp::needleman_wunsch(query, ref, matrix, gap);
+        },
+        nb::arg("query"), nb::arg("ref"), nb::arg("matrix") = algoat::dp::ScoringMatrix{},
+        nb::arg("gap") = algoat::dp::GapPenalty{},
+        "Global alignment using Hirschberg linear-space algorithm with Gotoh affine gaps");
+
+    dp_m.def(
+        "smith_waterman",
+        [](const std::string& query, const std::string& ref,
+           const algoat::dp::ScoringMatrix& matrix,
+           const algoat::dp::GapPenalty& gap) -> algoat::dp::AlignmentResult {
+            nb::gil_scoped_release release;
+            return algoat::dp::smith_waterman(query, ref, matrix, gap);
+        },
+        nb::arg("query"), nb::arg("ref"), nb::arg("matrix") = algoat::dp::ScoringMatrix{},
+        nb::arg("gap") = algoat::dp::GapPenalty{},
+        "Local alignment using Gotoh dynamic programming with full traceback");
+
+    dp_m.def(
+        "smith_waterman_score",
+        [](const std::string& query, const std::string& ref,
+           const algoat::dp::ScoringMatrix& matrix, const algoat::dp::GapPenalty& gap) -> int64_t {
+            nb::gil_scoped_release release;
+            return algoat::dp::smith_waterman_score(query, ref, matrix, gap);
+        },
+        nb::arg("query"), nb::arg("ref"), nb::arg("matrix") = algoat::dp::ScoringMatrix{},
+        nb::arg("gap") = algoat::dp::GapPenalty{}, "Farrar Striped SIMD local alignment score");
+
+    dp_m.def(
+        "smith_waterman_batch",
+        [](const std::string& query, const std::vector<std::string>& refs,
+           const algoat::dp::ScoringMatrix& matrix,
+           const algoat::dp::GapPenalty& gap) -> std::vector<int64_t> {
+            std::vector<std::string_view> ref_views;
+            ref_views.reserve(refs.size());
+            for (const auto& r : refs) {
+                ref_views.emplace_back(r);
+            }
+            nb::gil_scoped_release release;
+            return algoat::dp::smith_waterman_batch(query, ref_views, matrix, gap);
+        },
+        nb::arg("query"), nb::arg("refs"), nb::arg("matrix") = algoat::dp::ScoringMatrix{},
+        nb::arg("gap") = algoat::dp::GapPenalty{},
+        "Batch Farrar Striped SIMD local alignment scoring against multiple reference targets");
 }
