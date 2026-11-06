@@ -144,41 +144,23 @@ constexpr auto generate_avx2_lut64() {
 inline constexpr auto avx2_lut64 = generate_avx2_lut64();
 
 /**
- * @brief Wrapper for vector register mask to avoid template attribute warnings.
+ * @brief Precomputed mask tables for AVX2 32-bit masked stores (k = 0..8 valid elements).
  */
-struct Mask256 {
-    __m256i v;
+alignas(32) inline constexpr std::int32_t kStoreMask32Table[9][8] = {
+    {0, 0, 0, 0, 0, 0, 0, 0},         {-1, 0, 0, 0, 0, 0, 0, 0},
+    {-1, -1, 0, 0, 0, 0, 0, 0},       {-1, -1, -1, 0, 0, 0, 0, 0},
+    {-1, -1, -1, -1, 0, 0, 0, 0},     {-1, -1, -1, -1, -1, 0, 0, 0},
+    {-1, -1, -1, -1, -1, -1, 0, 0},   {-1, -1, -1, -1, -1, -1, -1, 0},
+    {-1, -1, -1, -1, -1, -1, -1, -1},
 };
 
 /**
- * @brief Mask table for AVX2 32-bit masked stores (k = 0..8 valid elements).
+ * @brief Precomputed mask tables for AVX2 64-bit masked stores (k = 0..4 valid elements).
  */
-inline const auto kStoreMask32 = []() {
-    std::array<Mask256, 9> masks{};
-    for (int k = 0; k <= 8; ++k) {
-        alignas(32) std::array<std::int32_t, 8> m{};
-        for (int i = 0; i < k; ++i) {
-            m[i] = -1;
-        }
-        masks[k].v = _mm256_load_si256(reinterpret_cast<const __m256i*>(m.data()));
-    }
-    return masks;
-}();
-
-/**
- * @brief Mask table for AVX2 64-bit masked stores (k = 0..4 valid elements).
- */
-inline const auto kStoreMask64 = []() {
-    std::array<Mask256, 5> masks{};
-    for (int k = 0; k <= 4; ++k) {
-        alignas(32) std::array<std::int64_t, 4> m{};
-        for (int i = 0; i < k; ++i) {
-            m[i] = -1LL;
-        }
-        masks[k].v = _mm256_load_si256(reinterpret_cast<const __m256i*>(m.data()));
-    }
-    return masks;
-}();
+alignas(32) inline constexpr std::int64_t kStoreMask64Table[5][4] = {
+    {0, 0, 0, 0},          {-1LL, 0, 0, 0},          {-1LL, -1LL, 0, 0},
+    {-1LL, -1LL, -1LL, 0}, {-1LL, -1LL, -1LL, -1LL},
+};
 
 /**
  * @brief Vector operations abstraction for 32-bit bitonic sorting networks in AVX2.
@@ -580,17 +562,22 @@ template <typename T> std::size_t partition_avx2(T* data, std::size_t size, T pi
             __m256i packed_lt = _mm256_permutevar8x32_epi32(val, perm_lt);
             __m256i packed_ge = _mm256_permutevar8x32_epi32(val, perm_ge);
 
+            __m256i mask_lt =
+                _mm256_load_si256(reinterpret_cast<const __m256i*>(kStoreMask32Table[count_lt]));
+            __m256i mask_ge =
+                _mm256_load_si256(reinterpret_cast<const __m256i*>(kStoreMask32Table[count_ge]));
+
             // Exact masked stores strictly eliminate buffer overwrite hazards
             if constexpr (std::is_floating_point_v<T>) {
-                _mm256_maskstore_ps(reinterpret_cast<float*>(data + left_write),
-                                    kStoreMask32[count_lt].v, _mm256_castsi256_ps(packed_lt));
+                _mm256_maskstore_ps(reinterpret_cast<float*>(data + left_write), mask_lt,
+                                    _mm256_castsi256_ps(packed_lt));
                 _mm256_maskstore_ps(reinterpret_cast<float*>(data + right_write - count_ge),
-                                    kStoreMask32[count_ge].v, _mm256_castsi256_ps(packed_ge));
+                                    mask_ge, _mm256_castsi256_ps(packed_ge));
             } else {
-                _mm256_maskstore_epi32(reinterpret_cast<int*>(data + left_write),
-                                       kStoreMask32[count_lt].v, packed_lt);
+                _mm256_maskstore_epi32(reinterpret_cast<int*>(data + left_write), mask_lt,
+                                       packed_lt);
                 _mm256_maskstore_epi32(reinterpret_cast<int*>(data + right_write - count_ge),
-                                       kStoreMask32[count_ge].v, packed_ge);
+                                       mask_ge, packed_ge);
             }
 
             left_write += count_lt;
@@ -658,16 +645,21 @@ template <typename T> std::size_t partition_avx2(T* data, std::size_t size, T pi
             __m256i packed_lt = _mm256_permutevar8x32_epi32(val, perm_lt);
             __m256i packed_ge = _mm256_permutevar8x32_epi32(val, perm_ge);
 
+            __m256i mask_lt =
+                _mm256_load_si256(reinterpret_cast<const __m256i*>(kStoreMask64Table[count_lt]));
+            __m256i mask_ge =
+                _mm256_load_si256(reinterpret_cast<const __m256i*>(kStoreMask64Table[count_ge]));
+
             if constexpr (std::is_floating_point_v<T>) {
-                _mm256_maskstore_pd(reinterpret_cast<double*>(data + left_write),
-                                    kStoreMask64[count_lt].v, _mm256_castsi256_pd(packed_lt));
+                _mm256_maskstore_pd(reinterpret_cast<double*>(data + left_write), mask_lt,
+                                    _mm256_castsi256_pd(packed_lt));
                 _mm256_maskstore_pd(reinterpret_cast<double*>(data + right_write - count_ge),
-                                    kStoreMask64[count_ge].v, _mm256_castsi256_pd(packed_ge));
+                                    mask_ge, _mm256_castsi256_pd(packed_ge));
             } else {
-                _mm256_maskstore_epi64(reinterpret_cast<long long*>(data + left_write),
-                                       kStoreMask64[count_lt].v, packed_lt);
+                _mm256_maskstore_epi64(reinterpret_cast<long long*>(data + left_write), mask_lt,
+                                       packed_lt);
                 _mm256_maskstore_epi64(reinterpret_cast<long long*>(data + right_write - count_ge),
-                                       kStoreMask64[count_ge].v, packed_ge);
+                                       mask_ge, packed_ge);
             }
 
             left_write += count_lt;

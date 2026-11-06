@@ -273,6 +273,7 @@ using algoat::sorting::radixsort_msd;
 using algoat::sorting::selectionsort;
 using algoat::sorting::shellsort;
 using algoat::sorting::timsort;
+using algoat::sorting::vqsort;
 
 // Struct algorithm types
 using algoat::sorting::BitonicSort;
@@ -302,6 +303,7 @@ using algoat::sorting::RadixSortMSD;
 using algoat::sorting::SelectionSort;
 using algoat::sorting::ShellSort;
 using algoat::sorting::TimSort;
+using algoat::sorting::VQSort;
 } // namespace sorting
 
 namespace searching {
