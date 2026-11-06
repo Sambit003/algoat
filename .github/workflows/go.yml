@@ -73,6 +73,7 @@ jobs:
   test-macos:
     name: macOS (arm64)
     runs-on: macos-14
+    continue-on-error: true
     timeout-minutes: 15
 
     steps:

@@ -30,7 +30,14 @@
 #include <type_traits>
 #include <utility>
 
-#if defined(__x86_64__) || defined(_M_X64)
+#if defined(__cpp_modules)
+// In C++20 module interface compilation, hardware vector builtins trigger internal compiler
+// errors across GCC 14 module state dependency tracking (PR114795). Delegate to scalar PDQSort
+// during module BMI compilation.
+#define ALGOAT_VQSORT_SCALAR_ONLY 1
+#endif
+
+#if !defined(ALGOAT_VQSORT_SCALAR_ONLY) && (defined(__x86_64__) || defined(_M_X64))
 #include <immintrin.h>
 #endif
 
@@ -66,12 +73,17 @@ inline constexpr bool is_std_greater_v =
 /**
  * @brief Determines whether a sort configuration can use the hardware vector pipeline.
  */
+#if defined(ALGOAT_VQSORT_SCALAR_ONLY)
+template <typename T, typename Comp, typename Proj>
+inline constexpr bool is_vqsort_applicable_v = false;
+#else
 template <typename T, typename Comp, typename Proj>
 inline constexpr bool is_vqsort_applicable_v =
     is_simd_type_v<T> && (is_std_less_v<T, Comp> || is_std_greater_v<T, Comp>) &&
     std::is_same_v<Proj, std::identity>;
+#endif
 
-#if defined(__AVX2__)
+#if defined(__AVX2__) && !defined(ALGOAT_VQSORT_SCALAR_ONLY)
 
 /**
  * @brief LUT entry holding complementary pack permutations for AVX2.
@@ -498,7 +510,7 @@ drain_partition_buffers(T* data, std::size_t& left_write, std::size_t& right_wri
     return left_write;
 }
 
-#if defined(__AVX2__)
+#if defined(__AVX2__) && !defined(ALGOAT_VQSORT_SCALAR_ONLY)
 
 /**
  * @brief Two-way vectorized partitioning using AVX2 in-place dual stores and masked writes.
@@ -677,7 +689,8 @@ template <typename T> std::size_t partition_avx2(T* data, std::size_t size, T pi
 
 #endif // __AVX2__
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) &&                      \
+    defined(__AVX512BW__) && !defined(ALGOAT_VQSORT_SCALAR_ONLY)
 
 /**
  * @brief Two-way vectorized partitioning using AVX-512 hardware compress-stores.
@@ -915,7 +928,8 @@ void vqsort_recursive(T* data, std::size_t size, std::size_t depth_limit) noexce
         T pivot = choose_pivot_smart(data, size);
         std::size_t mid;
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) &&                      \
+    defined(__AVX512BW__) && !defined(ALGOAT_VQSORT_SCALAR_ONLY)
         mid = partition_avx512(data, size, pivot);
 #elif defined(__AVX2__)
         mid = partition_avx2(data, size, pivot);
@@ -949,7 +963,7 @@ void vqsort_recursive(T* data, std::size_t size, std::size_t depth_limit) noexce
     }
 
     // Base case: in-register sorting network
-#if defined(__AVX2__)
+#if defined(__AVX2__) && !defined(ALGOAT_VQSORT_SCALAR_ONLY)
     sort_base_network(data, size);
 #else
     std::sort(data, data + size);
@@ -992,7 +1006,7 @@ constexpr I vqsort(I first, S last, Comp comp = {}, Proj proj = {}) {
     if constexpr (std::contiguous_iterator<I> &&
                   detail::vqsort_detail::is_vqsort_applicable_v<T, Comp, Proj>) {
         if (!std::is_constant_evaluated()) {
-#if defined(__AVX2__) || defined(__AVX512F__)
+#if (defined(__AVX2__) || defined(__AVX512F__)) && !defined(ALGOAT_VQSORT_SCALAR_ONLY)
             T* ptr = std::to_address(first);
             std::size_t size = static_cast<std::size_t>(num_elements);
             std::size_t depth_limit = 2 * std::bit_width(size) + 4;
