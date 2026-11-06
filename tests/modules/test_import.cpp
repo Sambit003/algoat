@@ -111,6 +111,14 @@ TEST(ModuleImportTest, SortingSubnamespaceFunctions) {
     std::vector<int> ska_adapter_data{9, 8, 7, 6, 5, 4};
     algoat::sorting::SkaSort{}.sort(std::span{ska_adapter_data});
     EXPECT_TRUE(std::is_sorted(ska_adapter_data.begin(), ska_adapter_data.end()));
+
+    std::vector<int> graildata{14, 2, 9, 1, 18, 5, 11, 3};
+    algoat::sorting::grailsort(graildata);
+    EXPECT_TRUE(std::is_sorted(graildata.begin(), graildata.end()));
+
+    std::vector<int> grail_adapter_data{8, 7, 6, 5, 4, 3, 2, 1};
+    algoat::sorting::GrailSort{}.sort(std::span{grail_adapter_data});
+    EXPECT_TRUE(std::is_sorted(grail_adapter_data.begin(), grail_adapter_data.end()));
 }
 
 TEST(ModuleImportTest, SearchingSubnamespaceFunctions) {

@@ -91,6 +91,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     test_algo(Ips4oSort{}, false);
     test_algo(TimSort{}, true);
     test_algo(BlockSort{}, true);
+    test_algo(GrailSort{}, true);
     test_algo(ShellSort{}, false);
     test_algo(CombSort{}, false);
     test_algo(VQSort{}, false);
@@ -117,6 +118,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         std::vector<int> flux_data = original_ints;
         algoat::sorting::fluxsort(flux_data);
         if (flux_data != exp_ints)
+            __builtin_trap();
+
+        std::vector<int> grail_data = original_ints;
+        algoat::sorting::grailsort(grail_data);
+        if (grail_data != exp_ints)
             __builtin_trap();
     }
 

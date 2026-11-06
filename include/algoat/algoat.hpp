@@ -44,6 +44,7 @@
 #include "algoat/searching/static_btree.hpp"
 #include "algoat/selection/selection.hpp"
 #include "algoat/sketches/sketches.hpp"
+#include "algoat/sorting/grailsort.hpp"
 #include "algoat/sorting/introsort.hpp"
 #include "algoat/sorting/pdqsort.hpp"
 #include "algoat/strings/burstsort.hpp"
@@ -144,6 +145,8 @@ using sketches::LSHIndex;
 using sketches::SimHash;
 using sketches::SpaceSaving;
 using sketches::SpaceSavingHeavyHitters;
+using sorting::grailsort;
+using sorting::GrailSort;
 using strings::find_all_substrings;
 using strings::find_substring;
 using strings::search_pattern;

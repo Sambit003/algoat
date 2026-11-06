@@ -29,7 +29,7 @@ protected:
 using ComparativeSortAlgos =
     ::testing::Types<SelectionSort, BubbleSort, InsertionSort, ShellSort, CombSort, GnomeSort,
                      CycleSort, QuickSort, MergeSort, HeapSort, IntroSort, TimSort, BlockSort,
-                     PdqSort, CrumSort, FluxSort, Ips4oSort, VQSort>;
+                     PdqSort, CrumSort, FluxSort, Ips4oSort, VQSort, GrailSort>;
 
 TYPED_TEST_SUITE(ComparativeSortPBT, ComparativeSortAlgos);
 
@@ -60,7 +60,7 @@ protected:
 };
 
 using StableSortAlgos =
-    ::testing::Types<BubbleSort, InsertionSort, MergeSort, TimSort, BlockSort, FluxSort>;
+    ::testing::Types<BubbleSort, InsertionSort, MergeSort, TimSort, BlockSort, FluxSort, GrailSort>;
 
 TYPED_TEST_SUITE(StableSortPBT, StableSortAlgos);
 
@@ -491,5 +491,47 @@ TEST(SkaSortPBT, ProjectionAndCompoundInvariants) {
                            [](const TestItem& a, const TestItem& b) { return a.key < b.key; }));
         RC_ASSERT(std::is_permutation(items.begin(), items.end(), original_items.begin(),
                                       original_items.end()));
+    });
+}
+
+TEST(GrailSortPBT, CustomComparatorAndProjectionInvariants) {
+    struct TestItem {
+        int key;
+        int original_index;
+        bool operator==(const TestItem& other) const = default;
+    };
+
+    rc::check("GrailSort with projection and descending comparator", [](std::vector<int> keys) {
+        std::vector<TestItem> items;
+        items.reserve(keys.size());
+        for (std::size_t i = 0; i < keys.size(); ++i) {
+            items.push_back({keys[i], static_cast<int>(i)});
+        }
+        auto original_items = items;
+        algoat::sorting::grailsort(items, std::ranges::greater{}, &TestItem::key);
+
+        RC_ASSERT(items.size() == original_items.size());
+        RC_ASSERT(
+            std::is_sorted(items.begin(), items.end(),
+                           [](const TestItem& a, const TestItem& b) { return a.key > b.key; }));
+        for (std::size_t i = 1; i < items.size(); ++i) {
+            if (items[i - 1].key == items[i].key) {
+                RC_ASSERT(items[i - 1].original_index < items[i].original_index);
+            }
+        }
+    });
+
+    rc::check("GrailSort with bounded unique keys", [](const std::vector<int>& raw) {
+        std::vector<int> keys;
+        keys.reserve(raw.size());
+        for (int x : raw) {
+            keys.push_back(std::abs(x) % 5);
+        }
+        std::vector<int> data = keys;
+        std::vector<int> expected = keys;
+        std::stable_sort(expected.begin(), expected.end());
+
+        algoat::sorting::grailsort(std::span<int>{data});
+        RC_ASSERT(data == expected);
     });
 }

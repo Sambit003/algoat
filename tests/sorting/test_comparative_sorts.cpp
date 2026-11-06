@@ -35,9 +35,10 @@ public:
     }
 };
 
-using ComparativeSortAlgos = ::testing::Types<SelectionSort, BubbleSort, InsertionSort, ShellSort,
-                                              CombSort, GnomeSort, CycleSort, QuickSort, MergeSort,
-                                              HeapSort, IntroSort, TimSort, BlockSort, PdqSort>;
+using ComparativeSortAlgos =
+    ::testing::Types<SelectionSort, BubbleSort, InsertionSort, ShellSort, CombSort, GnomeSort,
+                     CycleSort, QuickSort, MergeSort, HeapSort, IntroSort, TimSort, BlockSort,
+                     PdqSort, GrailSort>;
 
 TYPED_TEST_SUITE(ComparativeSortTest, ComparativeSortAlgos, SortAlgoNameGenerator);
 

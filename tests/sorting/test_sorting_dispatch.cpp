@@ -53,3 +53,12 @@ TEST(SortingDispatchTest, ConfigOverrideUsesPdqSort) {
     dispatcher.sort(std::span{data});
     EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
 }
+
+TEST(SortingDispatchTest, ConfigOverrideUsesGrailSort) {
+    AlgoConfig config;
+    config.sorting.prefer = "grailsort";
+    Dispatcher dispatcher(config);
+    std::vector<int> data = {5, 2, 8, 1, 9, 3, 7, 4, 6, 0};
+    dispatcher.sort(std::span{data});
+    EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+}

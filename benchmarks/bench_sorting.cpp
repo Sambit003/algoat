@@ -5,6 +5,8 @@
 #include "algoat/sorting/countingsort.hpp"
 #include "algoat/sorting/crumsort.hpp"
 #include "algoat/sorting/fluxsort.hpp"
+#include "algoat/sorting/gnomesort.hpp"
+#include "algoat/sorting/grailsort.hpp"
 #include "algoat/sorting/heapsort.hpp"
 #include "algoat/sorting/insertionsort.hpp"
 #include "algoat/sorting/introsort.hpp"
@@ -73,6 +75,7 @@ DECLARE_SORT_BENCHMARK(FluxSort, algoat::sorting::fluxsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(Ips4oSort, algoat::sorting::ips4o_parallel_sort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(AlgoatSort, algoat::sort(copy))
 DECLARE_SORT_BENCHMARK(BlockSort, algoat::sorting::blocksort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(GrailSort, algoat::sorting::grailsort(copy))
 DECLARE_SORT_BENCHMARK(RadixSortLSD, algoat::sorting::radixsort_lsd(std::span{copy}))
 DECLARE_SORT_BENCHMARK(RadixSortMSD, algoat::sorting::radixsort_msd(std::span{copy}))
 DECLARE_SORT_BENCHMARK(RadixSortInPlaceMSD, algoat::sorting::inplace_radix_sort(std::span{copy}))
@@ -118,6 +121,7 @@ DECLARE_LARGE_SORT_BENCHMARK(RadixSortInPlaceMSD,
                              algoat::sorting::inplace_radix_sort(std::span{copy}))
 DECLARE_LARGE_SORT_BENCHMARK(SkaSort, algoat::sorting::ska_sort(copy))
 DECLARE_LARGE_SORT_BENCHMARK(MergeSort, algoat::sorting::mergesort(std::span{copy}))
+DECLARE_LARGE_SORT_BENCHMARK(GrailSort, algoat::sorting::grailsort(copy))
 
 static void BM_IPS4O_ParallelScaling(benchmark::State& state) {
     const auto size = state.range(0);
