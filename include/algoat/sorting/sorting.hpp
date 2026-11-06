@@ -18,6 +18,7 @@
 #include "algoat/sorting/cyclesort.hpp"
 #include "algoat/sorting/fluxsort.hpp"
 #include "algoat/sorting/gnomesort.hpp"
+#include "algoat/sorting/grailsort.hpp"
 #include "algoat/sorting/heapsort.hpp"
 #include "algoat/sorting/hilbert_sort.hpp"
 #include "algoat/sorting/insertionsort.hpp"
@@ -72,6 +73,6 @@ using SortVariant =
                  ShellSort, CombSort, GnomeSort, CycleSort, BitonicSort, CountingSort,
                  PigeonholeSort, RadixSortLSD, RadixSortMSD, RadixSortInPlaceMSD, BucketSort,
                  IntroSort, TimSort, BlockSort, HilbertSort, PdqSort, CrumSort, FluxSort, Ips4oSort,
-                 VQSort, SkaSort>;
+                 VQSort, SkaSort, GrailSort>;
 
 } // namespace algoat::sorting
