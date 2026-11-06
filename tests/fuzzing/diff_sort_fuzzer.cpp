@@ -199,6 +199,22 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     test_radix(RadixSortLSD{});
     test_radix(RadixSortMSD{});
     test_radix(RadixSortInPlaceMSD{});
+    test_radix(SkaSort{});
+
+    // Free function ska_sort
+    {
+        std::vector<int> ska_data = original_ints;
+        algoat::sorting::ska_sort(ska_data);
+        if (ska_data != expected_ints)
+            __builtin_trap();
+
+        std::vector<StableItem> ska_items = original;
+        algoat::sorting::ska_sort(ska_items, &StableItem::key);
+        for (size_t i = 0; i < ska_items.size(); ++i) {
+            if (ska_items[i].key != expected[i].key)
+                __builtin_trap();
+        }
+    }
 
     // Boolean sort (bool array and integer zero-partition)
     if (num_elements > 0) {

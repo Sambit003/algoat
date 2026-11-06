@@ -30,6 +30,7 @@
 #include "algoat/sorting/radixsort.hpp"
 #include "algoat/sorting/selectionsort.hpp"
 #include "algoat/sorting/shellsort.hpp"
+#include "algoat/sorting/ska_sort.hpp"
 #include "algoat/sorting/timsort.hpp"
 #include "algoat/sorting/vqsort.hpp"
 
@@ -66,10 +67,11 @@ concept SortAlgorithm = requires(Algo algo, std::span<T> data) {
  * Used by @c algoat::core::Registry<SortVariant> for type-safe static dispatch
  * via @c std::visit without virtual function table overhead.
  */
-using SortVariant = std::variant<InsertionSort, QuickSort, MergeSort, HeapSort, SelectionSort,
-                                 BubbleSort, ShellSort, CombSort, GnomeSort, CycleSort, BitonicSort,
-                                 CountingSort, PigeonholeSort, RadixSortLSD, RadixSortMSD,
-                                 RadixSortInPlaceMSD, BucketSort, IntroSort, TimSort, BlockSort,
-                                 HilbertSort, PdqSort, CrumSort, FluxSort, Ips4oSort, VQSort>;
+using SortVariant =
+    std::variant<InsertionSort, QuickSort, MergeSort, HeapSort, SelectionSort, BubbleSort,
+                 ShellSort, CombSort, GnomeSort, CycleSort, BitonicSort, CountingSort,
+                 PigeonholeSort, RadixSortLSD, RadixSortMSD, RadixSortInPlaceMSD, BucketSort,
+                 IntroSort, TimSort, BlockSort, HilbertSort, PdqSort, CrumSort, FluxSort, Ips4oSort,
+                 VQSort, SkaSort>;
 
 } // namespace algoat::sorting
