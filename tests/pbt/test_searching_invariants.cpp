@@ -72,6 +72,18 @@ TEST(EytzingerSearchPBT, LowerBoundMatchesStdLowerBound) {
     });
 }
 
+TEST(PGMIndexPBT, LowerBoundMatchesStdLowerBound) {
+    rc::check("PGMIndex lower_bound matches std::lower_bound",
+              [](std::vector<int> data, int target) {
+                  std::sort(data.begin(), data.end());
+                  PGMIndex<int, 16, 4> index(data);
+
+                  auto std_it = std::lower_bound(data.begin(), data.end(), target);
+                  std::size_t expected_idx = static_cast<std::size_t>(std_it - data.begin());
+                  RC_ASSERT(index.lower_bound(data, target) == expected_idx);
+              });
+}
+
 TEST(StaticBTreePBT, LowerBoundMatchesStdLowerBound) {
     rc::check("StaticBTree lower_bound matches std::lower_bound",
               [](std::vector<int> data, int target) {

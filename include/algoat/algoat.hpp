@@ -41,6 +41,7 @@
 #include "algoat/searching/branchless_binary_search.hpp"
 #include "algoat/searching/eytzinger_search_tree.hpp"
 #include "algoat/searching/galloping_search.hpp"
+#include "algoat/searching/pgm_index.hpp"
 #include "algoat/searching/static_btree.hpp"
 #include "algoat/selection/selection.hpp"
 #include "algoat/sketches/sketches.hpp"
@@ -134,6 +135,7 @@ using searching::BranchlessBinarySearch;
 using searching::EytzingerSearchTree;
 using searching::galloping_search;
 using searching::GallopingSearch;
+using searching::PGMIndex;
 using searching::StaticBTree;
 using selection::nth_element;
 using selection::select_optimal;

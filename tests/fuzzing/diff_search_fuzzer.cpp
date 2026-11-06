@@ -99,5 +99,15 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         }
     }
 
+    // Test PGMIndex on sorted unique data
+    if (!sorted_data.empty()) {
+        PGMIndex<int, 16, 4> pgm(sorted_data);
+        auto pgm_idx = pgm.lower_bound(sorted_data, target);
+        auto std_lb = std::lower_bound(sorted_data.begin(), sorted_data.end(), target);
+        size_t expected_lb = static_cast<size_t>(std_lb - sorted_data.begin());
+        if (pgm_idx != expected_lb)
+            __builtin_trap();
+    }
+
     return 0;
 }
