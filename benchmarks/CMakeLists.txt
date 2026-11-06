@@ -14,6 +14,9 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(bench_sorting PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
+add_executable(bench_loser_tree bench_loser_tree.cpp)
+target_link_libraries(bench_loser_tree PRIVATE algoat benchmark::benchmark)
+
 add_executable(bench_profiler bench_profiler.cpp)
 target_link_libraries(bench_profiler PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
 
