@@ -26,6 +26,7 @@
 #include "algoat/sorting/ips4o.hpp"
 #include "algoat/sorting/loser_tree.hpp"
 #include "algoat/sorting/mergesort.hpp"
+#include "algoat/sorting/patience_sort.hpp"
 #include "algoat/sorting/pdqsort.hpp"
 #include "algoat/sorting/pigeonholesort.hpp"
 #include "algoat/sorting/quicksort.hpp"
@@ -33,6 +34,7 @@
 #include "algoat/sorting/selectionsort.hpp"
 #include "algoat/sorting/shellsort.hpp"
 #include "algoat/sorting/ska_sort.hpp"
+#include "algoat/sorting/smoothsort.hpp"
 #include "algoat/sorting/timsort.hpp"
 #include "algoat/sorting/vqsort.hpp"
 
@@ -74,6 +76,6 @@ using SortVariant =
                  ShellSort, CombSort, GnomeSort, CycleSort, BitonicSort, CountingSort,
                  PigeonholeSort, RadixSortLSD, RadixSortMSD, RadixSortInPlaceMSD, BucketSort,
                  IntroSort, TimSort, BlockSort, HilbertSort, PdqSort, CrumSort, FluxSort, Ips4oSort,
-                 VQSort, SkaSort, GrailSort>;
+                 VQSort, SkaSort, GrailSort, SmoothSort, PatienceSort>;
 
 } // namespace algoat::sorting

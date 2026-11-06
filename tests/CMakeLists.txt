@@ -57,6 +57,8 @@ algoat_add_test(test_ips4o sorting/test_ips4o.cpp)
 algoat_add_test(test_ska_sort sorting/test_ska_sort.cpp)
 algoat_add_test(test_grailsort sorting/test_grailsort.cpp)
 algoat_add_test(test_loser_tree sorting/test_loser_tree.cpp)
+algoat_add_test(test_smoothsort sorting/test_smoothsort.cpp)
+algoat_add_test(test_patience_sort sorting/test_patience_sort.cpp)
 
 # Searching tests
 algoat_add_test(test_linear_search searching/test_linear_search.cpp)
