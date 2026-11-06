@@ -24,6 +24,7 @@
 #include "algoat/sorting/insertionsort.hpp"
 #include "algoat/sorting/introsort.hpp"
 #include "algoat/sorting/ips4o.hpp"
+#include "algoat/sorting/loser_tree.hpp"
 #include "algoat/sorting/mergesort.hpp"
 #include "algoat/sorting/pdqsort.hpp"
 #include "algoat/sorting/pigeonholesort.hpp"

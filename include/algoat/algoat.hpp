@@ -46,6 +46,7 @@
 #include "algoat/sketches/sketches.hpp"
 #include "algoat/sorting/grailsort.hpp"
 #include "algoat/sorting/introsort.hpp"
+#include "algoat/sorting/loser_tree.hpp"
 #include "algoat/sorting/pdqsort.hpp"
 #include "algoat/strings/burstsort.hpp"
 #include "algoat/strings/multikey_quicksort.hpp"
@@ -365,5 +366,9 @@ constexpr std::optional<std::size_t> search(std::span<T> data, const T& target,
                                             core::SearchHint hint = core::SearchHint::None) {
     return search(std::span<const T>{data.data(), data.size()}, target, hint);
 }
+
+// Tournament Loser Tree K-Way Stream Merging Engine
+using sorting::k_way_merge;
+using sorting::LoserTree;
 
 } // namespace algoat
