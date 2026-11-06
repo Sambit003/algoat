@@ -29,7 +29,7 @@ protected:
 using ComparativeSortAlgos =
     ::testing::Types<SelectionSort, BubbleSort, InsertionSort, ShellSort, CombSort, GnomeSort,
                      CycleSort, QuickSort, MergeSort, HeapSort, IntroSort, TimSort, BlockSort,
-                     PdqSort, CrumSort, FluxSort, Ips4oSort>;
+                     PdqSort, CrumSort, FluxSort, Ips4oSort, VQSort>;
 
 TYPED_TEST_SUITE(ComparativeSortPBT, ComparativeSortAlgos);
 
@@ -442,4 +442,29 @@ TEST(StringsSortingPBT, BurstsortInvariants) {
                   algoat::strings::burstsort(std::span<std::string>{sorted_again});
                   RC_ASSERT(input == sorted_again);
               });
+}
+
+TEST(VQSortPBT, CustomComparatorAndProjectionInvariants) {
+    struct TestItem {
+        int key;
+        std::string payload;
+        bool operator==(const TestItem& other) const = default;
+    };
+
+    rc::check("VQSort with projection and descending comparator", [](std::vector<int> keys) {
+        std::vector<TestItem> items;
+        items.reserve(keys.size());
+        for (int k : keys) {
+            items.push_back({k, std::to_string(k)});
+        }
+        auto original_items = items;
+        algoat::sorting::vqsort(items, std::greater<int>{}, &TestItem::key);
+
+        RC_ASSERT(items.size() == original_items.size());
+        RC_ASSERT(
+            std::is_sorted(items.begin(), items.end(),
+                           [](const TestItem& a, const TestItem& b) { return a.key > b.key; }));
+        RC_ASSERT(std::is_permutation(items.begin(), items.end(), original_items.begin(),
+                                      original_items.end()));
+    });
 }

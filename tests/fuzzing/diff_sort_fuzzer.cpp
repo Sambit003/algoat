@@ -93,6 +93,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     test_algo(BlockSort{}, true);
     test_algo(ShellSort{}, false);
     test_algo(CombSort{}, false);
+    test_algo(VQSort{}, false);
 
     // Free function pdqsort, crumsort, and fluxsort
     {
@@ -101,6 +102,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         std::sort(exp_ints.begin(), exp_ints.end());
         algoat::sorting::pdqsort(pdq_data);
         if (pdq_data != exp_ints)
+            __builtin_trap();
+
+        std::vector<int> vq_data = original_ints;
+        algoat::sorting::vqsort(vq_data);
+        if (vq_data != exp_ints)
             __builtin_trap();
 
         std::vector<int> crum_data = original_ints;

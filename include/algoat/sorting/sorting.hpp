@@ -31,6 +31,7 @@
 #include "algoat/sorting/selectionsort.hpp"
 #include "algoat/sorting/shellsort.hpp"
 #include "algoat/sorting/timsort.hpp"
+#include "algoat/sorting/vqsort.hpp"
 
 #include <concepts>
 #include <cstddef>
@@ -69,6 +70,6 @@ using SortVariant = std::variant<InsertionSort, QuickSort, MergeSort, HeapSort, 
                                  BubbleSort, ShellSort, CombSort, GnomeSort, CycleSort, BitonicSort,
                                  CountingSort, PigeonholeSort, RadixSortLSD, RadixSortMSD,
                                  RadixSortInPlaceMSD, BucketSort, IntroSort, TimSort, BlockSort,
-                                 HilbertSort, PdqSort, CrumSort, FluxSort, Ips4oSort>;
+                                 HilbertSort, PdqSort, CrumSort, FluxSort, Ips4oSort, VQSort>;
 
 } // namespace algoat::sorting
