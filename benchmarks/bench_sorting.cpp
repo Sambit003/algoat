@@ -15,6 +15,7 @@
 #include "algoat/sorting/radixsort.hpp"
 #include "algoat/sorting/shellsort.hpp"
 #include "algoat/sorting/timsort.hpp"
+#include "algoat/sorting/vqsort.hpp"
 
 #include <algorithm>
 #include <benchmark/benchmark.h>
@@ -65,6 +66,7 @@ DECLARE_SORT_BENCHMARK(HeapSort, algoat::sorting::heapsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(TimSort, algoat::sorting::timsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(IntroSort, algoat::sorting::introsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(PdqSort, algoat::sorting::pdqsort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(VQSort, algoat::sorting::vqsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(CrumSort, algoat::sorting::crumsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(FluxSort, algoat::sorting::fluxsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(Ips4oSort, algoat::sorting::ips4o_parallel_sort(std::span{copy}))
@@ -107,6 +109,7 @@ BENCHMARK(BM_Adapter_QuickSort)->RangeMultiplier(2)->Range(8, 8 << 12)->Complexi
 
 DECLARE_LARGE_SORT_BENCHMARK(StdSort, std::sort(copy.begin(), copy.end()))
 DECLARE_LARGE_SORT_BENCHMARK(PdqSort, algoat::sorting::pdqsort(copy))
+DECLARE_LARGE_SORT_BENCHMARK(VQSort, algoat::sorting::vqsort(copy))
 DECLARE_LARGE_SORT_BENCHMARK(IPS4O, algoat::sorting::ips4o_parallel_sort(copy))
 DECLARE_LARGE_SORT_BENCHMARK(AlgoatSort, algoat::sort(copy))
 DECLARE_LARGE_SORT_BENCHMARK(RadixSortInPlaceMSD,

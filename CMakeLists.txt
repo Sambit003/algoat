@@ -53,6 +53,24 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64" AND NOT CMAKE_CROSSCOMPILING)
             add_compile_options("-mavx2")
         endif()
     endif()
+    check_cxx_compiler_flag("-mavx512f -mavx512vl -mavx512dq -mavx512bw" ALGOAT_SUPPORTS_MAVX512)
+    if(ALGOAT_SUPPORTS_MAVX512)
+        include(CheckCXXSourceRuns)
+        set(CMAKE_REQUIRED_FLAGS "-mavx512f -mavx512vl -mavx512dq -mavx512bw")
+        check_cxx_source_runs("
+            #include <immintrin.h>
+            int main() {
+                __m512i a = _mm512_set1_epi32(1);
+                int buf[16];
+                _mm512_storeu_si512(buf, a);
+                return (buf[0] == 1) ? 0 : 1;
+            }
+        " ALGOAT_HOST_HAS_AVX512)
+        unset(CMAKE_REQUIRED_FLAGS)
+        if(ALGOAT_HOST_HAS_AVX512)
+            add_compile_options("-mavx512f" "-mavx512vl" "-mavx512dq" "-mavx512bw")
+        endif()
+    endif()
     check_cxx_compiler_flag("-mfma" ALGOAT_SUPPORTS_MFMA)
     if(ALGOAT_SUPPORTS_MFMA)
         include(CheckCXXSourceRuns)
