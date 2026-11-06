@@ -95,6 +95,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     test_algo(ShellSort{}, false);
     test_algo(CombSort{}, false);
     test_algo(VQSort{}, false);
+    test_algo(SmoothSort{}, false);
+    test_algo(PatienceSort{}, false);
 
     // Free function pdqsort, crumsort, and fluxsort
     {
@@ -124,6 +126,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         algoat::sorting::grailsort(grail_data);
         if (grail_data != exp_ints)
             __builtin_trap();
+
+        std::vector<int> smooth_data = original_ints;
+        algoat::sorting::smoothsort(smooth_data);
+        if (smooth_data != exp_ints)
+            __builtin_trap();
+
+        auto patience_res = algoat::sorting::patience_sort(original_ints);
+        if (patience_res.sorted_data != exp_ints)
+            __builtin_trap();
+        for (size_t i = 1; i < patience_res.lis_indices.size(); ++i) {
+            if (patience_res.lis_indices[i - 1] >= patience_res.lis_indices[i] ||
+                original_ints[patience_res.lis_indices[i - 1]] >=
+                    original_ints[patience_res.lis_indices[i]])
+                __builtin_trap();
+        }
     }
 
     // Free function ips4o_parallel_sort

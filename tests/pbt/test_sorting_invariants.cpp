@@ -29,7 +29,8 @@ protected:
 using ComparativeSortAlgos =
     ::testing::Types<SelectionSort, BubbleSort, InsertionSort, ShellSort, CombSort, GnomeSort,
                      CycleSort, QuickSort, MergeSort, HeapSort, IntroSort, TimSort, BlockSort,
-                     PdqSort, CrumSort, FluxSort, Ips4oSort, VQSort, GrailSort>;
+                     PdqSort, CrumSort, FluxSort, Ips4oSort, VQSort, GrailSort, SmoothSort,
+                     PatienceSort>;
 
 TYPED_TEST_SUITE(ComparativeSortPBT, ComparativeSortAlgos);
 
