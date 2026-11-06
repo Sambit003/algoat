@@ -103,6 +103,14 @@ TEST(ModuleImportTest, SortingSubnamespaceFunctions) {
     std::vector<int> padapter_data{5, 4, 3, 2, 1};
     algoat::sorting::PdqSort{}.sort(std::span{padapter_data});
     EXPECT_TRUE(std::is_sorted(padapter_data.begin(), padapter_data.end()));
+
+    std::vector<int> skadata{12, 3, 8, 1, 15, 2, 9, 4};
+    algoat::sorting::ska_sort(skadata);
+    EXPECT_TRUE(std::is_sorted(skadata.begin(), skadata.end()));
+
+    std::vector<int> ska_adapter_data{9, 8, 7, 6, 5, 4};
+    algoat::sorting::SkaSort{}.sort(std::span{ska_adapter_data});
+    EXPECT_TRUE(std::is_sorted(ska_adapter_data.begin(), ska_adapter_data.end()));
 }
 
 TEST(ModuleImportTest, SearchingSubnamespaceFunctions) {

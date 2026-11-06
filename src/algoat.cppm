@@ -5,6 +5,10 @@ module;
 // failures.
 #define ALGOAT_SIMD_PROFILER_SCALAR_ONLY 1
 
+// Enforce scalar quicksort fallback inside module BMI compilation across all compilers (including
+// Clang 18) to prevent hardware vector intrinsic exposure without immintrin.h inclusion.
+#define ALGOAT_VQSORT_SCALAR_ONLY 1
+
 // Global Module Fragment (GMF): only preprocessor directives and non-modular includes
 #include <algorithm>
 #include <array>
@@ -272,6 +276,7 @@ using algoat::sorting::radixsort_lsd;
 using algoat::sorting::radixsort_msd;
 using algoat::sorting::selectionsort;
 using algoat::sorting::shellsort;
+using algoat::sorting::ska_sort;
 using algoat::sorting::timsort;
 using algoat::sorting::vqsort;
 
@@ -302,6 +307,7 @@ using algoat::sorting::RadixSortLSD;
 using algoat::sorting::RadixSortMSD;
 using algoat::sorting::SelectionSort;
 using algoat::sorting::ShellSort;
+using algoat::sorting::SkaSort;
 using algoat::sorting::TimSort;
 using algoat::sorting::VQSort;
 } // namespace sorting

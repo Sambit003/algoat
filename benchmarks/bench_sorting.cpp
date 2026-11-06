@@ -14,6 +14,7 @@
 #include "algoat/sorting/quicksort.hpp"
 #include "algoat/sorting/radixsort.hpp"
 #include "algoat/sorting/shellsort.hpp"
+#include "algoat/sorting/ska_sort.hpp"
 #include "algoat/sorting/timsort.hpp"
 #include "algoat/sorting/vqsort.hpp"
 
@@ -75,6 +76,7 @@ DECLARE_SORT_BENCHMARK(BlockSort, algoat::sorting::blocksort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(RadixSortLSD, algoat::sorting::radixsort_lsd(std::span{copy}))
 DECLARE_SORT_BENCHMARK(RadixSortMSD, algoat::sorting::radixsort_msd(std::span{copy}))
 DECLARE_SORT_BENCHMARK(RadixSortInPlaceMSD, algoat::sorting::inplace_radix_sort(std::span{copy}))
+DECLARE_SORT_BENCHMARK(SkaSort, algoat::sorting::ska_sort(copy))
 DECLARE_SORT_BENCHMARK(CountingSort, algoat::sorting::countingsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(BucketSort, algoat::sorting::bucketsort(std::span{copy}))
 DECLARE_SORT_BENCHMARK(ShellSort, algoat::sorting::shellsort(std::span{copy}))
@@ -114,6 +116,7 @@ DECLARE_LARGE_SORT_BENCHMARK(IPS4O, algoat::sorting::ips4o_parallel_sort(copy))
 DECLARE_LARGE_SORT_BENCHMARK(AlgoatSort, algoat::sort(copy))
 DECLARE_LARGE_SORT_BENCHMARK(RadixSortInPlaceMSD,
                              algoat::sorting::inplace_radix_sort(std::span{copy}))
+DECLARE_LARGE_SORT_BENCHMARK(SkaSort, algoat::sorting::ska_sort(copy))
 DECLARE_LARGE_SORT_BENCHMARK(MergeSort, algoat::sorting::mergesort(std::span{copy}))
 
 static void BM_IPS4O_ParallelScaling(benchmark::State& state) {
@@ -348,3 +351,39 @@ static void BM_MixedRuns_FluxSort(benchmark::State& state) {
     state.SetComplexityN(state.range(0));
 }
 BENCHMARK(BM_MixedRuns_FluxSort)->RangeMultiplier(2)->Range(64, 8 << 12)->Complexity();
+
+static void BM_Tuples_StdSort(benchmark::State& state) {
+    const size_t size = state.range(0);
+    std::vector<std::pair<int, int>> data(size);
+    std::mt19937 gen(42);
+    std::uniform_int_distribution<int> dist(1, 1000000);
+    for (size_t i = 0; i < size; ++i) {
+        data[i] = {dist(gen), dist(gen)};
+    }
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        std::sort(copy.begin(), copy.end());
+    }
+    state.SetComplexityN(size);
+}
+BENCHMARK(BM_Tuples_StdSort)->RangeMultiplier(4)->Range(1 << 16, 1 << 18)->Complexity();
+
+static void BM_Tuples_SkaSort(benchmark::State& state) {
+    const size_t size = state.range(0);
+    std::vector<std::pair<int, int>> data(size);
+    std::mt19937 gen(42);
+    std::uniform_int_distribution<int> dist(1, 1000000);
+    for (size_t i = 0; i < size; ++i) {
+        data[i] = {dist(gen), dist(gen)};
+    }
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        algoat::sorting::ska_sort(copy);
+    }
+    state.SetComplexityN(size);
+}
+BENCHMARK(BM_Tuples_SkaSort)->RangeMultiplier(4)->Range(1 << 16, 1 << 18)->Complexity();

@@ -112,7 +112,7 @@ protected:
 };
 
 using LinearSortAlgos = ::testing::Types<CountingSort, PigeonholeSort, RadixSortLSD, RadixSortMSD,
-                                         RadixSortInPlaceMSD, BucketSort>;
+                                         RadixSortInPlaceMSD, BucketSort, SkaSort>;
 
 TYPED_TEST_SUITE(LinearSortPBT, LinearSortAlgos);
 
@@ -464,6 +464,31 @@ TEST(VQSortPBT, CustomComparatorAndProjectionInvariants) {
         RC_ASSERT(
             std::is_sorted(items.begin(), items.end(),
                            [](const TestItem& a, const TestItem& b) { return a.key > b.key; }));
+        RC_ASSERT(std::is_permutation(items.begin(), items.end(), original_items.begin(),
+                                      original_items.end()));
+    });
+}
+
+TEST(SkaSortPBT, ProjectionAndCompoundInvariants) {
+    struct TestItem {
+        int key;
+        double priority;
+        bool operator==(const TestItem& other) const = default;
+    };
+
+    rc::check("SkaSort with projection and ranges", [](std::vector<int> keys) {
+        std::vector<TestItem> items;
+        items.reserve(keys.size());
+        for (int k : keys) {
+            items.push_back({k, static_cast<double>(k) * 1.5});
+        }
+        auto original_items = items;
+        algoat::sorting::ska_sort(items, &TestItem::key);
+
+        RC_ASSERT(items.size() == original_items.size());
+        RC_ASSERT(
+            std::is_sorted(items.begin(), items.end(),
+                           [](const TestItem& a, const TestItem& b) { return a.key < b.key; }));
         RC_ASSERT(std::is_permutation(items.begin(), items.end(), original_items.begin(),
                                       original_items.end()));
     });
