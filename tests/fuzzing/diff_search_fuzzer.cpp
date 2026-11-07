@@ -109,5 +109,28 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
             __builtin_trap();
     }
 
+    // Test simd_kary_search and SIMDKarySearchTree
+    {
+        auto std_lb = std::lower_bound(sorted_data.begin(), sorted_data.end(), target);
+        size_t expected_lb = static_cast<size_t>(std_lb - sorted_data.begin());
+        auto simd_idx = simd_kary_search(std::span<const int>{sorted_data}, target);
+        if (simd_idx != expected_lb)
+            __builtin_trap();
+
+        if (!sorted_data.empty()) {
+            SIMDKarySearchTree<int, 8> tree8(sorted_data);
+            if (tree8.lower_bound(target) != expected_lb)
+                __builtin_trap();
+            if (tree8.find(target).has_value() != sorted_expected)
+                __builtin_trap();
+
+            SIMDKarySearchTree<int, 16> tree16(sorted_data);
+            if (tree16.lower_bound(target) != expected_lb)
+                __builtin_trap();
+            if (tree16.find(target).has_value() != sorted_expected)
+                __builtin_trap();
+        }
+    }
+
     return 0;
 }

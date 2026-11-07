@@ -14,6 +14,7 @@
 #include "algoat/searching/interpolation_search.hpp"
 #include "algoat/searching/linear_search.hpp"
 #include "algoat/searching/pgm_index.hpp"
+#include "algoat/searching/simd_kary_search.hpp"
 #include "algoat/searching/static_btree.hpp"
 
 #include <concepts>
@@ -70,8 +71,8 @@ concept SearchAlgorithm = requires(Algo algo, std::span<T> data, const T& target
  * Used by @c algoat::core::Registry<SearchVariant> for static dispatch without virtual table
  * overhead.
  */
-using SearchVariant =
-    std::variant<LinearSearch, BinarySearch, InterpolationSearch, AdaptiveBinarySearch,
-                 HybridInterpolationSearch, BranchlessBinarySearch, GallopingSearch>;
+using SearchVariant = std::variant<LinearSearch, BinarySearch, InterpolationSearch,
+                                   AdaptiveBinarySearch, HybridInterpolationSearch,
+                                   BranchlessBinarySearch, GallopingSearch, SIMDKarySearch>;
 
 } // namespace algoat::searching

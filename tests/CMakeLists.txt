@@ -68,6 +68,7 @@ algoat_add_test(test_hybrid_interpolation_search searching/test_hybrid_interpola
 algoat_add_test(test_adaptive_binary_search searching/test_adaptive_binary_search.cpp)
 algoat_add_test(test_eytzinger_search_tree searching/test_eytzinger_search_tree.cpp)
 algoat_add_test(test_static_btree searching/test_static_btree.cpp)
+algoat_add_test(test_simd_kary_search searching/test_simd_kary_search.cpp)
 algoat_add_test(test_branchless_binary_search searching/test_branchless_binary_search.cpp)
 algoat_add_test(test_galloping_search searching/test_galloping_search.cpp)
 algoat_add_test(test_pgm_index searching/test_pgm_index.cpp)
