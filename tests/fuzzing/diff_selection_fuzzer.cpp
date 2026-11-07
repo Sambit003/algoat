@@ -136,5 +136,61 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         }
     }
 
+    // 6. Differential test algoat::selection::multi_select vs std::sort
+    if (num_elements >= 4) {
+        std::vector<int> sorted = original;
+        std::sort(sorted.begin(), sorted.end());
+
+        std::vector<size_t> ranks = {k / 2, k, k + (num_elements - 1 - k) / 2};
+        std::sort(ranks.begin(), ranks.end());
+
+        std::vector<int> test_multi = original;
+        algoat::selection::multi_select(test_multi, ranks);
+
+        for (size_t r : ranks) {
+            if (test_multi[r] != sorted[r]) {
+                __builtin_trap();
+            }
+        }
+
+        // Check bucket boundaries
+        for (size_t i = 0; i < ranks[0]; ++i) {
+            if (test_multi[i] > test_multi[ranks[0]]) {
+                __builtin_trap();
+            }
+        }
+        for (size_t r = 0; r + 1 < ranks.size(); ++r) {
+            for (size_t i = ranks[r] + 1; i < ranks[r + 1]; ++i) {
+                if (test_multi[i] < test_multi[ranks[r]] ||
+                    test_multi[i] > test_multi[ranks[r + 1]]) {
+                    __builtin_trap();
+                }
+            }
+        }
+        for (size_t i = ranks.back() + 1; i < num_elements; ++i) {
+            if (test_multi[i] < test_multi[ranks.back()]) {
+                __builtin_trap();
+            }
+        }
+    }
+
+    // 7. Differential test algoat::selection::quantiles
+    if (num_elements >= 4) {
+        std::vector<int> sorted = original;
+        std::sort(sorted.begin(), sorted.end());
+
+        std::vector<int> test_q = original;
+        auto q_res = algoat::selection::quantiles(std::span<int>{test_q}, 4);
+        if (q_res.size() != 3) {
+            __builtin_trap();
+        }
+        for (size_t i = 0; i < q_res.size(); ++i) {
+            size_t target_r = std::clamp(((i + 1) * num_elements) / 4, size_t{0}, num_elements - 1);
+            if (q_res[i] != sorted[target_r]) {
+                __builtin_trap();
+            }
+        }
+    }
+
     return 0;
 }
