@@ -9,6 +9,10 @@ module;
 // Clang 18) to prevent hardware vector intrinsic exposure without immintrin.h inclusion.
 #define ALGOAT_VQSORT_SCALAR_ONLY 1
 
+// Enforce scalar SIMD k-ary search fallback inside module BMI compilation across all compilers
+// (including Clang 18) to prevent hardware vector intrinsic exposure without immintrin.h inclusion.
+#define ALGOAT_SIMD_SEARCH_SCALAR_ONLY 1
+
 // Global Module Fragment (GMF): only preprocessor directives and non-modular includes
 #include <algorithm>
 #include <array>
@@ -130,6 +134,9 @@ using algoat::RoaringBitmap;
 using algoat::search;
 using algoat::search_pattern;
 using algoat::select_optimal;
+using algoat::simd_kary_search;
+using algoat::SIMDKarySearch;
+using algoat::SIMDKarySearchTree;
 using algoat::SimHash;
 using algoat::sort;
 using algoat::SpaceFillingCurve;
@@ -330,6 +337,7 @@ using algoat::searching::galloping_search;
 using algoat::searching::hybrid_interpolation_search;
 using algoat::searching::interpolation_search;
 using algoat::searching::linear_search;
+using algoat::searching::simd_kary_search;
 
 // Struct algorithm types & trees
 using algoat::searching::AdaptiveBinarySearch;
@@ -340,6 +348,8 @@ using algoat::searching::GallopingSearch;
 using algoat::searching::HybridInterpolationSearch;
 using algoat::searching::InterpolationSearch;
 using algoat::searching::LinearSearch;
+using algoat::searching::SIMDKarySearch;
+using algoat::searching::SIMDKarySearchTree;
 using algoat::searching::StaticBTree;
 } // namespace searching
 

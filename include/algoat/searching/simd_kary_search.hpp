@@ -37,7 +37,14 @@
 #include <type_traits>
 #include <vector>
 
-#if defined(__AVX2__) || defined(__AVX512F__)
+#if defined(__cpp_modules)
+// In C++20 module interface compilation, hardware vector builtins trigger compiler errors
+// when imported in translation units without immintrin.h. Delegate to scalar fallback
+// during module BMI compilation.
+#define ALGOAT_SIMD_SEARCH_SCALAR_ONLY 1
+#endif
+
+#if !defined(ALGOAT_SIMD_SEARCH_SCALAR_ONLY) && (defined(__AVX2__) || defined(__AVX512F__))
 #include <immintrin.h>
 #endif
 
@@ -113,7 +120,7 @@ template <typename T> [[nodiscard]] constexpr T determine_sentinel() noexcept {
 /**
  * @brief Evaluates vector rank (number of elements where target > data[i]) using AVX-512.
  */
-#if defined(__AVX512F__)
+#if defined(__AVX512F__) && !defined(ALGOAT_SIMD_SEARCH_SCALAR_ONLY)
 template <typename T, std::size_t LANES, bool Aligned>
 [[nodiscard]] inline std::size_t vector_rank_avx512(const T* ptr, const T& target) noexcept {
     if constexpr (LANES == 16) {
@@ -193,7 +200,7 @@ template <typename T, std::size_t LANES, bool Aligned>
 /**
  * @brief Evaluates vector rank (number of elements where target > data[i]) using AVX2.
  */
-#if defined(__AVX2__)
+#if defined(__AVX2__) && !defined(ALGOAT_SIMD_SEARCH_SCALAR_ONLY)
 template <typename T, std::size_t LANES, bool Aligned>
 [[nodiscard]] inline std::size_t vector_rank_avx2(const T* ptr, const T& target) noexcept {
     if constexpr (LANES == 8) {
@@ -285,7 +292,7 @@ template <typename T, std::size_t LANES, bool Aligned>
  */
 template <typename T, std::size_t LANES, bool Aligned = false>
 [[nodiscard]] inline std::size_t evaluate_vector_rank(const T* ptr, const T& target) noexcept {
-#if defined(__AVX512F__)
+#if defined(__AVX512F__) && !defined(ALGOAT_SIMD_SEARCH_SCALAR_ONLY)
     if constexpr ((LANES == 16 && (std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t> ||
                                    std::is_same_v<T, float>)) ||
                   (LANES == 8 && (std::is_same_v<T, int64_t> || std::is_same_v<T, uint64_t> ||
@@ -293,7 +300,7 @@ template <typename T, std::size_t LANES, bool Aligned = false>
         return vector_rank_avx512<T, LANES, Aligned>(ptr, target);
     }
 #endif
-#if defined(__AVX2__)
+#if defined(__AVX2__) && !defined(ALGOAT_SIMD_SEARCH_SCALAR_ONLY)
     if constexpr ((LANES == 8 && (std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t> ||
                                   std::is_same_v<T, float>)) ||
                   (LANES == 4 && (std::is_same_v<T, int64_t> || std::is_same_v<T, uint64_t> ||
@@ -313,12 +320,12 @@ template <typename T, std::size_t LANES, bool Aligned = false>
  * @brief Determines the optimal SIMD vector lane count for type T.
  */
 template <typename T> consteval std::size_t optimal_vector_lanes() noexcept {
-#if defined(__AVX512F__)
+#if defined(__AVX512F__) && !defined(ALGOAT_SIMD_SEARCH_SCALAR_ONLY)
     if constexpr (sizeof(T) == 4)
         return 16;
     if constexpr (sizeof(T) == 8)
         return 8;
-#elif defined(__AVX2__)
+#elif defined(__AVX2__) && !defined(ALGOAT_SIMD_SEARCH_SCALAR_ONLY)
     if constexpr (sizeof(T) == 4)
         return 8;
     if constexpr (sizeof(T) == 8)
