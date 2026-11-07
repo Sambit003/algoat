@@ -133,8 +133,8 @@ template <std::random_access_iterator I, std::sentinel_for<I> S,
     requires std::sortable<I, Comp, Proj>
 constexpr I multi_select(I first, S last, RanksRange&& ranks, Comp comp = {}, Proj proj = {}) {
     auto last_it = std::ranges::next(first, last);
-    const auto n = std::distance(first, last_it);
-    const auto m = std::ranges::distance(ranks);
+    const auto n = static_cast<std::ptrdiff_t>(std::distance(first, last_it));
+    const auto m = static_cast<std::ptrdiff_t>(std::ranges::distance(ranks));
 
     if (n <= 1 || m == 0) {
         return last_it;
@@ -205,22 +205,23 @@ template <typename T, typename Comp = std::ranges::less, typename Proj = std::id
         return {};
     }
 
-    const std::size_t n = data.size();
-    const std::size_t m = num_quantiles - 1;
+    const auto n = static_cast<std::ptrdiff_t>(data.size());
+    const auto m = static_cast<std::ptrdiff_t>(num_quantiles - 1);
+    const auto total_q = static_cast<std::ptrdiff_t>(num_quantiles);
 
     // Zero-allocation lazy transform view over rank indices [0, m)
-    auto ranks_view = std::views::iota(std::size_t{0}, m) |
-                      std::views::transform([n, num_quantiles](std::size_t i) -> std::size_t {
-                          const std::size_t q = i + 1;
-                          return (q * (n - 1)) / num_quantiles;
+    auto ranks_view = std::views::iota(std::ptrdiff_t{0}, m) |
+                      std::views::transform([n, total_q](std::ptrdiff_t i) -> std::ptrdiff_t {
+                          const std::ptrdiff_t q = i + 1;
+                          return (q * (n - 1)) / total_q;
                       });
 
     multi_select(data.begin(), data.end(), ranks_view, comp, proj);
 
     std::vector<T> result;
-    result.reserve(m);
-    for (std::size_t r : ranks_view) {
-        result.push_back(data[r]);
+    result.reserve(static_cast<std::size_t>(m));
+    for (std::ptrdiff_t r : ranks_view) {
+        result.push_back(data[static_cast<std::size_t>(r)]);
     }
     return result;
 }
