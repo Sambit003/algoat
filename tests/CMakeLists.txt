@@ -73,6 +73,7 @@ algoat_add_test(test_branchless_binary_search searching/test_branchless_binary_s
 algoat_add_test(test_galloping_search searching/test_galloping_search.cpp)
 algoat_add_test(test_pgm_index searching/test_pgm_index.cpp)
 algoat_add_test(test_veb_tree searching/test_veb_tree.cpp)
+algoat_add_test(test_fractional_cascading searching/test_fractional_cascading.cpp)
 algoat_add_test(test_searching_dispatch searching/test_searching_dispatch.cpp)
 
 # SIMD tests
@@ -394,6 +395,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(diff_veb_tree_fuzzer PRIVATE algoat)
     target_compile_options(diff_veb_tree_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(diff_veb_tree_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_fractional_cascading_fuzzer fuzzing/diff_fractional_cascading_fuzzer.cpp)
+    target_link_libraries(diff_fractional_cascading_fuzzer PRIVATE algoat)
+    target_compile_options(diff_fractional_cascading_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_fractional_cascading_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)

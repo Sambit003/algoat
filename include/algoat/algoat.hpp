@@ -133,6 +133,7 @@ using numerics::rfft_1d;
 using searching::branchless_lower_bound;
 using searching::BranchlessBinarySearch;
 using searching::EytzingerSearchTree;
+using searching::FractionalCascading;
 using searching::galloping_search;
 using searching::GallopingSearch;
 using searching::PGMIndex;

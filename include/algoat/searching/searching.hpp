@@ -9,6 +9,7 @@
 #include "algoat/searching/binary_search.hpp"
 #include "algoat/searching/branchless_binary_search.hpp"
 #include "algoat/searching/eytzinger_search_tree.hpp"
+#include "algoat/searching/fractional_cascading.hpp"
 #include "algoat/searching/galloping_search.hpp"
 #include "algoat/searching/hybrid_interpolation_search.hpp"
 #include "algoat/searching/interpolation_search.hpp"
