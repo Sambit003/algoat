@@ -29,6 +29,9 @@ target_link_libraries(bench_simd_kary_search PRIVATE algoat benchmark::benchmark
 add_executable(bench_pgm_index bench_pgm_index.cpp)
 target_link_libraries(bench_pgm_index PRIVATE algoat benchmark::benchmark)
 
+add_executable(bench_veb_tree bench_veb_tree.cpp)
+target_link_libraries(bench_veb_tree PRIVATE algoat benchmark::benchmark)
+
 add_executable(bench_config_dispatch bench_config_dispatch.cpp)
 target_link_libraries(bench_config_dispatch PRIVATE algoat benchmark::benchmark)
 

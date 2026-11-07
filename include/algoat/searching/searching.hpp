@@ -16,6 +16,7 @@
 #include "algoat/searching/pgm_index.hpp"
 #include "algoat/searching/simd_kary_search.hpp"
 #include "algoat/searching/static_btree.hpp"
+#include "algoat/searching/veb_tree.hpp"
 
 #include <concepts>
 #include <cstddef>
