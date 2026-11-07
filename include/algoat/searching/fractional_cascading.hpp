@@ -221,7 +221,7 @@ public:
             return;
         }
 
-        const auto* __restrict__ aug0 = aug_data_[0];
+        const auto* aug0 = aug_data_[0];
         const std::size_t real0_count = size0 - 1; // Exclude sentinel
 
         const auto* it = branchless_lower_bound(aug0, aug0 + real0_count, target, comp_,
@@ -232,8 +232,8 @@ public:
 
         // Constant-time branchless downward walk through levels 1 .. K-1
         for (std::size_t i = 1; i < k_; ++i) {
-            const auto* __restrict__ prev_aug = aug_data_[i - 1];
-            const auto* __restrict__ cur_aug = aug_data_[i];
+            const auto* prev_aug = aug_data_[i - 1];
+            const auto* cur_aug = aug_data_[i];
             const std::size_t cur_size = aug_sizes_[i];
 
             if (cur_size == 0) {
