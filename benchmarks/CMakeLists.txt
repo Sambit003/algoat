@@ -32,6 +32,9 @@ target_link_libraries(bench_pgm_index PRIVATE algoat benchmark::benchmark)
 add_executable(bench_veb_tree bench_veb_tree.cpp)
 target_link_libraries(bench_veb_tree PRIVATE algoat benchmark::benchmark)
 
+add_executable(bench_fractional_cascading bench_fractional_cascading.cpp)
+target_link_libraries(bench_fractional_cascading PRIVATE algoat benchmark::benchmark)
+
 add_executable(bench_config_dispatch bench_config_dispatch.cpp)
 target_link_libraries(bench_config_dispatch PRIVATE algoat benchmark::benchmark)
 
