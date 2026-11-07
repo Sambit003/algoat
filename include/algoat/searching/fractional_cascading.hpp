@@ -85,20 +85,17 @@ public:
         {
             const auto& last_list = materialized_lists[k_ - 1];
             auto& last_aug = augmented_lists_[k_ - 1];
-            const bool has_elements = !last_list.empty();
-            last_aug.reserve(last_list.size() + (has_elements ? 1 : 0));
+            last_aug.reserve(last_list.size() + 1);
 
             for (std::size_t j = 0; j < last_list.size(); ++j) {
                 last_aug.push_back(
                     AugmentedElement{.value = last_list[j], .orig_idx = j, .bridge_idx = 0});
             }
 
-            if (has_elements) {
-                last_aug.push_back(
-                    AugmentedElement{.value = make_sentinel_val(materialized_lists, k_ - 1),
-                                     .orig_idx = last_list.size(),
-                                     .bridge_idx = 0});
-            }
+            last_aug.push_back(
+                AugmentedElement{.value = make_sentinel_val(materialized_lists, k_ - 1),
+                                 .orig_idx = last_list.size(),
+                                 .bridge_idx = 0});
         }
 
         // Inductive step: construct levels bottom-up from k-2 down to 0
@@ -106,7 +103,7 @@ public:
             const std::size_t cur_idx = static_cast<std::size_t>(i);
             const auto& cur_list = materialized_lists[cur_idx];
             const auto& next_aug = augmented_lists_[cur_idx + 1];
-            const std::size_t next_real_count = (next_aug.empty()) ? 0 : next_aug.size() - 1;
+            const std::size_t next_real_count = next_aug.size() - 1;
 
             // Sample odd indices from M_{i+1} (sampling factor alpha = 1/2)
             struct SampledItem {
@@ -122,8 +119,7 @@ public:
 
             // Stably merge cur_list and sample into M_i
             auto& cur_aug = augmented_lists_[cur_idx];
-            const bool will_have_elements = (!cur_list.empty() || !sample.empty());
-            cur_aug.reserve(cur_list.size() + sample.size() + (will_have_elements ? 1 : 0));
+            cur_aug.reserve(cur_list.size() + sample.size() + 1);
 
             std::size_t list_idx = 0;
             std::size_t sample_idx = 0;
@@ -155,28 +151,24 @@ public:
                 ++sample_idx;
             }
 
-            if (will_have_elements) {
-                cur_aug.push_back(
-                    AugmentedElement{.value = make_sentinel_val(materialized_lists, cur_idx),
-                                     .orig_idx = cur_list.size(),
-                                     .bridge_idx = next_real_count});
-            }
+            cur_aug.push_back(
+                AugmentedElement{.value = make_sentinel_val(materialized_lists, cur_idx),
+                                 .orig_idx = cur_list.size(),
+                                 .bridge_idx = next_real_count});
 
             // Compute exact lower_bound orig_idx and bridge_idx via synchronized linear scans
-            if (will_have_elements) {
-                const std::size_t cur_real_count = cur_aug.size() - 1;
+            const std::size_t cur_real_count = cur_aug.size() - 1;
 
-                // 1. Compute orig_idx
-                compute_bound_indices(
-                    cur_aug, cur_real_count, cur_list, cur_list.size(), comp_,
-                    [](AugmentedElement& elem, std::size_t idx) noexcept { elem.orig_idx = idx; });
+            // 1. Compute orig_idx
+            compute_bound_indices(
+                cur_aug, cur_real_count, cur_list, cur_list.size(), comp_,
+                [](AugmentedElement& elem, std::size_t idx) noexcept { elem.orig_idx = idx; });
 
-                // 2. Compute bridge_idx
-                compute_bound_indices(
-                    cur_aug, cur_real_count, next_aug, next_real_count, comp_,
-                    [](AugmentedElement& elem, std::size_t idx) noexcept { elem.bridge_idx = idx; },
-                    &AugmentedElement::value);
-            }
+            // 2. Compute bridge_idx
+            compute_bound_indices(
+                cur_aug, cur_real_count, next_aug, next_real_count, comp_,
+                [](AugmentedElement& elem, std::size_t idx) noexcept { elem.bridge_idx = idx; },
+                &AugmentedElement::value);
         }
 
         // Cache direct pointers and sizes for branchless downward walk
@@ -234,13 +226,6 @@ public:
         for (std::size_t i = 1; i < k_; ++i) {
             const auto* prev_aug = aug_data_[i - 1];
             const auto* cur_aug = aug_data_[i];
-            const std::size_t cur_size = aug_sizes_[i];
-
-            if (cur_size == 0) {
-                out_indices[i] = 0;
-                pos = 0;
-                continue;
-            }
 
             const std::size_t bridge_idx = prev_aug[pos].bridge_idx;
             const std::size_t check_idx = bridge_idx - (bridge_idx != 0);

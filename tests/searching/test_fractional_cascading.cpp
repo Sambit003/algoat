@@ -112,6 +112,14 @@ TEST(FractionalCascadingTest, EmptyInnerLists) {
     for (int q : {0, 5, 10, 15, 20, 25, 30}) {
         assert_all_match_std_lower_bound(fc, lists, q);
     }
+
+    // Edge case: intermediate empty list with downstream single-element list
+    std::vector<std::vector<int>> lists2 = {{-1, -1, 0}, {}, {-1}};
+    FractionalCascading<int> fc2(lists2);
+    EXPECT_EQ(fc2.list_count(), 3);
+    for (int q : {-2, -1, 0, 1}) {
+        assert_all_match_std_lower_bound(fc2, lists2, q);
+    }
 }
 
 TEST(FractionalCascadingTest, DuplicatesInLists) {
