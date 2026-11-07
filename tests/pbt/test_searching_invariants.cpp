@@ -13,9 +13,9 @@ protected:
     Algo algo;
 };
 
-using SearchAlgos =
-    ::testing::Types<LinearSearch, BinarySearch, InterpolationSearch, AdaptiveBinarySearch,
-                     HybridInterpolationSearch, BranchlessBinarySearch, GallopingSearch>;
+using SearchAlgos = ::testing::Types<LinearSearch, BinarySearch, InterpolationSearch,
+                                     AdaptiveBinarySearch, HybridInterpolationSearch,
+                                     BranchlessBinarySearch, GallopingSearch, SIMDKarySearch>;
 
 TYPED_TEST_SUITE(SearchingPBT, SearchAlgos);
 
@@ -126,6 +126,67 @@ TEST(StaticBTreePBT, BatchedLowerBoundMatchesSingleQuery) {
                       std::size_t expected = static_cast<std::size_t>(std_it - data.begin());
                       RC_ASSERT(results[i] == expected);
                       RC_ASSERT(results[i] == tree.lower_bound(targets[i]));
+                  }
+              });
+}
+
+TEST(SIMDKarySearchPBT, LowerBoundMatchesStdLowerBoundInt) {
+    rc::check("simd_kary_search matches std::lower_bound for int",
+              [](std::vector<int> data, int target) {
+                  std::sort(data.begin(), data.end());
+                  auto std_it = std::lower_bound(data.begin(), data.end(), target);
+                  std::size_t expected = static_cast<std::size_t>(std_it - data.begin());
+                  RC_ASSERT(simd_kary_search(std::span<const int>{data}, target) == expected);
+              });
+}
+
+TEST(SIMDKarySearchPBT, LowerBoundMatchesStdLowerBoundUint32) {
+    rc::check("simd_kary_search matches std::lower_bound for uint32",
+              [](std::vector<std::uint32_t> data, std::uint32_t target) {
+                  std::sort(data.begin(), data.end());
+                  auto std_it = std::lower_bound(data.begin(), data.end(), target);
+                  std::size_t expected = static_cast<std::size_t>(std_it - data.begin());
+                  RC_ASSERT(simd_kary_search(std::span<const std::uint32_t>{data}, target) ==
+                            expected);
+              });
+}
+
+TEST(SIMDKarySearchPBT, LowerBoundMatchesStdLowerBoundFloat) {
+    rc::check("simd_kary_search matches std::lower_bound for float", [](std::vector<float> data,
+                                                                        float target) {
+        // Filter NaNs for strict ordering
+        data.erase(std::remove_if(data.begin(), data.end(), [](float f) { return std::isnan(f); }),
+                   data.end());
+        if (std::isnan(target))
+            return;
+        std::sort(data.begin(), data.end());
+        auto std_it = std::lower_bound(data.begin(), data.end(), target);
+        std::size_t expected = static_cast<std::size_t>(std_it - data.begin());
+        RC_ASSERT(simd_kary_search(std::span<const float>{data}, target) == expected);
+    });
+}
+
+TEST(SIMDKarySearchTreePBT, TreeMatchesStdLowerBoundAndFind) {
+    rc::check("SIMDKarySearchTree matches std::lower_bound and find",
+              [](std::vector<int> data, int target) {
+                  std::sort(data.begin(), data.end());
+                  SIMDKarySearchTree<int, 8> tree8(data);
+                  SIMDKarySearchTree<int, 16> tree16(data);
+
+                  auto std_it = std::lower_bound(data.begin(), data.end(), target);
+                  std::size_t expected = static_cast<std::size_t>(std_it - data.begin());
+
+                  RC_ASSERT(tree8.size() == data.size());
+                  RC_ASSERT(tree16.size() == data.size());
+                  RC_ASSERT(tree8.lower_bound(target) == expected);
+                  RC_ASSERT(tree16.lower_bound(target) == expected);
+
+                  bool std_found = std::binary_search(data.begin(), data.end(), target);
+                  RC_ASSERT(tree8.find(target).has_value() == std_found);
+                  RC_ASSERT(tree16.find(target).has_value() == std_found);
+                  if (std_found) {
+                      RC_ASSERT(data[tree8.find(target).value()] == target);
+                      RC_ASSERT(data[tree16.find(target).value()] == target);
                   }
               });
 }
