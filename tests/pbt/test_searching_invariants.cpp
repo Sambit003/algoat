@@ -190,3 +190,28 @@ TEST(SIMDKarySearchTreePBT, TreeMatchesStdLowerBoundAndFind) {
                   }
               });
 }
+
+TEST(FractionalCascadingPBT, LowerBoundMatchesStdLowerBoundAcrossArbitraryLists) {
+    rc::check("FractionalCascading search_all matches std::lower_bound across lists",
+              [](std::vector<std::vector<int>> lists, int target) {
+                  for (auto& l : lists) {
+                      std::sort(l.begin(), l.end());
+                  }
+
+                  FractionalCascading<int> fc(lists);
+                  RC_ASSERT(fc.list_count() == lists.size());
+
+                  auto actual = fc.search_all(target);
+                  RC_ASSERT(actual.size() == lists.size());
+
+                  std::vector<std::size_t> span_out(lists.size());
+                  fc.search_all_to_span(target, span_out);
+                  RC_ASSERT(span_out == actual);
+
+                  for (std::size_t i = 0; i < lists.size(); ++i) {
+                      auto std_it = std::lower_bound(lists[i].begin(), lists[i].end(), target);
+                      std::size_t expected = static_cast<std::size_t>(std_it - lists[i].begin());
+                      RC_ASSERT(actual[i] == expected);
+                  }
+              });
+}
