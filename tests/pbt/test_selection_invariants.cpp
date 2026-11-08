@@ -229,3 +229,75 @@ TEST(SelectionPBT, QuantilesInvariants) {
         }
     });
 }
+
+TEST(SelectionPBT, DynamicMedianInvariants) {
+    rc::check("dynamic stream median invariants", [](std::vector<int> stream) {
+        if (stream.empty()) {
+            return;
+        }
+
+        algoat::selection::DynamicMedian<int> dm;
+        std::vector<int> history;
+
+        for (int val : stream) {
+            dm.push(val);
+            history.push_back(val);
+
+            std::vector<int> sorted = history;
+            std::sort(sorted.begin(), sorted.end());
+            const std::size_t n = sorted.size();
+
+            double expected = 0.0;
+            if (n % 2 != 0) {
+                expected = static_cast<double>(sorted[n / 2]);
+            } else {
+                expected =
+                    (static_cast<double>(sorted[n / 2 - 1]) + static_cast<double>(sorted[n / 2])) *
+                    0.5;
+            }
+
+            RC_ASSERT(dm.size() == n);
+            RC_ASSERT(std::abs(dm.median() - expected) < 1e-9);
+        }
+    });
+}
+
+TEST(SelectionPBT, SlidingWindowMedianInvariants) {
+    rc::check("sliding window median and order statistics invariants", [](std::vector<int> stream) {
+        if (stream.empty()) {
+            return;
+        }
+
+        const std::size_t w = *rc::gen::inRange<std::size_t>(1, 32);
+        algoat::selection::SlidingWindowMedian<int> swm(w);
+        std::deque<int> window;
+
+        for (int val : stream) {
+            swm.push(val);
+            window.push_back(val);
+            if (window.size() > w) {
+                window.pop_front();
+            }
+
+            std::vector<int> sorted(window.begin(), window.end());
+            std::sort(sorted.begin(), sorted.end());
+            const std::size_t cur_sz = sorted.size();
+
+            double expected = 0.0;
+            if (cur_sz % 2 != 0) {
+                expected = static_cast<double>(sorted[cur_sz / 2]);
+            } else {
+                expected = (static_cast<double>(sorted[cur_sz / 2 - 1]) +
+                            static_cast<double>(sorted[cur_sz / 2])) *
+                           0.5;
+            }
+
+            RC_ASSERT(swm.size() == cur_sz);
+            RC_ASSERT(std::abs(swm.median() - expected) < 1e-9);
+
+            for (std::size_t r = 0; r < cur_sz; ++r) {
+                RC_ASSERT(swm.order_statistic(r) == sorted[r]);
+            }
+        }
+    });
+}

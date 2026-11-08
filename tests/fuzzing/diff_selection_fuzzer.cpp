@@ -212,5 +212,58 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         }
     }
 
+    // 8. Differential test algoat::selection::DynamicMedian
+    {
+        algoat::selection::DynamicMedian<int> dm;
+        std::vector<int> history;
+        const size_t test_limit = std::min<size_t>(num_elements, 200);
+        for (size_t i = 0; i < test_limit; ++i) {
+            dm.push(original[i]);
+            history.push_back(original[i]);
+            std::vector<int> sorted = history;
+            std::sort(sorted.begin(), sorted.end());
+            const size_t sz = sorted.size();
+            double expected = (sz % 2 != 0) ? static_cast<double>(sorted[sz / 2])
+                                            : (static_cast<double>(sorted[sz / 2 - 1]) +
+                                               static_cast<double>(sorted[sz / 2])) *
+                                                  0.5;
+            if (std::abs(dm.median() - expected) > 1e-9) {
+                __builtin_trap();
+            }
+        }
+    }
+
+    // 9. Differential test algoat::selection::SlidingWindowMedian
+    if (num_elements >= 3) {
+        const size_t w = std::min<size_t>(num_elements / 2, 32);
+        if (w >= 2) {
+            algoat::selection::SlidingWindowMedian<int> swm(w);
+            std::vector<int> window;
+            const size_t test_limit = std::min<size_t>(num_elements, 200);
+            for (size_t i = 0; i < test_limit; ++i) {
+                swm.push(original[i]);
+                window.push_back(original[i]);
+                if (window.size() > w) {
+                    window.erase(window.begin());
+                }
+                std::vector<int> sorted = window;
+                std::sort(sorted.begin(), sorted.end());
+                const size_t sz = sorted.size();
+                double expected = (sz % 2 != 0) ? static_cast<double>(sorted[sz / 2])
+                                                : (static_cast<double>(sorted[sz / 2 - 1]) +
+                                                   static_cast<double>(sorted[sz / 2])) *
+                                                      0.5;
+                if (std::abs(swm.median() - expected) > 1e-9) {
+                    __builtin_trap();
+                }
+                for (size_t r = 0; r < sz; ++r) {
+                    if (swm.order_statistic(r) != sorted[r]) {
+                        __builtin_trap();
+                    }
+                }
+            }
+        }
+    }
+
     return 0;
 }

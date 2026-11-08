@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "algoat/selection/dynamic_median.hpp"
 #include "algoat/selection/multi_select.hpp"
 #include "algoat/selection/nth_element.hpp"
 #include "algoat/selection/pdqselect.hpp"
