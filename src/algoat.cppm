@@ -101,6 +101,7 @@ using algoat::CSRGraph;
 using algoat::CSRGraphConcept;
 using algoat::DelaunayTriangulation2D;
 using algoat::DisjointSetUnion;
+using algoat::DynamicMedian;
 using algoat::EdgeIndex;
 using algoat::find_all_substrings;
 using algoat::find_substring;
@@ -139,6 +140,8 @@ using algoat::simd_kary_search;
 using algoat::SIMDKarySearch;
 using algoat::SIMDKarySearchTree;
 using algoat::SimHash;
+using algoat::sliding_window_median;
+using algoat::SlidingWindowMedian;
 using algoat::sort;
 using algoat::SpaceFillingCurve;
 using algoat::SpaceSaving;
@@ -180,11 +183,14 @@ using algoat::graph::VertexId;
 } // namespace graph
 
 namespace selection {
+using algoat::selection::DynamicMedian;
 using algoat::selection::multi_select;
 using algoat::selection::nth_element;
 using algoat::selection::pdqselect;
 using algoat::selection::quantiles;
 using algoat::selection::select_optimal;
+using algoat::selection::sliding_window_median;
+using algoat::selection::SlidingWindowMedian;
 using algoat::selection::top_k_sorted;
 using algoat::selection::top_k_unsorted;
 } // namespace selection
