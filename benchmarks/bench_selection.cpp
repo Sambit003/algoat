@@ -134,4 +134,94 @@ static void BM_AlgoatTopK_Unsorted(benchmark::State& state) {
 }
 BENCHMARK(BM_AlgoatTopK_Unsorted)->RangeMultiplier(10)->Range(1000, 1000000)->Complexity();
 
+// 8. Repeated Independent StdNthElement (M = 10 Deciles)
+static void BM_StdNthElement_IndependentDeciles(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+    std::vector<std::size_t> ranks;
+    ranks.reserve(10);
+    for (std::size_t i = 1; i <= 10; ++i) {
+        ranks.push_back(std::min(n - 1, (i * n) / 10));
+    }
+
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        for (std::size_t r : ranks) {
+            auto sub_copy = copy;
+            std::nth_element(sub_copy.begin(), sub_copy.begin() + r, sub_copy.end());
+            benchmark::DoNotOptimize(sub_copy.data());
+        }
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_StdNthElement_IndependentDeciles)
+    ->RangeMultiplier(10)
+    ->Range(1000, 1000000)
+    ->Complexity();
+
+// 9. Repeated Sequential StdNthElement (M = 10 Deciles)
+static void BM_StdNthElement_RepeatedDeciles(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+    std::vector<std::size_t> ranks;
+    ranks.reserve(10);
+    for (std::size_t i = 1; i <= 10; ++i) {
+        ranks.push_back(std::min(n - 1, (i * n) / 10));
+    }
+
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        for (std::size_t r : ranks) {
+            std::nth_element(copy.begin(), copy.begin() + r, copy.end());
+        }
+        benchmark::DoNotOptimize(copy.data());
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_StdNthElement_RepeatedDeciles)
+    ->RangeMultiplier(10)
+    ->Range(1000, 1000000)
+    ->Complexity();
+
+// 10. AlgoatMultiSelect (M = 10 Deciles)
+static void BM_AlgoatMultiSelect_Deciles(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+    std::vector<std::size_t> ranks;
+    ranks.reserve(10);
+    for (std::size_t i = 1; i <= 10; ++i) {
+        ranks.push_back(std::min(n - 1, (i * n) / 10));
+    }
+
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        algoat::selection::multi_select(copy, ranks);
+        benchmark::DoNotOptimize(copy.data());
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_AlgoatMultiSelect_Deciles)->RangeMultiplier(10)->Range(1000, 1000000)->Complexity();
+
+// 11. AlgoatQuantiles (Q = 10 Deciles)
+static void BM_AlgoatQuantiles_Deciles(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        auto q_res = algoat::selection::quantiles(std::span<int>{copy}, 10);
+        benchmark::DoNotOptimize(q_res.data());
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_AlgoatQuantiles_Deciles)->RangeMultiplier(10)->Range(1000, 1000000)->Complexity();
+
 BENCHMARK_MAIN();

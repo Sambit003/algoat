@@ -120,3 +120,81 @@ TEST(SelectionPBT, TopKSortedInvariants) {
         }
     });
 }
+
+TEST(SelectionPBT, MultiSelectInvariants) {
+    rc::check("multi_select selection invariants", [](std::vector<int> input) {
+        if (input.empty()) {
+            return;
+        }
+
+        auto original = input;
+        auto expected = original;
+        std::sort(expected.begin(), expected.end());
+
+        // Generate between 1 and min(8, input.size()) sorted ranks
+        const std::size_t num_ranks =
+            *rc::gen::inRange<std::size_t>(1, std::min<std::size_t>(9, input.size() + 1));
+        std::vector<std::size_t> ranks;
+        ranks.reserve(num_ranks);
+        for (std::size_t i = 0; i < num_ranks; ++i) {
+            ranks.push_back(*rc::gen::inRange<std::size_t>(0, input.size()));
+        }
+        std::sort(ranks.begin(), ranks.end());
+
+        algoat::selection::multi_select(input, ranks);
+
+        // 1. Conservation invariant (permutation)
+        RC_ASSERT(input.size() == original.size());
+        RC_ASSERT(std::is_permutation(input.begin(), input.end(), original.begin()));
+
+        // 2. Exact order statistic values at each rank
+        for (std::size_t r : ranks) {
+            RC_ASSERT(input[r] == expected[r]);
+        }
+
+        // 3. Prefix bucket invariant before ranks[0]
+        for (std::size_t i = 0; i < ranks[0]; ++i) {
+            RC_ASSERT(input[i] <= input[ranks[0]]);
+        }
+
+        // 4. Intermediate bucket invariants between adjacent ranks
+        for (std::size_t r = 0; r + 1 < ranks.size(); ++r) {
+            const std::size_t cur = ranks[r];
+            const std::size_t nxt = ranks[r + 1];
+            RC_ASSERT(input[cur] <= input[nxt]);
+            for (std::size_t i = cur + 1; i < nxt; ++i) {
+                RC_ASSERT(input[cur] <= input[i]);
+                RC_ASSERT(input[i] <= input[nxt]);
+            }
+        }
+
+        // 5. Suffix bucket invariant after ranks.back()
+        for (std::size_t i = ranks.back() + 1; i < input.size(); ++i) {
+            RC_ASSERT(input[ranks.back()] <= input[i]);
+        }
+    });
+}
+
+TEST(SelectionPBT, QuantilesInvariants) {
+    rc::check("quantiles helper invariants", [](std::vector<int> input) {
+        if (input.empty()) {
+            return;
+        }
+
+        const std::size_t q = *rc::gen::inRange<std::size_t>(2, 12);
+        auto copy = input;
+        auto result = algoat::selection::quantiles(std::span<int>{copy}, q);
+
+        RC_ASSERT(result.size() == q - 1);
+        RC_ASSERT(std::is_sorted(result.begin(), result.end()));
+
+        auto sorted = input;
+        std::sort(sorted.begin(), sorted.end());
+
+        for (std::size_t i = 0; i < result.size(); ++i) {
+            const std::size_t rank_idx =
+                std::clamp(((i + 1) * input.size()) / q, std::size_t{0}, input.size() - 1);
+            RC_ASSERT(result[i] == sorted[rank_idx]);
+        }
+    });
+}
