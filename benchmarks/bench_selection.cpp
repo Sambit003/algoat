@@ -18,6 +18,15 @@ static std::vector<int> generate_random_data(std::size_t size) {
     return data;
 }
 
+static std::vector<std::int64_t> generate_random_data_i64(std::size_t size) {
+    std::vector<std::int64_t> data(size);
+    std::mt19937_64 gen(42);
+    for (std::size_t i = 0; i < size; ++i) {
+        data[i] = static_cast<std::int64_t>(gen());
+    }
+    return data;
+}
+
 } // namespace
 
 // 1. StdSort Baseline
@@ -223,5 +232,75 @@ static void BM_AlgoatQuantiles_Deciles(benchmark::State& state) {
     state.SetComplexityN(state.range(0));
 }
 BENCHMARK(BM_AlgoatQuantiles_Deciles)->RangeMultiplier(10)->Range(1000, 1000000)->Complexity();
+
+// 12. AlgoatPdqSelect_Median
+static void BM_AlgoatPdqSelect_Median(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+    const std::size_t k = n / 2;
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        algoat::selection::pdqselect(copy.begin(), copy.begin() + k, copy.end());
+        benchmark::DoNotOptimize(copy.data());
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_AlgoatPdqSelect_Median)->RangeMultiplier(10)->Range(1000, 1000000)->Complexity();
+
+// 13. AlgoatPdqSelect_SmallRank (K = 10)
+static void BM_AlgoatPdqSelect_SmallRank(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+    const std::size_t k = 10;
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        algoat::selection::pdqselect(copy.begin(), copy.begin() + k, copy.end());
+        benchmark::DoNotOptimize(copy.data());
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_AlgoatPdqSelect_SmallRank)->RangeMultiplier(10)->Range(1000, 1000000)->Complexity();
+
+// 14. StdNthElement_UniformRandom64 (Median)
+static void BM_StdNthElement_UniformRandom64(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data_i64(n);
+    const std::size_t k = n / 2;
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        std::nth_element(copy.begin(), copy.begin() + k, copy.end());
+        benchmark::DoNotOptimize(copy.data());
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_StdNthElement_UniformRandom64)
+    ->RangeMultiplier(10)
+    ->Range(1000, 1000000)
+    ->Complexity();
+
+// 15. AlgoatPdqSelect_UniformRandom64 (Median)
+static void BM_AlgoatPdqSelect_UniformRandom64(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data_i64(n);
+    const std::size_t k = n / 2;
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto copy = data;
+        state.ResumeTiming();
+        algoat::selection::pdqselect(copy.begin(), copy.begin() + k, copy.end());
+        benchmark::DoNotOptimize(copy.data());
+    }
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_AlgoatPdqSelect_UniformRandom64)
+    ->RangeMultiplier(10)
+    ->Range(1000, 1000000)
+    ->Complexity();
 
 BENCHMARK_MAIN();

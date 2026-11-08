@@ -47,6 +47,26 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         }
     }
 
+    // 1b. Differential test algoat::selection::pdqselect (BlockQuickselect + Pattern-Defeating)
+    {
+        std::vector<int> test_data = original;
+        algoat::selection::pdqselect(test_data.begin(), test_data.begin() + k, test_data.end());
+
+        if (test_data[k] != expected_kth) {
+            __builtin_trap();
+        }
+        for (size_t i = 0; i < k; ++i) {
+            if (test_data[i] > test_data[k]) {
+                __builtin_trap();
+            }
+        }
+        for (size_t j = k + 1; j < num_elements; ++j) {
+            if (test_data[j] < test_data[k]) {
+                __builtin_trap();
+            }
+        }
+    }
+
     // 2. Differential test algoat::selection::select_optimal (Floyd-Rivest Algorithm 489)
     {
         std::vector<int> test_data = original;

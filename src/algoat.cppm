@@ -182,6 +182,7 @@ using algoat::graph::VertexId;
 namespace selection {
 using algoat::selection::multi_select;
 using algoat::selection::nth_element;
+using algoat::selection::pdqselect;
 using algoat::selection::quantiles;
 using algoat::selection::select_optimal;
 using algoat::selection::top_k_sorted;

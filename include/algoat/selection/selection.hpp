@@ -7,6 +7,7 @@
 
 #include "algoat/selection/multi_select.hpp"
 #include "algoat/selection/nth_element.hpp"
+#include "algoat/selection/pdqselect.hpp"
 #include "algoat/selection/select_optimal.hpp"
 #include "algoat/selection/top_k.hpp"
 

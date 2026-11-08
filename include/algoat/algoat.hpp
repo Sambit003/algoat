@@ -142,6 +142,7 @@ using searching::SIMDKarySearch;
 using searching::SIMDKarySearchTree;
 using searching::StaticBTree;
 using selection::nth_element;
+using selection::pdqselect;
 using selection::select_optimal;
 using selection::top_k_sorted;
 using selection::top_k_unsorted;

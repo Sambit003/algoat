@@ -36,6 +36,37 @@ TEST(SelectionPBT, NthElementInvariants) {
     });
 }
 
+TEST(SelectionPBT, PdqSelectInvariants) {
+    rc::check("pdqselect selection invariants", [](std::vector<int> input) {
+        if (input.empty()) {
+            return;
+        }
+
+        auto original = input;
+        auto expected = original;
+        std::sort(expected.begin(), expected.end());
+
+        std::size_t k = *rc::gen::inRange<std::size_t>(0, input.size());
+
+        algoat::selection::pdqselect(input.begin(), input.begin() + k, input.end());
+
+        // 1. Conservation invariant (permutation)
+        RC_ASSERT(input.size() == original.size());
+        RC_ASSERT(std::is_permutation(input.begin(), input.end(), original.begin()));
+
+        // 2. Exact order statistic value
+        RC_ASSERT(input[k] == expected[k]);
+
+        // 3. Selection partition invariant
+        for (std::size_t i = 0; i < k; ++i) {
+            RC_ASSERT(input[i] <= input[k]);
+        }
+        for (std::size_t j = k + 1; j < input.size(); ++j) {
+            RC_ASSERT(input[k] <= input[j]);
+        }
+    });
+}
+
 TEST(SelectionPBT, SelectOptimalInvariants) {
     rc::check("select_optimal selection invariants", [](std::vector<int> input) {
         if (input.empty()) {

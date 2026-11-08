@@ -84,6 +84,7 @@ algoat_add_test(test_nth_element selection/test_nth_element.cpp)
 algoat_add_test(test_select_optimal selection/test_select_optimal.cpp)
 algoat_add_test(test_top_k selection/test_top_k.cpp)
 algoat_add_test(test_multi_select selection/test_multi_select.cpp)
+algoat_add_test(test_pdqselect selection/test_pdqselect.cpp)
 
 # String sorting suite tests
 algoat_add_test(test_multikey_quicksort strings/test_multikey_quicksort.cpp)
