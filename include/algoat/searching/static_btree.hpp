@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "algoat/searching/detail/prefetch.hpp"
+
 #include <algorithm>
 #include <bit>
 #include <concepts>
@@ -44,6 +46,17 @@ template <typename T> struct alignas(64) StaticBTreeNode {
 };
 
 #if defined(__AVX2__)
+[[nodiscard]] inline __m256i cmpgt_avx2_epi32(__m256i a, __m256i b) noexcept {
+#if defined(__GNUC__) && !defined(__clang__)
+    // Bypass GCC vector relational operator lowering (`(__v8si)a > (__v8si)b`), which
+    // miscompiles when deserialized across C++20 module BMIs.
+    return std::bit_cast<__m256i>(
+        __builtin_ia32_pcmpgtd256(std::bit_cast<__v8si>(a), std::bit_cast<__v8si>(b)));
+#else
+    return _mm256_cmpgt_epi32(a, b);
+#endif
+}
+
 [[nodiscard]] inline unsigned reduce_avx2_mask(int ma, int mb) noexcept {
     unsigned mask = static_cast<unsigned>(ma) | (static_cast<unsigned>(mb) << 8);
     return static_cast<unsigned>(std::popcount(mask));
@@ -53,8 +66,8 @@ template <typename T> struct alignas(64) StaticBTreeNode {
     __m256i a = _mm256_load_si256(reinterpret_cast<const __m256i*>(node));
     __m256i b = _mm256_load_si256(reinterpret_cast<const __m256i*>(node + 8));
 
-    __m256i ca = _mm256_cmpgt_epi32(q_splat, a);
-    __m256i cb = _mm256_cmpgt_epi32(q_splat, b);
+    __m256i ca = cmpgt_avx2_epi32(q_splat, a);
+    __m256i cb = cmpgt_avx2_epi32(q_splat, b);
 
     return reduce_avx2_mask(_mm256_movemask_ps(_mm256_castsi256_ps(ca)),
                             _mm256_movemask_ps(_mm256_castsi256_ps(cb)));
@@ -69,8 +82,8 @@ template <typename T> struct alignas(64) StaticBTreeNode {
     a = _mm256_xor_si256(a, bias);
     b = _mm256_xor_si256(b, bias);
 
-    __m256i ca = _mm256_cmpgt_epi32(q_splat_bias, a);
-    __m256i cb = _mm256_cmpgt_epi32(q_splat_bias, b);
+    __m256i ca = cmpgt_avx2_epi32(q_splat_bias, a);
+    __m256i cb = cmpgt_avx2_epi32(q_splat_bias, b);
 
     return reduce_avx2_mask(_mm256_movemask_ps(_mm256_castsi256_ps(ca)),
                             _mm256_movemask_ps(_mm256_castsi256_ps(cb)));
@@ -187,10 +200,12 @@ public:
 
     /**
      * @brief Performs a SIMD-accelerated lower bound search for a single key.
+     * @tparam Prefetch Enable software prefetching of child B-tree nodes.
      * @param target Search key value.
      * @return 0-based index of the first element >= target in the sorted data,
      *         or size() if all elements are < target.
      */
+    template <bool Prefetch = true>
     [[nodiscard]] std::size_t lower_bound(const T& target) const noexcept {
         if (size_ == 0) {
             return 0;
@@ -207,6 +222,11 @@ public:
             const Node& node = nodes_[layers_[level].offset + block_idx];
             unsigned child_rank = node.rank(target);
             block_idx = (block_idx << 4) + child_rank;
+            if constexpr (Prefetch) {
+                if (block_idx < layers_[level + 1].count) {
+                    detail::prefetch_read(&nodes_[layers_[level + 1].offset + block_idx]);
+                }
+            }
         }
 
         // Final leaf level

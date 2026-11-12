@@ -33,6 +33,43 @@ namespace assembly_test {
     return algoat::searching::branchless_lower_bound(first, last, target);
 }
 
+[[gnu::noinline]] std::optional<std::size_t>
+search_policy_branchless_prefetch(std::span<const int> s, int target) {
+    return algoat::meta::static_search(s, target, p::branchless | p::prefetch);
+}
+
+[[gnu::noinline]] std::optional<std::size_t>
+search_policy_branchless_no_prefetch(std::span<const int> s, int target) {
+    return algoat::meta::static_search(s, target, p::branchless | p::no_prefetch);
+}
+
+[[gnu::noinline]] std::optional<std::size_t> search_policy_galloping(std::span<const int> s,
+                                                                     int target) {
+    return algoat::meta::static_search(s, target, p::galloping);
+}
+
+[[gnu::noinline]] std::optional<std::size_t> search_policy_eytzinger(std::span<const int> s,
+                                                                     int target) {
+    return algoat::meta::static_search(s, target, p::eytzinger | p::prefetch);
+}
+
+[[gnu::noinline]] std::optional<std::size_t> search_policy_static_btree(std::span<const int> s,
+                                                                        int target) {
+    return algoat::meta::static_search(s, target, p::static_btree | p::prefetch);
+}
+
+[[gnu::noinline]] int* select_policy_introselect(std::span<int> s, std::size_t k) {
+    return std::to_address(algoat::meta::static_select(s, k, p::introselect | p::in_place));
+}
+
+[[gnu::noinline]] int* select_policy_branchless(std::span<int> s, std::size_t k) {
+    return std::to_address(algoat::meta::static_select(s, k, p::branchless));
+}
+
+[[gnu::noinline]] int* select_policy_floyd_rivest(std::span<int> s, std::size_t k) {
+    return std::to_address(algoat::meta::static_select(s, k, p::floyd_rivest));
+}
+
 } // namespace assembly_test
 
 TEST(AssemblyVerificationTest, InlinesFixedSizeSortingNetworkWithoutJumpTables) {
@@ -56,4 +93,22 @@ TEST(AssemblyVerificationTest, BranchlessBinarySearchExecution) {
     const int* res = assembly_test::search_branchless(data.data(), data.data() + data.size(), 35);
     EXPECT_EQ(res, data.data() + 3);
     EXPECT_EQ(*res, 40);
+}
+
+TEST(AssemblyVerificationTest, StaticSearchAndSelectPolicyExecution) {
+    std::vector<int> sorted = {10, 20, 30, 40, 50, 60, 70, 80};
+    EXPECT_EQ(assembly_test::search_policy_branchless_prefetch(sorted, 50), 4);
+    EXPECT_EQ(assembly_test::search_policy_branchless_no_prefetch(sorted, 20), 1);
+    EXPECT_EQ(assembly_test::search_policy_galloping(sorted, 70), 6);
+    EXPECT_EQ(assembly_test::search_policy_eytzinger(sorted, 30), 2);
+    EXPECT_EQ(assembly_test::search_policy_static_btree(sorted, 60), 5);
+
+    std::vector<int> v1 = {80, 10, 50, 30, 70, 20, 60, 40};
+    EXPECT_EQ(*assembly_test::select_policy_introselect(v1, 3), 40);
+
+    std::vector<int> v2 = {80, 10, 50, 30, 70, 20, 60, 40};
+    EXPECT_EQ(*assembly_test::select_policy_branchless(v2, 5), 60);
+
+    std::vector<int> v3 = {80, 10, 50, 30, 70, 20, 60, 40};
+    EXPECT_EQ(*assembly_test::select_policy_floyd_rivest(v3, 2), 30);
 }

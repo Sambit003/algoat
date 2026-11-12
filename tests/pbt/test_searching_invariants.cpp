@@ -1,7 +1,9 @@
+#include "algoat/meta/static_search.hpp"
 #include "algoat/searching/eytzinger_search_tree.hpp"
 #include "algoat/searching/searching.hpp"
 
 #include <algorithm>
+#include <deque>
 #include <gtest/gtest.h>
 #include <rapidcheck.h>
 #include <vector>
@@ -213,5 +215,36 @@ TEST(FractionalCascadingPBT, LowerBoundMatchesStdLowerBoundAcrossArbitraryLists)
                       std::size_t expected = static_cast<std::size_t>(std_it - lists[i].begin());
                       RC_ASSERT(actual[i] == expected);
                   }
+              });
+}
+
+TEST(SearchingInvariantsPBT, StaticSearchPolicyChainsMatchOracle) {
+    namespace p = algoat::meta::policy;
+
+    rc::check("static_search policy chains match binary search oracle on sorted ranges",
+              [](std::vector<int> data, int target) {
+                  std::ranges::sort(data);
+                  std::deque<int> dq(data.begin(), data.end());
+
+                  auto verify = [&](std::optional<std::size_t> actual) {
+                      bool expected_found = std::ranges::binary_search(data, target);
+                      RC_ASSERT(actual.has_value() == expected_found);
+                      if (actual.has_value()) {
+                          RC_ASSERT(*actual < data.size());
+                          RC_ASSERT(data[*actual] == target);
+                      }
+                  };
+
+                  verify(algoat::meta::static_search(data, target));
+                  verify(algoat::meta::static_search(data, target, p::branchless | p::prefetch));
+                  verify(algoat::meta::static_search(data, target, p::branchless | p::no_prefetch));
+                  verify(algoat::meta::static_search(data, target, p::eytzinger | p::prefetch));
+                  verify(algoat::meta::static_search(data, target, p::eytzinger | p::no_prefetch));
+                  verify(algoat::meta::static_search(data, target, p::static_btree | p::prefetch));
+                  verify(
+                      algoat::meta::static_search(data, target, p::static_btree | p::no_prefetch));
+                  verify(algoat::meta::static_search(data, target, p::galloping));
+                  verify(algoat::meta::static_search(dq, target, p::eytzinger));
+                  verify(algoat::meta::static_search(dq, target, p::static_btree));
               });
 }

@@ -252,3 +252,26 @@ TEST(ModuleImportTest, SuccinctSuiteRankSelectBitVector) {
     algoat::RankSelectBitVector bv_alias(bits);
     EXPECT_EQ(bv_alias.rank1(3), 2ULL);
 }
+
+TEST(ModuleImportTest, StaticSearchAndSelectPolicyDispatch) {
+    namespace p = algoat::meta::policy;
+
+    std::vector<int> sorted = {2, 5, 8, 12, 16, 23, 38, 56};
+    EXPECT_EQ(algoat::meta::static_search(sorted, 16, p::branchless | p::prefetch), 4);
+    EXPECT_EQ(algoat::meta::static_search(sorted, 23, p::eytzinger | p::prefetch), 5);
+    EXPECT_EQ(algoat::meta::static_search(sorted, 38, p::static_btree), 6);
+    EXPECT_EQ(algoat::meta::static_search(sorted, 8, p::galloping), 2);
+    EXPECT_EQ(algoat::meta::static_search(sorted, 99, p::branchless), std::nullopt);
+
+    std::vector<int> data = {42, 7, 19, 3, 25, 11, 17};
+    auto it1 = algoat::meta::static_select(data, 3, p::introselect | p::in_place);
+    EXPECT_EQ(*it1, 17);
+
+    std::vector<int> data2 = {42, 7, 19, 3, 25, 11, 17};
+    auto it2 = algoat::meta::static_select(data2, 4, p::floyd_rivest);
+    EXPECT_EQ(*it2, 19);
+
+    std::vector<int> data3 = {42, 7, 19, 3, 25, 11, 17};
+    auto it3 = algoat::meta::static_select(data3, 1, p::branchless);
+    EXPECT_EQ(*it3, 7);
+}

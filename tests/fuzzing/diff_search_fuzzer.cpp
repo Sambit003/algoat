@@ -1,3 +1,4 @@
+#include "algoat/meta/static_search.hpp"
 #include "algoat/searching/eytzinger_search_tree.hpp"
 #include "algoat/searching/searching.hpp"
 
@@ -5,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <deque>
 #include <span>
 #include <vector>
 
@@ -130,6 +132,40 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
             if (tree16.find(target).has_value() != sorted_expected)
                 __builtin_trap();
         }
+    }
+
+    // 7. Static policy dispatch search chains
+    {
+        namespace p = algoat::meta::policy;
+        auto check_static_search = [&](auto policy_result) {
+            if (policy_result.has_value() != sorted_expected) {
+                __builtin_trap();
+            }
+            if (policy_result.has_value()) {
+                const size_t idx = policy_result.value();
+                if (idx >= sorted_data.size() || sorted_data[idx] != target) {
+                    __builtin_trap();
+                }
+            }
+        };
+
+        check_static_search(algoat::meta::static_search(sorted_data, target));
+        check_static_search(
+            algoat::meta::static_search(sorted_data, target, p::branchless | p::prefetch));
+        check_static_search(
+            algoat::meta::static_search(sorted_data, target, p::branchless | p::no_prefetch));
+        check_static_search(
+            algoat::meta::static_search(sorted_data, target, p::eytzinger | p::prefetch));
+        check_static_search(
+            algoat::meta::static_search(sorted_data, target, p::eytzinger | p::no_prefetch));
+        check_static_search(
+            algoat::meta::static_search(sorted_data, target, p::static_btree | p::prefetch));
+        check_static_search(
+            algoat::meta::static_search(sorted_data, target, p::static_btree | p::no_prefetch));
+        check_static_search(algoat::meta::static_search(sorted_data, target, p::galloping));
+
+        std::deque<int> dq(sorted_data.begin(), sorted_data.end());
+        check_static_search(algoat::meta::static_search(dq, target, p::eytzinger));
     }
 
     return 0;
