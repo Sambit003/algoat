@@ -81,9 +81,9 @@ flowchart TD
 
 Located in [`include/algoat/meta/`](include/algoat/meta/).
 
-When data properties (such as stability requirements, fixed buffer extent, or known distribution) are established at compile time, `algoat::meta::static_sort` completely bypasses runtime dynamic profiling, registry lookups, and branch table jumps.
+When data properties (such as stability requirements, fixed buffer extent, memory layout, or worst-case complexity guarantees) are established at compile time, `algoat::meta::static_sort`, `algoat::meta::static_search`, and `algoat::meta::static_select` completely bypass runtime dynamic profiling, registry lookups, and branch table jumps.
 
-### 3.1 C++20 Structural Class NTTP (`PolicyDescriptor`)
+### 3.1 C++20 Structural Class NTTPs (`PolicyDescriptor`, `SearchPolicyDescriptor`, `SelectPolicyDescriptor`)
 ISO C++20 §13.2 [temp.param]p7 allows classes with public, non-mutable data members and defaulted equality comparisons to serve as Non-Type Template Parameters:
 
 ```cpp
@@ -95,44 +95,63 @@ struct PolicyDescriptor {
 
     constexpr bool operator==(const PolicyDescriptor&) const = default;
 };
+
+struct SearchPolicyDescriptor {
+    bool branchless = false;
+    bool prefetch = true;
+    bool eytzinger = false;
+    bool static_btree = false;
+    bool galloping = false;
+
+    constexpr bool operator==(const SearchPolicyDescriptor&) const = default;
+};
+
+struct SelectPolicyDescriptor {
+    bool in_place = true;
+    bool guaranteed_linear = true;
+    bool floyd_rivest = false;
+    bool branchless = false;
+
+    constexpr bool operator==(const SelectPolicyDescriptor&) const = default;
+};
 ```
 
 Callers can pass descriptors directly as template arguments:
 ```cpp
 algoat::meta::static_sort<PolicyDescriptor{.stable = true, .in_place = true}>(span);
+auto idx = algoat::meta::static_search<SearchPolicyDescriptor{.branchless = true, .prefetch = true}>(span, target);
+auto it = algoat::meta::static_select<SelectPolicyDescriptor{.branchless = true}>(span, k);
 ```
 
 ### 3.2 Declarative Policy Tag Algebra (`PolicyChain`)
 To provide intuitive, ergonomic syntax at call sites, Algoat defines declarative singleton tags composed via bitwise OR (`operator|`):
-* `algoat::meta::policy::stable` vs `unstable` (`stability_facet`)
-* `algoat::meta::policy::in_place` vs `out_of_place` (`memory_facet`)
-* `algoat::meta::policy::nearly_sorted` (`order_facet`)
-* `algoat::meta::policy::force_radix` (`kernel_facet`)
+* **Sorting**: `stable` / `unstable` (`stability_facet`), `in_place` / `out_of_place` (`memory_facet`), `nearly_sorted` (`order_facet`), `force_radix` (`kernel_facet`)
+* **Searching**: `prefetch` / `no_prefetch` (`prefetch_facet`), `branchless` (`branching_facet`, shared with selection), `eytzinger` / `static_btree` / `galloping` (`search_layout_facet`)
+* **Selection**: `in_place` (`memory_facet`, shared with sorting), `introselect` / `guaranteed_linear` (`selection_guarantee_facet`), `floyd_rivest` (`selection_kernel_facet`), `branchless` (`branching_facet`)
 
-The resulting `PolicyChain<Tags...>` type validates policy invariants at compile-time:
-* **Duplicate Tag Rejection**: Fold expressions detect duplicate occurrences (e.g. `p::stable | p::stable`).
-* **Facet Conflict Rejection**: Conflicting tags (e.g. `p::stable | p::unstable`) trigger clean `static_assert` compiler diagnostics.
-* **Semantic Constraints**: Conflicting constraints (e.g. `p::force_radix` requiring integral types) are enforced via concepts and `static_assert`.
-* **Zero-Overhead Conversion**: `PolicyChain` implicitly and `constexpr` converts to `PolicyDescriptor` for static dispatch.
+The resulting `PolicyChain<Tags...>` type validates policy invariants at compile time:
+* **Duplicate & Cross-Domain Rejection**: Fold expressions reject duplicate tags (`p::stable | p::stable`) and incompatible cross-domain chains (e.g., passing `p::stable` to `static_search`).
+* **Facet & Semantic Conflict Rejection**: Conflicting tags (`p::eytzinger | p::static_btree`, `p::branchless | p::galloping`, `p::floyd_rivest | p::branchless`, `p::floyd_rivest | p::introselect`) trigger clean `static_assert` diagnostics.
+* **Zero-Overhead Conversion**: `PolicyChain` converts at `constexpr` time to `PolicyDescriptor`, `SearchPolicyDescriptor`, or `SelectPolicyDescriptor` for static dispatch.
 
-### 3.3 Compile-Time Algorithm Selection Hierarchy
-`algoat::meta::static_sort(span, policy)` statically routes to the optimal algorithm using compile-time branching (`if constexpr`):
-
-1. **$N \le 1$ Base Case**: Compile-time no-op.
-2. **Fixed-Extent Small Arrays ($2 \le N \le 16$)**:
-   * If non-stable and scalar/trivial: Inlines optimal Batcher odd-even sorting networks (`SortingNetworkTable<N>`) with branchless conditional swaps.
-   * If stable: Inlines `algoat::sorting::insertionsort(span)`.
-3. **Forced Radix (`force_radix == true`)**:
-   * Statically asserts `std::is_integral_v<T> && !std::is_same_v<T, bool>`.
-   * Inlines `algoat::sorting::radixsort_lsd(span)` (stable) or `radixsort_msd(span)` (unstable).
-4. **Adaptive / Nearly Sorted (`nearly_sorted == true`)**:
-   * Dispatches to `algoat::sorting::timsort(span)`.
-5. **Stable Sort (`stable == true`)**:
-   * If `in_place`: Inlines `algoat::sorting::blocksort(span)` (O(1) memory).
-   * If `out_of_place`: Inlines `algoat::sorting::mergesort(span)` (O(N) memory).
-6. **General Unstable Default**:
-   * If fixed extent $N \le 32$: Inlines `algoat::sorting::insertionsort(span)`.
-   * Otherwise: Inlines `algoat::sorting::introsort(span)`.
+### 3.3 Compile-Time Algorithm Selection Hierarchies
+1. **`algoat::meta::static_sort(span, policy)`** statically routes using `if constexpr`:
+   * **$N \le 1$ Base Case**: Compile-time no-op.
+   * **Fixed-Extent Small Arrays ($2 \le N \le 16$)**: Batcher odd-even sorting networks (`SortingNetworkTable<N>`) if non-stable/scalar; `insertionsort` if stable.
+   * **Forced Radix (`force_radix == true`)**: Statically asserts integral non-`bool` types; inlines `radixsort_lsd` (stable) or `radixsort_msd` (unstable).
+   * **Adaptive / Nearly Sorted (`nearly_sorted == true`)**: Inlines `algoat::sorting::timsort(span)`.
+   * **Stable Sort (`stable == true`)**: `blocksort` (`in_place`) or `mergesort` (`out_of_place`).
+   * **General Unstable Default**: `insertionsort` ($N \le 32$) or `introsort`.
+2. **`algoat::meta::static_search(data, target, policy)`** statically routes using `if constexpr`:
+   * **`static_btree == true`**: Builds/queries cache-line aligned 64-byte `StaticBTree<T>` with optional software `prefetch`.
+   * **`eytzinger == true`**: Builds/queries cache-oblivious breadth-first `EytzingerSearchTree<T>` with optional lookahead `prefetch`.
+   * **`galloping == true`**: Inlines `algoat::searching::galloping_search`.
+   * **`branchless == true`**: Inlines `algoat::searching::branchless_lower_bound<Policy.prefetch>` emitting hardware `CMOV`/`CSEL` instructions.
+   * **Default**: Inlines `algoat::searching::binary_search`.
+3. **`algoat::meta::static_select(data, k, policy)`** statically routes using `if constexpr`:
+   * **`floyd_rivest == true`**: Inlines `algoat::selection::select_optimal` (Floyd-Rivest Algorithm 489 sampling).
+   * **`branchless == true`**: Inlines `algoat::selection::pdqselect` (BlockQuicksort branchless partitioning).
+   * **Default (`introselect` / `guaranteed_linear`)**: Inlines `algoat::selection::nth_element` (Musser Introselect with BFPRT fallback).
 
 ---
 

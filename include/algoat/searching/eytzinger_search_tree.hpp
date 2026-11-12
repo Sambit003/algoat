@@ -42,11 +42,14 @@ public:
     }
 
     /**
-     * @brief Performs a branchless lower bound search query with software lookahead prefetching.
+     * @brief Performs a branchless lower bound search query with optional software lookahead
+     * prefetching.
+     * @tparam Prefetch Enable software prefetching of future Eytzinger tree levels.
      * @param target Search key value.
      * @return 0-based index in the original sorted data of the first element >= target,
      *         or size() if all elements are < target.
      */
+    template <bool Prefetch = true>
     [[nodiscard]] std::size_t lower_bound(const T& target) const noexcept {
         if (size() == 0) {
             return 0;
@@ -57,8 +60,10 @@ public:
         constexpr std::size_t line_elements = (sizeof(T) <= 64) ? (64 / sizeof(T)) : 1;
 
         while (k <= n) {
-            std::size_t prefetch_idx = (k * line_elements < n) ? (k * line_elements) : n;
-            detail::prefetch_read(&tree_[prefetch_idx]);
+            if constexpr (Prefetch) {
+                std::size_t prefetch_idx = (k * line_elements < n) ? (k * line_elements) : n;
+                detail::prefetch_read(&tree_[prefetch_idx]);
+            }
             k = (2 * k) + static_cast<std::size_t>(tree_[k] < target);
         }
 

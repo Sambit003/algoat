@@ -265,5 +265,51 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         }
     }
 
+    // 10. Static policy dispatch selection chains (default, introselect, pdqselect/branchless,
+    // floyd_rivest with guaranteed_linear true/false)
+    {
+        namespace p = algoat::meta::policy;
+        auto verify_static_select = [&](auto policy_fn) {
+            std::vector<int> test_data = original;
+            auto it = policy_fn(test_data, k);
+            if (it != test_data.begin() + static_cast<std::ptrdiff_t>(k)) {
+                __builtin_trap();
+            }
+            if (*it != expected[k]) {
+                __builtin_trap();
+            }
+            for (auto p_it = test_data.begin(); p_it < it; ++p_it) {
+                if (*p_it > *it) {
+                    __builtin_trap();
+                }
+            }
+            for (auto p_it = it + 1; p_it < test_data.end(); ++p_it) {
+                if (*p_it < *it) {
+                    __builtin_trap();
+                }
+            }
+            std::sort(test_data.begin(), test_data.end());
+            if (test_data != expected) {
+                __builtin_trap();
+            }
+        };
+
+        verify_static_select(
+            [](std::vector<int>& v, size_t idx) { return algoat::meta::static_select(v, idx); });
+        verify_static_select([](std::vector<int>& v, size_t idx) {
+            return algoat::meta::static_select(v, idx, p::introselect | p::in_place);
+        });
+        verify_static_select([](std::vector<int>& v, size_t idx) {
+            return algoat::meta::static_select(v, idx, p::branchless);
+        });
+        verify_static_select([](std::vector<int>& v, size_t idx) {
+            return algoat::meta::static_select(v, idx, p::floyd_rivest);
+        });
+        verify_static_select([](std::vector<int>& v, size_t idx) {
+            return algoat::meta::static_select<algoat::meta::SelectPolicyDescriptor{
+                .guaranteed_linear = false, .floyd_rivest = true}>(v, idx);
+        });
+    }
+
     return 0;
 }

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "algoat/core/registry.hpp"
+#include "algoat/searching/detail/prefetch.hpp"
 
 #include <concepts>
 #include <cstddef>
@@ -67,7 +68,7 @@ template <typename I>
 /**
  * @brief Core branchless binary search loop operating on any random-access iterator.
  */
-template <typename I, typename S, typename T, typename Comp, typename Proj>
+template <bool Prefetch = false, typename I, typename S, typename T, typename Comp, typename Proj>
 [[nodiscard]] constexpr I branchless_search_core(I first, S last, const T& target, Comp comp,
                                                  Proj proj) {
     using diff_t = std::iter_difference_t<I>;
@@ -76,6 +77,13 @@ template <typename I, typename S, typename T, typename Comp, typename Proj>
 
     while (len > 1) {
         const diff_t half = len >> 1;
+        if constexpr (Prefetch && std::is_pointer_v<I>) {
+            if (!std::is_constant_evaluated() && half > 4) {
+                const diff_t quarter = half >> 1;
+                detail::prefetch_read(base + quarter);
+                detail::prefetch_read(base + half + quarter);
+            }
+        }
         const bool take_right =
             bool(std::invoke(comp, std::invoke(proj, *(base + (half - 1))), target));
         base = detail::cmov_advance(base, half, take_right);
@@ -98,6 +106,7 @@ template <typename I, typename S, typename T, typename Comp, typename Proj>
  * branch mispredictions by executing a fixed number of ceiling-halved iterations and updating
  * the base pointer via conditional moves (CMOV on x86-64, CSEL on AArch64).
  *
+ * @tparam Prefetch Enable software lookahead prefetching of future binary-search midpoints.
  * @tparam I Random access iterator type.
  * @tparam S Sentinel type for iterator I.
  * @tparam T Target value type.
@@ -113,7 +122,7 @@ template <typename I, typename S, typename T, typename Comp, typename Proj>
  * are less than target.
  */
 template <
-    std::random_access_iterator I, std::sentinel_for<I> S, typename T,
+    bool Prefetch = false, std::random_access_iterator I, std::sentinel_for<I> S, typename T,
     typename Proj = std::identity,
     std::indirect_strict_weak_order<const T*, std::projected<I, Proj>> Comp = std::ranges::less>
 [[nodiscard]] constexpr I branchless_lower_bound(I first, S last, const T& target, Comp comp = {},
@@ -123,12 +132,12 @@ template <
             const auto* first_ptr = std::to_address(first);
             const auto* last_ptr = std::to_address(last);
             const auto* res_ptr =
-                detail::branchless_search_core(first_ptr, last_ptr, target, comp, proj);
+                detail::branchless_search_core<Prefetch>(first_ptr, last_ptr, target, comp, proj);
             return first + (res_ptr - first_ptr);
         }
     }
 
-    return detail::branchless_search_core(first, last, target, comp, proj);
+    return detail::branchless_search_core<Prefetch>(first, last, target, comp, proj);
 }
 
 /**

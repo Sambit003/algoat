@@ -1,6 +1,8 @@
+#include "algoat/meta/static_select.hpp"
 #include "algoat/selection/selection.hpp"
 
 #include <algorithm>
+#include <deque>
 #include <gtest/gtest.h>
 #include <rapidcheck.h>
 #include <vector>
@@ -300,4 +302,62 @@ TEST(SelectionPBT, SlidingWindowMedianInvariants) {
             }
         }
     });
+}
+
+TEST(SelectionInvariantsPBT, StaticSelectPolicyChainsMatchOracle) {
+    namespace p = algoat::meta::policy;
+
+    rc::check("static_select policy chains partition correctly and match sorted oracle",
+              [](std::vector<int> original, std::size_t raw_k) {
+                  std::vector<int> expected = original;
+                  std::ranges::sort(expected);
+
+                  const std::size_t k = original.empty() ? 0 : (raw_k % (original.size() + 2));
+
+                  auto verify = [&](auto policy_call) {
+                      std::vector<int> data = original;
+                      auto it = policy_call(data, k);
+                      if (k >= data.size()) {
+                          RC_ASSERT(it == data.end());
+                          return;
+                      }
+                      RC_ASSERT(it == data.begin() + static_cast<std::ptrdiff_t>(k));
+                      RC_ASSERT(*it == expected[k]);
+                      for (auto p_it = data.begin(); p_it < it; ++p_it) {
+                          RC_ASSERT(*p_it <= *it);
+                      }
+                      for (auto p_it = it + 1; p_it < data.end(); ++p_it) {
+                          RC_ASSERT(*p_it >= *it);
+                      }
+                      std::ranges::sort(data);
+                      RC_ASSERT(data == expected);
+                  };
+
+                  verify([](std::vector<int>& v, std::size_t idx) {
+                      return algoat::meta::static_select(v, idx);
+                  });
+                  verify([](std::vector<int>& v, std::size_t idx) {
+                      return algoat::meta::static_select(v, idx, p::introselect | p::in_place);
+                  });
+                  verify([](std::vector<int>& v, std::size_t idx) {
+                      return algoat::meta::static_select(v, idx, p::branchless);
+                  });
+                  verify([](std::vector<int>& v, std::size_t idx) {
+                      return algoat::meta::static_select(v, idx, p::floyd_rivest);
+                  });
+                  verify([](std::vector<int>& v, std::size_t idx) {
+                      return algoat::meta::static_select<algoat::meta::SelectPolicyDescriptor{
+                          .guaranteed_linear = false, .floyd_rivest = true}>(v, idx);
+                  });
+
+                  // Also verify non-contiguous random_access_range (std::deque)
+                  std::deque<int> dq(original.begin(), original.end());
+                  auto dq_it = algoat::meta::static_select(dq, k, p::floyd_rivest);
+                  if (k >= dq.size()) {
+                      RC_ASSERT(dq_it == dq.end());
+                  } else {
+                      RC_ASSERT(dq_it == dq.begin() + static_cast<std::ptrdiff_t>(k));
+                      RC_ASSERT(*dq_it == expected[k]);
+                  }
+              });
 }

@@ -63,6 +63,8 @@ module;
 #include <algoat/hash/hash.hpp>
 #include <algoat/meta/policy.hpp>
 #include <algoat/meta/sorting_network.hpp>
+#include <algoat/meta/static_search.hpp>
+#include <algoat/meta/static_select.hpp>
 #include <algoat/meta/static_sort.hpp>
 #include <algoat/numerics/bigint.hpp>
 #include <algoat/numerics/fft.hpp>
@@ -213,6 +215,7 @@ using algoat::core::SearchHint;
 } // namespace core
 
 namespace meta {
+using algoat::meta::branching_facet;
 using algoat::meta::IsPolicyChain;
 using algoat::meta::IsPolicyTag;
 using algoat::meta::kernel_facet;
@@ -220,19 +223,46 @@ using algoat::meta::memory_facet;
 using algoat::meta::order_facet;
 using algoat::meta::PolicyChain;
 using algoat::meta::PolicyDescriptor;
+using algoat::meta::prefetch_facet;
+using algoat::meta::search_layout_facet;
+using algoat::meta::SearchPolicyDescriptor;
+using algoat::meta::selection_guarantee_facet;
+using algoat::meta::selection_kernel_facet;
+using algoat::meta::SelectPolicyDescriptor;
 using algoat::meta::SortingNetworkTable;
 using algoat::meta::stability_facet;
+using algoat::meta::static_search;
+using algoat::meta::static_select;
 using algoat::meta::static_sort;
+using algoat::meta::TagApplicableTo;
 
 namespace policy {
+using algoat::meta::policy::branchless;
+using algoat::meta::policy::branchless_t;
+using algoat::meta::policy::eytzinger;
+using algoat::meta::policy::eytzinger_t;
+using algoat::meta::policy::floyd_rivest;
+using algoat::meta::policy::floyd_rivest_t;
 using algoat::meta::policy::force_radix;
 using algoat::meta::policy::force_radix_t;
+using algoat::meta::policy::galloping;
+using algoat::meta::policy::galloping_t;
+using algoat::meta::policy::guaranteed_linear;
+using algoat::meta::policy::guaranteed_linear_t;
 using algoat::meta::policy::in_place;
 using algoat::meta::policy::in_place_t;
+using algoat::meta::policy::introselect;
+using algoat::meta::policy::introselect_t;
 using algoat::meta::policy::nearly_sorted;
 using algoat::meta::policy::nearly_sorted_t;
+using algoat::meta::policy::no_prefetch;
+using algoat::meta::policy::no_prefetch_t;
+using algoat::meta::policy::prefetch;
+using algoat::meta::policy::prefetch_t;
 using algoat::meta::policy::stable;
 using algoat::meta::policy::stable_t;
+using algoat::meta::policy::static_btree;
+using algoat::meta::policy::static_btree_t;
 using algoat::meta::policy::operator|;
 } // namespace policy
 } // namespace meta
