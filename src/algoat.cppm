@@ -58,6 +58,7 @@ module;
 #include <algoat/geometry/kdtree.hpp>
 #include <algoat/geometry/lbvh.hpp>
 #include <algoat/geometry/polygon.hpp>
+#include <algoat/geometry/polygon_boolean.hpp>
 #include <algoat/geometry/predicates.hpp>
 #include <algoat/graph/bipartite_matching.hpp>
 #include <algoat/graph/centrality.hpp>
@@ -102,6 +103,8 @@ export namespace algoat {
 using algoat::BBitMinHash;
 using algoat::BipartiteGraph;
 using algoat::BipartiteMatchingResult;
+using algoat::BooleanOp;
+using algoat::BooleanPolygon;
 using algoat::branchless_lower_bound;
 using algoat::BranchlessBinarySearch;
 using algoat::CircleLocation;
@@ -136,12 +139,19 @@ using algoat::MaxFlowResult;
 using algoat::MinimumSpanningTreeEngine;
 using algoat::MSTEdge;
 using algoat::MSTResult;
+using algoat::MultiPolygon;
 using algoat::nth_element;
 using algoat::orient2d;
 using algoat::orient3d;
 using algoat::Orientation;
 using algoat::Point2D;
+using algoat::Point2DLike;
 using algoat::Point3D;
+using algoat::polygon_boolean;
+using algoat::polygon_difference;
+using algoat::polygon_intersection;
+using algoat::polygon_union;
+using algoat::polygon_xor;
 using algoat::RankSelectBitVector;
 using algoat::RoaringBitmap;
 using algoat::search;
@@ -420,6 +430,8 @@ using algoat::strings::search_pattern;
 
 namespace geometry {
 using algoat::geometry::AABB;
+using algoat::geometry::BooleanOp;
+using algoat::geometry::BooleanPolygon;
 using algoat::geometry::BVHNode;
 using algoat::geometry::CircleLocation;
 using algoat::geometry::convex_hull_2d_andrew;
@@ -432,19 +444,39 @@ using algoat::geometry::insphere;
 using algoat::geometry::KDTree;
 using algoat::geometry::LBVH;
 using algoat::geometry::MetricType;
+using algoat::geometry::MultiPolygon;
 using algoat::geometry::orient2d;
 using algoat::geometry::orient3d;
 using algoat::geometry::Orientation;
 using algoat::geometry::Point2D;
+using algoat::geometry::Point2DLike;
 using algoat::geometry::Point3D;
 using algoat::geometry::Polygon;
 using algoat::geometry::Polygon2D;
+using algoat::geometry::polygon_boolean;
+using algoat::geometry::polygon_difference;
+using algoat::geometry::polygon_intersection;
+using algoat::geometry::polygon_union;
+using algoat::geometry::polygon_xor;
 using algoat::geometry::PolygonInclusion;
 using algoat::geometry::Polyhedron3D;
 using algoat::geometry::Ray;
 using algoat::geometry::SpatialPoint;
 using algoat::geometry::Triangle;
 using algoat::geometry::VoronoiCell;
+
+namespace boolean {
+using algoat::geometry::boolean::BooleanOp;
+using algoat::geometry::boolean::BooleanPolygon;
+using algoat::geometry::boolean::MultiPolygon;
+using algoat::geometry::boolean::Point2DLike;
+using algoat::geometry::boolean::Polygon;
+using algoat::geometry::boolean::polygon_boolean;
+using algoat::geometry::boolean::polygon_difference;
+using algoat::geometry::boolean::polygon_intersection;
+using algoat::geometry::boolean::polygon_union;
+using algoat::geometry::boolean::polygon_xor;
+} // namespace boolean
 } // namespace geometry
 
 namespace sketches {
