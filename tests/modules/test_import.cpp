@@ -275,3 +275,14 @@ TEST(ModuleImportTest, StaticSearchAndSelectPolicyDispatch) {
     auto it3 = algoat::meta::static_select(data3, 1, p::branchless);
     EXPECT_EQ(*it3, 7);
 }
+
+TEST(ModuleImportTest, SimdSortingNetworkExport) {
+    std::array<std::int32_t, 8> data8 = {8, 3, 7, 1, 5, 2, 6, 4};
+    algoat::meta::SIMDSortingNetwork<8, std::int32_t>::sort(std::span<std::int32_t, 8>{data8});
+    EXPECT_TRUE(std::is_sorted(data8.begin(), data8.end()));
+
+    std::array<double, 16> data16 = {16.0, 2.0, 14.0, 4.0, 12.0, 6.0, 10.0, 8.0,
+                                     15.0, 1.0, 13.0, 3.0, 11.0, 5.0, 9.0,  7.0};
+    algoat::meta::sort_simd_network(std::span<double, 16>{data16});
+    EXPECT_TRUE(std::is_sorted(data16.begin(), data16.end()));
+}

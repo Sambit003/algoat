@@ -391,3 +391,72 @@ static void BM_Tuples_SkaSort(benchmark::State& state) {
     state.SetComplexityN(size);
 }
 BENCHMARK(BM_Tuples_SkaSort)->RangeMultiplier(4)->Range(1 << 16, 1 << 18)->Complexity();
+
+// Fixed-size SIMD sorting network vs std::sort micro-benchmarks (Issue #166)
+namespace {
+
+template <std::size_t N, typename T>
+std::vector<std::array<T, N>> generate_fixed_sort_batch(std::size_t batch_size) {
+    std::vector<std::array<T, N>> batch(batch_size);
+    std::mt19937_64 rng(166);
+    for (auto& arr : batch) {
+        for (auto& v : arr) {
+            if constexpr (std::is_floating_point_v<T>) {
+                std::uniform_real_distribution<T> dist(static_cast<T>(-1e5), static_cast<T>(1e5));
+                v = dist(rng);
+            } else {
+                v = static_cast<T>(rng());
+            }
+        }
+    }
+    return batch;
+}
+
+template <std::size_t N, typename T, typename SortFn>
+static void run_fixed_sort_bench(benchmark::State& state, SortFn&& sort_fn) {
+    constexpr std::size_t kBatch = 512;
+    const auto src = generate_fixed_sort_batch<N, T>(kBatch);
+    auto work = src;
+    for (auto _ : state) {
+        state.PauseTiming();
+        work = src;
+        state.ResumeTiming();
+        for (auto& arr : work) {
+            sort_fn(arr);
+            benchmark::DoNotOptimize(arr.data());
+        }
+    }
+    state.SetItemsProcessed(static_cast<std::int64_t>(state.iterations()) *
+                            static_cast<std::int64_t>(kBatch * N));
+}
+
+template <std::size_t N, typename T> static void BM_Fixed_StdSort(benchmark::State& state) {
+    run_fixed_sort_bench<N, T>(state, [](auto& arr) { std::sort(arr.begin(), arr.end()); });
+}
+
+template <std::size_t N, typename T> static void BM_Fixed_SimdNetwork(benchmark::State& state) {
+    run_fixed_sort_bench<N, T>(state, [](auto& arr) {
+        algoat::meta::SIMDSortingNetwork<N, T>::sort(std::span<T, N>{arr});
+    });
+}
+
+} // namespace
+
+BENCHMARK_TEMPLATE(BM_Fixed_StdSort, 8, std::int32_t);
+BENCHMARK_TEMPLATE(BM_Fixed_SimdNetwork, 8, std::int32_t);
+BENCHMARK_TEMPLATE(BM_Fixed_StdSort, 16, std::int32_t);
+BENCHMARK_TEMPLATE(BM_Fixed_SimdNetwork, 16, std::int32_t);
+BENCHMARK_TEMPLATE(BM_Fixed_StdSort, 32, std::int32_t);
+BENCHMARK_TEMPLATE(BM_Fixed_SimdNetwork, 32, std::int32_t);
+BENCHMARK_TEMPLATE(BM_Fixed_StdSort, 64, std::int32_t);
+BENCHMARK_TEMPLATE(BM_Fixed_SimdNetwork, 64, std::int32_t);
+
+BENCHMARK_TEMPLATE(BM_Fixed_StdSort, 32, float);
+BENCHMARK_TEMPLATE(BM_Fixed_SimdNetwork, 32, float);
+BENCHMARK_TEMPLATE(BM_Fixed_StdSort, 64, float);
+BENCHMARK_TEMPLATE(BM_Fixed_SimdNetwork, 64, float);
+
+BENCHMARK_TEMPLATE(BM_Fixed_StdSort, 32, std::int64_t);
+BENCHMARK_TEMPLATE(BM_Fixed_SimdNetwork, 32, std::int64_t);
+BENCHMARK_TEMPLATE(BM_Fixed_StdSort, 64, double);
+BENCHMARK_TEMPLATE(BM_Fixed_SimdNetwork, 64, double);

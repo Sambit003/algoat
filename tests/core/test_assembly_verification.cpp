@@ -25,6 +25,14 @@ namespace assembly_test {
     algoat::meta::static_sort(s);
 }
 
+[[gnu::noinline]] void sort_simd_fixed_32(std::span<std::int32_t, 32> s) noexcept {
+    algoat::meta::SIMDSortingNetwork<32, std::int32_t>::sort(s);
+}
+
+[[gnu::noinline]] void sort_simd_fixed_64_double(std::span<double, 64> s) noexcept {
+    algoat::meta::sort_simd_network(s);
+}
+
 [[gnu::noinline]] void sort_policy_chain(std::span<int> s) {
     algoat::meta::static_sort(s, p::stable | p::in_place);
 }
@@ -80,6 +88,20 @@ TEST(AssemblyVerificationTest, InlinesFixedSizeSortingNetworkWithoutJumpTables) 
     std::array<int, 16> data16 = {16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
     assembly_test::sort_fixed_16(std::span<int, 16>{data16});
     EXPECT_TRUE(std::is_sorted(data16.begin(), data16.end()));
+
+    std::array<std::int32_t, 32> data32{};
+    for (std::size_t i = 0; i < 32; ++i) {
+        data32[i] = static_cast<std::int32_t>(32 - i);
+    }
+    assembly_test::sort_simd_fixed_32(std::span<std::int32_t, 32>{data32});
+    EXPECT_TRUE(std::is_sorted(data32.begin(), data32.end()));
+
+    std::array<double, 64> data64{};
+    for (std::size_t i = 0; i < 64; ++i) {
+        data64[i] = static_cast<double>(64 - i);
+    }
+    assembly_test::sort_simd_fixed_64_double(std::span<double, 64>{data64});
+    EXPECT_TRUE(std::is_sorted(data64.begin(), data64.end()));
 }
 
 TEST(AssemblyVerificationTest, DirectStaticDispatchWithoutDynamicRegistry) {
