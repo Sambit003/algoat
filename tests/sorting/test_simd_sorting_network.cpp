@@ -30,10 +30,12 @@ void verify_random_trials(std::size_t trials, std::uint64_t seed) {
                 x = dist(rng);
             }
         } else {
-            std::uniform_int_distribution<T> dist(std::numeric_limits<T>::min(),
-                                                  std::numeric_limits<T>::max());
+            using DistT = std::conditional_t<(sizeof(T) < sizeof(int)), int, T>;
+            std::uniform_int_distribution<DistT> dist(
+                static_cast<DistT>(std::numeric_limits<T>::min()),
+                static_cast<DistT>(std::numeric_limits<T>::max()));
             for (auto& x : actual) {
-                x = dist(rng);
+                x = static_cast<T>(dist(rng));
             }
         }
         auto expected = actual;
