@@ -286,3 +286,14 @@ TEST(ModuleImportTest, SimdSortingNetworkExport) {
     algoat::meta::sort_simd_network(std::span<double, 16>{data16});
     EXPECT_TRUE(std::is_sorted(data16.begin(), data16.end()));
 }
+
+TEST(ModuleImportTest, HardwareTopologyExport) {
+    const auto& topo = algoat::core::HardwareTopology::instance();
+    EXPECT_GT(topo.l1d_cache_size(), 0U);
+    EXPECT_GT(topo.cache_line_size(), 0U);
+    EXPECT_GT(topo.optimal_l1_block_elements<int>(0.5), 0U);
+
+    const algoat::core::CacheProperties& props = topo.l1d_properties();
+    EXPECT_EQ(props.level, 1U);
+    EXPECT_EQ(props.size_bytes, topo.l1d_cache_size());
+}

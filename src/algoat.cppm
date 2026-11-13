@@ -45,6 +45,7 @@ module;
 #include <algoat/core/config.hpp>
 #include <algoat/core/config_manager.hpp>
 #include <algoat/core/dispatcher.hpp>
+#include <algoat/core/hardware_topology.hpp>
 #include <algoat/core/registry.hpp>
 #include <algoat/core/traits.hpp>
 #include <algoat/dp/aho_corasick.hpp>
@@ -212,9 +213,11 @@ using algoat::concepts::Size16Bit;
 
 namespace core {
 using algoat::core::AlgoConfig;
+using algoat::core::CacheProperties;
 using algoat::core::ConfigManager;
 using algoat::core::DataTraits;
 using algoat::core::Dispatcher;
+using algoat::core::HardwareTopology;
 using algoat::core::load_config;
 using algoat::core::Registry;
 using algoat::core::SearchHint;
