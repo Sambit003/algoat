@@ -75,6 +75,14 @@ flowchart TD
     CheckIntegral -- No --> Intro["IntroSort (Default Hybrid)"]
 ```
 
+### 2.4 Hardware Topology & Cache Auto-Tuning (`algoat::core::HardwareTopology`)
+Located in [`include/algoat/core/hardware_topology.hpp`](include/algoat/core/hardware_topology.hpp) and [`src/core/hardware_topology.cpp`](src/core/hardware_topology.cpp).
+
+`HardwareTopology` is a thread-safe cached singleton evaluated once on startup that exposes runtime CPU cache geometry (`l1d_cache_size()`, `l2_cache_size()`, `l3_cache_size()`, `cache_line_size()`, `CacheProperties`) and OS-verified vector instruction set flags (`has_avx2()`, `has_avx512f()`, `has_bmi2()`, `has_neon()`):
+- **x86-64:** Probes CPUID Leaf `01H`/`07H` gated on `OSXSAVE` + `XGETBV` (`XCR0` validation), Intel deterministic cache Leaf `04H`, and AMD extended cache leaves (`8000001DH`, `80000005H`/`06H`).
+- **POSIX / macOS / Windows:** Cross-checks or falls back to `sysconf` (Linux), `sysctlbyname` including `hw.perflevel*` (macOS/Apple Silicon), and `GetLogicalProcessorInformationEx` (Windows).
+- **Dynamic Block Sizing:** `optimal_l1_block_elements<T>(l1_fraction)` sizes working buffers to fit within `(l1d_cache_size() * l1_fraction) / sizeof(T)` without floating-point UB.
+
 ---
 
 ## 3. Compile-Time Algorithm Selector & Policy Chains
