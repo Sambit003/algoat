@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "algoat/core/hardware_topology.hpp"
+
 #if defined(__cpp_modules)
 // In C++20 module interface compilation, Highway's internal static inline templates
 // trigger ISO C++20 [basic.link] p14 ('exposes TU-local entity') errors across conforming
@@ -36,14 +38,6 @@ namespace algoat::core::detail {
 
 #if !defined(ALGOAT_SIMD_PROFILER_SCALAR_ONLY)
 namespace hn = hwy::HWY_NAMESPACE;
-#endif
-
-// Determine cache line size based on target architecture
-#if defined(__APPLE__) && (defined(__aarch64__) || defined(_M_ARM64))
-inline constexpr std::size_t kCacheLineBytes = 128; // Apple Silicon M-series (128-byte cache lines)
-#else
-inline constexpr std::size_t kCacheLineBytes =
-    64; // Standard x86-64 and standard ARM (64-byte cache lines)
 #endif
 
 inline constexpr std::size_t kSublinearThreshold = 10000;
@@ -121,7 +115,8 @@ inline
 template <typename T>
 inline void sample_traits_sublinear_impl(const T* data, std::size_t size,
                                          double& out_sortedness_ratio, bool& out_has_duplicates) {
-    std::size_t chunk_elements = std::max<std::size_t>(kCacheLineBytes / sizeof(T), 16);
+    const std::size_t cache_line_bytes = HardwareTopology::instance().cache_line_size();
+    std::size_t chunk_elements = std::max<std::size_t>(cache_line_bytes / sizeof(T), 16);
     std::size_t num_chunks = std::min<std::size_t>(kNumSampleChunks, size / chunk_elements);
     if (num_chunks == 0)
         num_chunks = 1;

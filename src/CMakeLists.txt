@@ -3,6 +3,7 @@ add_library(algoat
     c_api/algoat_c.cpp
     core/config.cpp
     core/dispatcher.cpp
+    core/hardware_topology.cpp
     simd/isa.cpp
     simd/partition.cpp
     sorting/quicksort.cpp
