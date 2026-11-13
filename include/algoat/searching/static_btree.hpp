@@ -23,15 +23,13 @@
 #include <span>
 #include <vector>
 
-#if defined(__AVX2__)
+#if defined(__AVX2__) && !defined(ALGOAT_STATIC_BTREE_SCALAR_ONLY)
 #include <immintrin.h>
 #endif
 
-#if defined(__ARM_NEON) || defined(__aarch64__)
+#if (defined(__ARM_NEON) || defined(__aarch64__)) && !defined(ALGOAT_STATIC_BTREE_SCALAR_ONLY)
 #include <arm_neon.h>
 #endif
-
-#include "algoat/searching/detail/prefetch.hpp"
 
 namespace algoat::searching {
 
@@ -45,7 +43,7 @@ template <typename T> struct alignas(64) StaticBTreeNode {
     [[nodiscard]] unsigned rank(const T& target) const noexcept;
 };
 
-#if defined(__AVX2__)
+#if defined(__AVX2__) && !defined(ALGOAT_STATIC_BTREE_SCALAR_ONLY)
 [[nodiscard]] inline __m256i cmpgt_avx2_epi32(__m256i a, __m256i b) noexcept {
 #if defined(__GNUC__) && !defined(__clang__)
     // Bypass GCC vector relational operator lowering (`(__v8si)a > (__v8si)b`), which
@@ -90,7 +88,7 @@ template <typename T> struct alignas(64) StaticBTreeNode {
 }
 #endif
 
-#if defined(__ARM_NEON) || defined(__aarch64__)
+#if (defined(__ARM_NEON) || defined(__aarch64__)) && !defined(ALGOAT_STATIC_BTREE_SCALAR_ONLY)
 [[nodiscard]] inline unsigned reduce_neon_sum(int32x4_t total) noexcept {
 #if defined(__aarch64__)
     return static_cast<unsigned>(-vaddvq_s32(total));
@@ -136,7 +134,7 @@ template <typename T> struct alignas(64) StaticBTreeNode {
 
 template <typename T>
 [[nodiscard]] inline unsigned StaticBTreeNode<T>::rank(const T& target) const noexcept {
-#if defined(__AVX2__)
+#if defined(__AVX2__) && !defined(ALGOAT_STATIC_BTREE_SCALAR_ONLY)
     if constexpr (std::same_as<T, int32_t>) {
         __m256i q = _mm256_set1_epi32(target);
         return rank_avx2_i32(q, reinterpret_cast<const int32_t*>(data));
@@ -146,7 +144,7 @@ template <typename T>
         return rank_avx2_u32(q, reinterpret_cast<const uint32_t*>(data));
     } else
 #endif
-#if defined(__ARM_NEON) || defined(__aarch64__)
+#if (defined(__ARM_NEON) || defined(__aarch64__)) && !defined(ALGOAT_STATIC_BTREE_SCALAR_ONLY)
         if constexpr (std::same_as<T, int32_t>) {
         int32x4_t q = vdupq_n_s32(target);
         return rank_neon_i32(q, reinterpret_cast<const int32_t*>(data));
