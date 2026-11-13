@@ -16,6 +16,7 @@ module;
 // Enforce scalar Static B-Tree rank fallback inside module BMI compilation across all compilers
 // (including Clang 18) to prevent GMF immintrin.h internal-linkage intrinsic lookup failures.
 #define ALGOAT_STATIC_BTREE_SCALAR_ONLY 1
+#define ALGOAT_SIMD_SORTING_NETWORK_SCALAR_ONLY 1
 
 // Global Module Fragment (GMF): only preprocessor directives and non-modular includes
 #include <algorithm>
@@ -66,6 +67,7 @@ module;
 #include <algoat/graph/shortest_path.hpp>
 #include <algoat/hash/hash.hpp>
 #include <algoat/meta/policy.hpp>
+#include <algoat/meta/simd_sorting_network.hpp>
 #include <algoat/meta/sorting_network.hpp>
 #include <algoat/meta/static_search.hpp>
 #include <algoat/meta/static_select.hpp>
@@ -233,6 +235,8 @@ using algoat::meta::SearchPolicyDescriptor;
 using algoat::meta::selection_guarantee_facet;
 using algoat::meta::selection_kernel_facet;
 using algoat::meta::SelectPolicyDescriptor;
+using algoat::meta::SIMDSortingNetwork;
+using algoat::meta::sort_simd_network;
 using algoat::meta::SortingNetworkTable;
 using algoat::meta::stability_facet;
 using algoat::meta::static_search;
