@@ -13,6 +13,10 @@ module;
 // (including Clang 18) to prevent hardware vector intrinsic exposure without immintrin.h inclusion.
 #define ALGOAT_SIMD_SEARCH_SCALAR_ONLY 1
 
+// Enforce scalar Static B-Tree rank fallback inside module BMI compilation across all compilers
+// (including Clang 18) to prevent GMF immintrin.h internal-linkage intrinsic lookup failures.
+#define ALGOAT_STATIC_BTREE_SCALAR_ONLY 1
+
 // Global Module Fragment (GMF): only preprocessor directives and non-modular includes
 #include <algorithm>
 #include <array>
