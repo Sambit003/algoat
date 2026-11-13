@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "algoat/core/scratch_buffer.hpp"
 #include "algoat/core/traits.hpp"
 
 #include <algorithm>
@@ -18,42 +19,46 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 namespace algoat::sorting {
 
 namespace detail {
 
-template <typename T, typename Compare>
-void merge_impl(T* arr, T* temp, std::size_t left, std::size_t mid, std::size_t right,
-                Compare comp) {
+template <typename RandIt, typename T, typename Compare>
+void merge_impl(RandIt arr, T* temp, std::size_t left, std::size_t mid, std::size_t right,
+                Compare& comp) {
+    using Diff = std::iter_difference_t<RandIt>;
     std::size_t i = left;
     std::size_t j = mid + 1;
     std::size_t k = left;
 
     while (i <= mid && j <= right) {
-        if (!comp(arr[j], arr[i])) { // <= ensures stability
-            temp[k++] = std::move(arr[i++]);
+        auto&& lhs = arr[static_cast<Diff>(i)];
+        auto&& rhs = arr[static_cast<Diff>(j)];
+        if (!comp(rhs, lhs)) { // <= ensures stability
+            temp[k++] = std::move(lhs);
+            ++i;
         } else {
-            temp[k++] = std::move(arr[j++]);
+            temp[k++] = std::move(rhs);
+            ++j;
         }
     }
 
     while (i <= mid) {
-        temp[k++] = std::move(arr[i++]);
+        temp[k++] = std::move(arr[static_cast<Diff>(i++)]);
     }
 
     while (j <= right) {
-        temp[k++] = std::move(arr[j++]);
+        temp[k++] = std::move(arr[static_cast<Diff>(j++)]);
     }
 
     for (std::size_t p = left; p <= right; ++p) {
-        arr[p] = std::move(temp[p]);
+        arr[static_cast<Diff>(p)] = std::move(temp[p]);
     }
 }
 
-template <typename T, typename Compare>
-void mergesort_impl(T* arr, T* temp, std::size_t left, std::size_t right, Compare comp) {
+template <typename RandIt, typename T, typename Compare>
+void mergesort_impl(RandIt arr, T* temp, std::size_t left, std::size_t right, Compare& comp) {
     if (left < right) {
         std::size_t mid = left + (right - left) / 2;
         mergesort_impl(arr, temp, left, mid, comp);
@@ -63,6 +68,42 @@ void mergesort_impl(T* arr, T* temp, std::size_t left, std::size_t right, Compar
 }
 
 } // namespace detail
+
+/**
+ * @brief Sorts the span in-place using top-down merge sort with a custom comparator and optional
+ * memory resource.
+ * @tparam T Element type supporting move operations.
+ * @tparam Extent Static or dynamic span extent.
+ * @tparam Compare Strict weak ordering callable.
+ *
+ * @param data Span of elements to sort.
+ * @param comp Custom comparator callable.
+ * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+ */
+template <typename T, std::size_t Extent, typename Compare>
+    requires(!std::is_convertible_v<Compare, std::pmr::memory_resource*>)
+void mergesort(std::span<T, Extent> data, Compare comp,
+               std::pmr::memory_resource* mr = std::pmr::get_default_resource()) {
+    if (data.size() <= 1) {
+        return;
+    }
+    algoat::core::ScratchBuffer<T> buffer(data.size(), mr);
+    detail::mergesort_impl(data.data(), buffer.data(), 0, data.size() - 1, comp);
+}
+
+/**
+ * @brief Sorts the span in-place using top-down merge sort with an optional memory resource.
+ * @tparam T Element type supporting @c operator< and move operations.
+ * @tparam Extent Static or dynamic span extent.
+ *
+ * @param data Span of elements to sort.
+ * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+ */
+template <typename T, std::size_t Extent>
+void mergesort(std::span<T, Extent> data,
+               std::pmr::memory_resource* mr = std::pmr::get_default_resource()) {
+    mergesort(data, std::less<>{}, mr);
+}
 
 /**
  * @brief Sorts a C++20 random-access range in-place using top-down merge sort with custom
@@ -80,79 +121,69 @@ void mergesort_impl(T* arr, T* temp, std::size_t left, std::size_t right, Compar
  */
 template <std::ranges::random_access_range R, typename Comp = std::ranges::less,
           typename Proj = std::identity>
-    requires(!std::is_convertible_v<Comp, std::pmr::memory_resource*> &&
+    requires(!::algoat::detail::is_std_span_v<R> &&
+             !std::is_convertible_v<Comp, std::pmr::memory_resource*> &&
+             !std::is_convertible_v<Proj, std::pmr::memory_resource*> &&
              std::sortable<std::ranges::iterator_t<R>, Comp, Proj>)
-inline std::ranges::borrowed_iterator_t<R> mergesort(R&& data, Comp comp = {}, Proj proj = {}) {
+inline std::ranges::borrowed_iterator_t<R>
+mergesort(R&& data, Comp comp = {}, Proj proj = {},
+          std::pmr::memory_resource* mr = std::pmr::get_default_resource()) {
     if constexpr (std::ranges::contiguous_range<R> && std::ranges::sized_range<R>) {
         auto span_data = ::algoat::detail::to_span(data);
         if (span_data.size() <= 1) {
             return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
         }
-        auto comp_proj = ::algoat::detail::make_comp_proj(comp, proj);
-        using Element = typename decltype(span_data)::element_type;
-        std::size_t buffer_size = span_data.size() * sizeof(Element) + alignof(Element) * 4 + 64;
-        std::pmr::monotonic_buffer_resource mbr(buffer_size, std::pmr::get_default_resource());
-        if constexpr (std::is_trivially_default_constructible_v<Element> &&
-                      std::is_trivially_copy_assignable_v<Element> &&
-                      std::is_trivially_destructible_v<Element>) {
-            std::pmr::polymorphic_allocator<Element> alloc(&mbr);
-            Element* buffer = alloc.allocate(span_data.size());
-            detail::mergesort_impl(span_data.data(), buffer, 0, span_data.size() - 1, comp_proj);
-        } else {
-            std::pmr::vector<Element> buffer(span_data.size(), &mbr);
-            detail::mergesort_impl(span_data.data(), buffer.data(), 0, span_data.size() - 1,
-                                   comp_proj);
-        }
+        auto comp_proj = ::algoat::detail::make_comp_proj(std::move(comp), std::move(proj));
+        mergesort(span_data, comp_proj, mr);
         return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
     } else {
-        return ::algoat::detail::fallback_stable_sort(data, std::move(comp), std::move(proj));
+        const auto count = static_cast<std::size_t>(std::ranges::distance(data));
+        if (count <= 1) {
+            return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
+        }
+        using ValueType = std::ranges::range_value_t<R>;
+        auto comp_proj = ::algoat::detail::make_comp_proj(std::move(comp), std::move(proj));
+        algoat::core::ScratchBuffer<ValueType> buffer(count, mr);
+        detail::mergesort_impl(std::ranges::begin(data), buffer.data(), 0, count - 1, comp_proj);
+        return std::ranges::next(std::ranges::begin(data), std::ranges::end(data));
     }
 }
 
 /**
- * @brief Sorts the span in-place using top-down merge sort with a custom comparator and optional
- * memory resource.
- * @tparam T Element type supporting move operations.
- * @tparam Compare Strict weak ordering callable.
+ * @brief Sorts a C++20 random-access range in-place using top-down merge sort with a custom
+ * comparator and memory resource.
  *
- * @param data Span of elements to sort.
+ * @tparam R Random-access range type.
+ * @tparam Comp Strict weak ordering comparator callable.
+ *
+ * @param data Range of elements to sort in-place.
  * @param comp Custom comparator callable.
  * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+ * @return Iterator pointing to the end of the range.
  */
-template <typename T, typename Compare>
-    requires(!std::is_convertible_v<Compare, std::pmr::memory_resource*>)
-void mergesort(std::span<T> data, Compare comp,
-               std::pmr::memory_resource* mr = std::pmr::get_default_resource()) {
-    if (data.size() <= 1)
-        return;
-
-    // Add padding to avoid a second allocation due to alignment offsets.
-    std::size_t buffer_size = data.size() * sizeof(T) + alignof(T) * 4 + 64;
-    std::pmr::monotonic_buffer_resource mbr(buffer_size, mr);
-
-    if constexpr (std::is_trivially_default_constructible_v<T> &&
-                  std::is_trivially_copy_assignable_v<T> && std::is_trivially_destructible_v<T>) {
-        // Bypass O(N) default initialization overhead for trivial types
-        std::pmr::polymorphic_allocator<T> alloc(&mbr);
-        T* buffer = alloc.allocate(data.size());
-        detail::mergesort_impl(data.data(), buffer, 0, data.size() - 1, comp);
-    } else {
-        std::pmr::vector<T> buffer(data.size(), &mbr);
-        detail::mergesort_impl(data.data(), buffer.data(), 0, data.size() - 1, comp);
-    }
+template <std::ranges::random_access_range R, typename Comp>
+    requires(!::algoat::detail::is_std_span_v<R> &&
+             !std::is_convertible_v<Comp, std::pmr::memory_resource*> &&
+             std::sortable<std::ranges::iterator_t<R>, Comp>)
+inline std::ranges::borrowed_iterator_t<R> mergesort(R&& data, Comp comp,
+                                                     std::pmr::memory_resource* mr) {
+    return mergesort(std::forward<R>(data), std::move(comp), std::identity{}, mr);
 }
 
 /**
- * @brief Sorts the span in-place using top-down merge sort with an optional memory resource.
- * @tparam T Element type supporting @c operator<= and move operations.
+ * @brief Sorts a C++20 random-access range in-place using top-down merge sort with an explicit
+ * memory resource.
  *
- * @param data Span of elements to sort.
+ * @tparam R Random-access range type.
+ *
+ * @param data Range of elements to sort in-place.
  * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+ * @return Iterator pointing to the end of the range.
  */
-template <typename T>
-void mergesort(std::span<T> data,
-               std::pmr::memory_resource* mr = std::pmr::get_default_resource()) {
-    mergesort(data, std::less<>{}, mr);
+template <std::ranges::random_access_range R>
+    requires(!::algoat::detail::is_std_span_v<R> && std::sortable<std::ranges::iterator_t<R>>)
+inline std::ranges::borrowed_iterator_t<R> mergesort(R&& data, std::pmr::memory_resource* mr) {
+    return mergesort(std::forward<R>(data), std::ranges::less{}, std::identity{}, mr);
 }
 
 /**
@@ -182,26 +213,59 @@ struct MergeSort {
 
     /**
      * @brief Sorts the span in-place using top-down merge sort.
-     * @tparam T Element type supporting @c operator<= and move operations.
+     * @tparam T Element type supporting @c operator< and move operations.
+     * @tparam Extent Static or dynamic span extent.
      *
      * @param data Span of elements to sort.
      */
-    template <typename T> void sort(std::span<T> data) const {
+    template <typename T, std::size_t Extent = std::dynamic_extent>
+    void sort(std::span<T, Extent> data) const {
         mergesort(data);
+    }
+
+    /**
+     * @brief Sorts the span in-place using top-down merge sort with a memory resource.
+     * @tparam T Element type supporting @c operator< and move operations.
+     * @tparam Extent Static or dynamic span extent.
+     *
+     * @param data Span of elements to sort.
+     * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+     */
+    template <typename T, std::size_t Extent = std::dynamic_extent>
+    void sort(std::span<T, Extent> data, std::pmr::memory_resource* mr) const {
+        mergesort(data, mr);
     }
 
     /**
      * @brief Sorts the span in-place using top-down merge sort with a custom comparator.
      * @tparam T Element type supporting move operations.
+     * @tparam Extent Static or dynamic span extent.
      * @tparam Compare Strict weak ordering callable.
      *
      * @param data Span of elements to sort.
      * @param comp Custom comparator callable.
      */
-    template <typename T, typename Compare>
+    template <typename T, std::size_t Extent = std::dynamic_extent, typename Compare>
         requires(!std::is_convertible_v<Compare, std::pmr::memory_resource*>)
-    void sort(std::span<T> data, Compare comp) const {
+    void sort(std::span<T, Extent> data, Compare comp) const {
         mergesort(data, std::move(comp));
+    }
+
+    /**
+     * @brief Sorts the span in-place using top-down merge sort with a custom comparator and
+     * memory resource.
+     * @tparam T Element type supporting move operations.
+     * @tparam Extent Static or dynamic span extent.
+     * @tparam Compare Strict weak ordering callable.
+     *
+     * @param data Span of elements to sort.
+     * @param comp Custom comparator callable.
+     * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+     */
+    template <typename T, std::size_t Extent = std::dynamic_extent, typename Compare>
+        requires(!std::is_convertible_v<Compare, std::pmr::memory_resource*>)
+    void sort(std::span<T, Extent> data, Compare comp, std::pmr::memory_resource* mr) const {
+        mergesort(data, std::move(comp), mr);
     }
 
     /**

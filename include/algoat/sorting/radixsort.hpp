@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "algoat/core/scratch_buffer.hpp"
+#include "algoat/core/traits.hpp"
 #include "algoat/meta/simd_sorting_network.hpp"
 
 #include <algorithm>
@@ -17,32 +19,37 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory_resource>
+#include <ranges>
 #include <span>
 #include <stdexcept>
 #include <string_view>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 namespace algoat::sorting {
 
 /**
- * @brief Sorts an integral span using LSD Radix Sort.
- * @tparam T Must satisfy @c std::is_integral_v<T>.
+ * @brief Sorts an integral span using LSD Radix Sort with an optional PMR memory resource.
+ * @tparam T Must satisfy @c std::is_integral_v<T> and not be @c bool.
+ * @tparam Extent Static or dynamic span extent.
  *
  * @param arr Span of integers to sort in-place.
+ * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
  */
-template <typename T>
+template <typename T, std::size_t Extent>
     requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
-void radixsort_lsd(std::span<T> arr) {
-    if (arr.empty())
+void radixsort_lsd(std::span<T, Extent> arr,
+                   std::pmr::memory_resource* mr = std::pmr::get_default_resource()) {
+    if (arr.size() <= 1) {
         return;
+    }
 
     using U = std::make_unsigned_t<T>;
     const int passes = sizeof(T);
-    std::vector<T> buffer(arr.size());
+    algoat::core::ScratchBuffer<T> buffer(arr.size(), mr);
     std::span<T> src = arr;
-    std::span<T> dst = buffer;
+    std::span<T> dst = buffer.span();
 
     for (int shift = 0; shift < passes * 8; shift += 8) {
         std::size_t count[256] = {0};
@@ -75,8 +82,56 @@ void radixsort_lsd(std::span<T> arr) {
     }
 
     if (passes % 2 != 0) {
-        std::copy(buffer.begin(), buffer.end(), arr.begin());
+        std::copy(buffer.data(), buffer.data() + buffer.size(), arr.begin());
     }
+}
+
+/**
+ * @brief Sorts a contiguous integral range using LSD Radix Sort with an optional PMR memory
+ * resource.
+ * @tparam R Contiguous sized range whose value type is a non-@c bool integral type.
+ *
+ * @param arr Range of integers to sort in-place.
+ * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+ */
+template <std::ranges::contiguous_range R>
+    requires(std::ranges::sized_range<R> && !::algoat::detail::is_std_span_v<R> &&
+             std::is_integral_v<std::ranges::range_value_t<R>> &&
+             !std::is_same_v<std::ranges::range_value_t<R>, bool>)
+void radixsort_lsd(R&& arr, std::pmr::memory_resource* mr = std::pmr::get_default_resource()) {
+    radixsort_lsd(::algoat::detail::to_span(arr), mr);
+}
+
+/**
+ * @brief Sorts an integral span using Radix Sort (delegating to @c radixsort_lsd) with an
+ * optional PMR memory resource.
+ * @tparam T Must satisfy @c std::is_integral_v<T> and not be @c bool.
+ * @tparam Extent Static or dynamic span extent.
+ *
+ * @param arr Span of integers to sort in-place.
+ * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+ */
+template <typename T, std::size_t Extent>
+    requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+inline void radixsort(std::span<T, Extent> arr,
+                      std::pmr::memory_resource* mr = std::pmr::get_default_resource()) {
+    radixsort_lsd(arr, mr);
+}
+
+/**
+ * @brief Sorts a contiguous integral range using Radix Sort (delegating to @c radixsort_lsd) with
+ * an optional PMR memory resource.
+ * @tparam R Contiguous sized range whose value type is a non-@c bool integral type.
+ *
+ * @param arr Range of integers to sort in-place.
+ * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+ */
+template <std::ranges::contiguous_range R>
+    requires(std::ranges::sized_range<R> && !::algoat::detail::is_std_span_v<R> &&
+             std::is_integral_v<std::ranges::range_value_t<R>> &&
+             !std::is_same_v<std::ranges::range_value_t<R>, bool>)
+inline void radixsort(R&& arr, std::pmr::memory_resource* mr = std::pmr::get_default_resource()) {
+    radixsort_lsd(std::forward<R>(arr), mr);
 }
 
 /**
@@ -113,13 +168,28 @@ struct RadixSortLSD {
     /**
      * @brief Sorts an integral span using LSD Radix Sort.
      * @tparam T Must satisfy @c std::is_integral_v<T>.
+     * @tparam Extent Static or dynamic span extent.
      *
      * @param arr Span of integers to sort in-place.
      */
-    template <typename T>
+    template <typename T, std::size_t Extent = std::dynamic_extent>
         requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
-    void sort(std::span<T> arr) const {
+    void sort(std::span<T, Extent> arr) const {
         radixsort_lsd(arr);
+    }
+
+    /**
+     * @brief Sorts an integral span using LSD Radix Sort with a custom PMR memory resource.
+     * @tparam T Must satisfy @c std::is_integral_v<T> and not be @c bool.
+     * @tparam Extent Static or dynamic span extent.
+     *
+     * @param arr Span of integers to sort in-place.
+     * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+     */
+    template <typename T, std::size_t Extent = std::dynamic_extent>
+        requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+    void sort(std::span<T, Extent> arr, std::pmr::memory_resource* mr) const {
+        radixsort_lsd(arr, mr);
     }
 };
 
@@ -178,18 +248,39 @@ template <typename T> void msd_impl(std::span<T> arr, std::span<T> buffer, int s
 } // namespace detail
 
 /**
- * @brief Sorts an integral span using recursive MSD Radix Sort.
- * @tparam T Must satisfy @c std::is_integral_v<T>.
+ * @brief Sorts an integral span using recursive MSD Radix Sort with an optional PMR memory
+ * resource.
+ * @tparam T Must satisfy @c std::is_integral_v<T> and not be @c bool.
+ * @tparam Extent Static or dynamic span extent.
  *
  * @param arr Span of integers to sort in-place.
+ * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
  */
-template <typename T>
+template <typename T, std::size_t Extent>
     requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
-void radixsort_msd(std::span<T> arr) {
-    if (arr.size() <= 1)
+void radixsort_msd(std::span<T, Extent> arr,
+                   std::pmr::memory_resource* mr = std::pmr::get_default_resource()) {
+    if (arr.size() <= 1) {
         return;
-    std::vector<T> buffer(arr.size());
-    detail::msd_impl<T>(arr, buffer, (sizeof(T) - 1) * 8);
+    }
+    algoat::core::ScratchBuffer<T> buffer(arr.size(), mr);
+    detail::msd_impl<T>(std::span<T>{arr}, buffer.span(), (sizeof(T) - 1) * 8);
+}
+
+/**
+ * @brief Sorts a contiguous integral range using recursive MSD Radix Sort with an optional PMR
+ * memory resource.
+ * @tparam R Contiguous sized range whose value type is a non-@c bool integral type.
+ *
+ * @param arr Range of integers to sort in-place.
+ * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+ */
+template <std::ranges::contiguous_range R>
+    requires(std::ranges::sized_range<R> && !::algoat::detail::is_std_span_v<R> &&
+             std::is_integral_v<std::ranges::range_value_t<R>> &&
+             !std::is_same_v<std::ranges::range_value_t<R>, bool>)
+void radixsort_msd(R&& arr, std::pmr::memory_resource* mr = std::pmr::get_default_resource()) {
+    radixsort_msd(::algoat::detail::to_span(arr), mr);
 }
 
 /**
@@ -225,13 +316,29 @@ struct RadixSortMSD {
     /**
      * @brief Sorts an integral span using recursive MSD Radix Sort.
      * @tparam T Must satisfy @c std::is_integral_v<T>.
+     * @tparam Extent Static or dynamic span extent.
      *
      * @param arr Span of integers to sort in-place.
      */
-    template <typename T>
+    template <typename T, std::size_t Extent = std::dynamic_extent>
         requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
-    void sort(std::span<T> arr) const {
+    void sort(std::span<T, Extent> arr) const {
         radixsort_msd(arr);
+    }
+
+    /**
+     * @brief Sorts an integral span using recursive MSD Radix Sort with a custom PMR memory
+     * resource.
+     * @tparam T Must satisfy @c std::is_integral_v<T> and not be @c bool.
+     * @tparam Extent Static or dynamic span extent.
+     *
+     * @param arr Span of integers to sort in-place.
+     * @param mr Pointer to a polymorphic memory resource for the scratchpad buffer.
+     */
+    template <typename T, std::size_t Extent = std::dynamic_extent>
+        requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+    void sort(std::span<T, Extent> arr, std::pmr::memory_resource* mr) const {
+        radixsort_msd(arr, mr);
     }
 };
 

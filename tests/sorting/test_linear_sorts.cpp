@@ -1,14 +1,22 @@
+#include "../core/pmr_test_helpers.hpp"
+#include "algoat/core/scratch_buffer.hpp"
 #include "algoat/sorting/bucketsort.hpp"
 #include "algoat/sorting/countingsort.hpp"
 #include "algoat/sorting/pigeonholesort.hpp"
 #include "algoat/sorting/radixsort.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <limits>
+#include <memory_resource>
+#include <new>
 #include <random>
 #include <vector>
+
+ALGOAT_INSTALL_GLOBAL_ALLOC_COUNTER()
 
 using namespace algoat::sorting;
 
@@ -124,4 +132,160 @@ TEST(AlgorithmConstraintTest, RejectsBoolAtCompileTime) {
     static_assert(!CanSort<algoat::sorting::RadixSortInPlaceMSD, bool>,
                   "RadixSortInPlaceMSD must reject bool");
     SUCCEED();
+}
+
+namespace {
+
+using ::algoat::testing::CountingMemoryResource;
+using ::algoat::testing::ScopedGlobalAllocTracker;
+
+template <typename T> void verify_radix_pmr_all_variants(std::vector<T> seed_data) {
+    auto expected = seed_data;
+    std::sort(expected.begin(), expected.end());
+
+    algoat::core::StackArena<65536> arena;
+
+    auto d1 = seed_data;
+    radixsort_lsd(std::span{d1}, arena.resource());
+    EXPECT_EQ(d1, expected);
+
+    arena.release();
+    auto d2 = seed_data;
+    radixsort_msd(std::span{d2}, arena.resource());
+    EXPECT_EQ(d2, expected);
+
+    arena.release();
+    auto d3 = seed_data;
+    radixsort_lsd(d3, arena.resource());
+    EXPECT_EQ(d3, expected);
+
+    arena.release();
+    auto d4 = seed_data;
+    radixsort_msd(d4, arena.resource());
+    EXPECT_EQ(d4, expected);
+
+    arena.release();
+    auto d5 = seed_data;
+    RadixSortLSD{}.sort(std::span{d5}, arena.resource());
+    EXPECT_EQ(d5, expected);
+
+    arena.release();
+    auto d6 = seed_data;
+    RadixSortMSD{}.sort(std::span{d6}, arena.resource());
+    EXPECT_EQ(d6, expected);
+
+    arena.release();
+    auto d7 = seed_data;
+    radixsort(d7, arena.resource());
+    EXPECT_EQ(d7, expected);
+}
+
+} // namespace
+
+TEST(RadixSortPmrTest, SortsMultiWidthIntegralTypesWithStackArena) {
+    verify_radix_pmr_all_variants<std::int8_t>({127, -128, 0, -1, 42, -42, 17, -17});
+    verify_radix_pmr_all_variants<std::uint16_t>({65535, 0, 1024, 512, 255, 1, 32768});
+    verify_radix_pmr_all_variants<std::int32_t>({std::numeric_limits<std::int32_t>::max(),
+                                                 std::numeric_limits<std::int32_t>::min(), 0, -5, 5,
+                                                 -1000, 1000});
+    verify_radix_pmr_all_variants<std::uint64_t>(
+        {std::numeric_limits<std::uint64_t>::max(), 0ULL, 1ULL << 63, (1ULL << 63) - 1, 999ULL});
+}
+
+TEST(RadixSortPmrTest, ExactFitAndOverflowBehavior) {
+    std::vector<std::int32_t> data(256);
+    for (int i = 0; i < 256; ++i) {
+        data[i] = 255 - i;
+    }
+    auto expected = data;
+    std::sort(expected.begin(), expected.end());
+
+    algoat::core::StackArena<1024> exact_arena;
+    auto lsd_data = data;
+    radixsort_lsd(std::span{lsd_data}, exact_arena.resource());
+    EXPECT_EQ(lsd_data, expected);
+
+    exact_arena.release();
+    auto msd_data = data;
+    radixsort_msd(std::span{msd_data}, exact_arena.resource());
+    EXPECT_EQ(msd_data, expected);
+
+    algoat::core::StackArena<64> tiny_arena;
+    EXPECT_THROW(radixsort_lsd(std::span{data}, tiny_arena.resource()), std::bad_alloc);
+    EXPECT_THROW(radixsort_msd(std::span{data}, tiny_arena.resource()), std::bad_alloc);
+}
+
+TEST(RadixSortPmrTest, CountingResourceAllocationCounts) {
+    CountingMemoryResource mr;
+    std::vector<int> single = {42};
+    radixsort_lsd(std::span{single}, &mr);
+    radixsort_msd(std::span{single}, &mr);
+    EXPECT_EQ(mr.allocate_calls(), 0U);
+    EXPECT_EQ(mr.deallocate_calls(), 0U);
+
+    std::vector<int> data = {9, -3, 7, 1, -5, 4};
+    radixsort_lsd(std::span{data}, &mr);
+    EXPECT_EQ(mr.allocate_calls(), 1U);
+    EXPECT_EQ(mr.deallocate_calls(), 1U);
+
+    std::vector<int> data2 = {9, -3, 7, 1, -5, 4};
+    radixsort_msd(std::span{data2}, &mr);
+    EXPECT_EQ(mr.allocate_calls(), 2U);
+    EXPECT_EQ(mr.deallocate_calls(), 2U);
+}
+
+TEST(RadixSortPmrTest, ZeroGlobalHeapAllocationsWithStackArena) {
+    std::mt19937 gen(123);
+    std::uniform_int_distribution<std::int32_t> dist(-100000, 100000);
+    std::vector<std::int32_t> base(4096);
+    for (auto& x : base) {
+        x = dist(gen);
+    }
+    auto expected = base;
+    std::sort(expected.begin(), expected.end());
+
+    auto lsd_data = base;
+    auto msd_data = base;
+
+    ScopedGlobalAllocTracker tracker;
+    {
+        algoat::core::StackArena<65536> arena;
+        radixsort_lsd(std::span{lsd_data}, arena.resource());
+        arena.release();
+        radixsort_msd(std::span{msd_data}, arena.resource());
+    }
+    EXPECT_EQ(tracker.count(), 0U);
+    EXPECT_EQ(lsd_data, expected);
+    EXPECT_EQ(msd_data, expected);
+}
+
+TEST(RadixSortPmrTest, StaticExtentSpanSupportsPmrOverloads) {
+    std::array<int, 8> a1 = {40, -10, 7, 0, 99, -5, 12, 3};
+    auto expected = a1;
+    std::sort(expected.begin(), expected.end());
+
+    auto a2 = a1;
+    auto a3 = a1;
+    auto a4 = a1;
+    auto a5 = a1;
+    algoat::core::StackArena<1024> arena;
+
+    radixsort(std::span<int, 8>{a1}, arena.resource());
+    EXPECT_EQ(a1, expected);
+
+    arena.release();
+    radixsort_lsd(std::span<int, 8>{a2}, arena.resource());
+    EXPECT_EQ(a2, expected);
+
+    arena.release();
+    radixsort_msd(std::span<int, 8>{a3}, arena.resource());
+    EXPECT_EQ(a3, expected);
+
+    arena.release();
+    RadixSortLSD{}.sort(std::span<int, 8>{a4}, arena.resource());
+    EXPECT_EQ(a4, expected);
+
+    arena.release();
+    RadixSortMSD{}.sort(std::span<int, 8>{a5}, arena.resource());
+    EXPECT_EQ(a5, expected);
 }

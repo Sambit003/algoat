@@ -30,6 +30,7 @@ module;
 #include <functional>
 #include <iterator>
 #include <memory>
+#include <memory_resource>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -47,6 +48,7 @@ module;
 #include <algoat/core/dispatcher.hpp>
 #include <algoat/core/hardware_topology.hpp>
 #include <algoat/core/registry.hpp>
+#include <algoat/core/scratch_buffer.hpp>
 #include <algoat/core/traits.hpp>
 #include <algoat/dp/aho_corasick.hpp>
 #include <algoat/dp/alignment.hpp>
@@ -220,7 +222,9 @@ using algoat::core::Dispatcher;
 using algoat::core::HardwareTopology;
 using algoat::core::load_config;
 using algoat::core::Registry;
+using algoat::core::ScratchBuffer;
 using algoat::core::SearchHint;
+using algoat::core::StackArena;
 } // namespace core
 
 namespace meta {
@@ -334,6 +338,7 @@ using algoat::sorting::mergesort;
 using algoat::sorting::pdqsort;
 using algoat::sorting::pigeonholesort;
 using algoat::sorting::quicksort;
+using algoat::sorting::radixsort;
 using algoat::sorting::radixsort_inplace_msd;
 using algoat::sorting::radixsort_lsd;
 using algoat::sorting::radixsort_msd;

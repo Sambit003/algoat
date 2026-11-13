@@ -32,6 +32,7 @@ algoat_add_test(test_ranges_api core/test_ranges_api.cpp)
 algoat_add_test(test_policy_chain core/test_policy_chain.cpp)
 algoat_add_test(test_hardware_topology core/test_hardware_topology.cpp)
 algoat_add_test(test_assembly_verification core/test_assembly_verification.cpp)
+algoat_add_test(test_scratch_buffer core/test_scratch_buffer.cpp)
 
 # Sorting tests
 algoat_add_test(test_hilbert_sort sorting/test_hilbert_sort.cpp)
@@ -183,6 +184,7 @@ add_executable(test_aho_corasick_invariants pbt/test_aho_corasick_invariants.cpp
 add_executable(test_loser_tree_invariants pbt/test_loser_tree_invariants.cpp)
 add_executable(test_veb_tree_invariants pbt/test_veb_tree_invariants.cpp)
 add_executable(test_hardware_topology_invariants pbt/test_hardware_topology_invariants.cpp)
+add_executable(test_scratch_buffer_invariants pbt/test_scratch_buffer_invariants.cpp)
 target_link_libraries(test_searching_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_searching_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_sorting_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
@@ -258,6 +260,8 @@ target_link_libraries(test_veb_tree_invariants PRIVATE algoat GTest::gtest_main 
 gtest_discover_tests(test_veb_tree_invariants DISCOVERY_MODE PRE_TEST)
 target_link_libraries(test_hardware_topology_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
 gtest_discover_tests(test_hardware_topology_invariants DISCOVERY_MODE PRE_TEST)
+target_link_libraries(test_scratch_buffer_invariants PRIVATE algoat GTest::gtest_main rapidcheck rapidcheck_gtest)
+gtest_discover_tests(test_scratch_buffer_invariants DISCOVERY_MODE PRE_TEST)
 
 # Fuzzing Tests
 if(ALGOAT_ENABLE_FUZZING)
@@ -413,6 +417,10 @@ if(ALGOAT_ENABLE_FUZZING)
     target_link_libraries(hardware_topology_fuzzer PRIVATE algoat)
     target_compile_options(hardware_topology_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
     target_link_options(hardware_topology_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    add_executable(diff_scratch_buffer_fuzzer fuzzing/diff_scratch_buffer_fuzzer.cpp)
+    target_link_libraries(diff_scratch_buffer_fuzzer PRIVATE algoat)
+    target_compile_options(diff_scratch_buffer_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
+    target_link_options(diff_scratch_buffer_fuzzer PRIVATE -fsanitize=address,undefined,fuzzer)
 endif()
 
 # Negative compilation tests (static_assert failure verification)

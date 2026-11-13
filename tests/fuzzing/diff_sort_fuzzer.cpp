@@ -1,4 +1,5 @@
 #include "algoat/algoat.hpp"
+#include "algoat/core/scratch_buffer.hpp"
 #include "algoat/numerics/float16_sort.hpp"
 #include "algoat/numerics/hilbert.hpp"
 #include "algoat/numerics/hybrid_sfc.hpp"
@@ -224,6 +225,33 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     test_radix(RadixSortMSD{});
     test_radix(RadixSortInPlaceMSD{});
     test_radix(SkaSort{});
+
+    // PMR StackArena-backed mergesort and radix sorts (for inputs fitting within 64 KiB)
+    if (num_elements <= 65536U / sizeof(StableItem)) {
+        algoat::core::StackArena<65536> pmr_arena;
+        std::vector<StableItem> pmr_merge = original;
+        algoat::sorting::mergesort(std::span{pmr_merge}, pmr_arena.resource());
+        for (size_t i = 0; i < pmr_merge.size(); ++i) {
+            if (pmr_merge[i].key != stable_expected[i].key ||
+                pmr_merge[i].original_index != stable_expected[i].original_index) {
+                __builtin_trap();
+            }
+        }
+        pmr_arena.release();
+
+        std::vector<int> pmr_lsd = original_ints;
+        algoat::sorting::radixsort_lsd(std::span{pmr_lsd}, pmr_arena.resource());
+        if (pmr_lsd != expected_ints) {
+            __builtin_trap();
+        }
+        pmr_arena.release();
+
+        std::vector<int> pmr_msd = original_ints;
+        algoat::sorting::radixsort_msd(std::span{pmr_msd}, pmr_arena.resource());
+        if (pmr_msd != expected_ints) {
+            __builtin_trap();
+        }
+    }
 
     // Free function ska_sort
     {
