@@ -63,7 +63,16 @@ public:
      * destroyed before calling @c release().
      */
     void release() {
+#ifdef _MSVC_STL_VERSION
+        // MSVC STL's monotonic_buffer_resource::release() drops or skips resetting the initial
+        // buffer; reconstruct in-place so repeated StackArena reuse rebinds buffer_.data().
+        std::pmr::memory_resource* const upstream = resource_.upstream_resource();
+        std::destroy_at(&resource_);
+        std::construct_at(&resource_, StackCapacityBytes > 0 ? buffer_.data() : nullptr,
+                          StackCapacityBytes, upstream);
+#else
         resource_.release();
+#endif
     }
 
 private:
