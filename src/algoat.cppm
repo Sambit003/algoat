@@ -168,9 +168,11 @@ using algoat::Triangle;
 using algoat::VertexId;
 using algoat::VoronoiCell;
 using algoat::core::SearchHint;
-using algoat::geometry::BooleanOp;
-using algoat::geometry::BooleanPolygon;
-using algoat::geometry::MultiPolygon;
+using BooleanOp = algoat::geometry::BooleanOp;
+template <algoat::geometry::Point2DLike PointType = std::array<double, 2>>
+using BooleanPolygon = algoat::geometry::BooleanPolygon<PointType>;
+template <algoat::geometry::Point2DLike PointType = std::array<double, 2>>
+using MultiPolygon = algoat::geometry::MultiPolygon<PointType>;
 using algoat::geometry::Point2DLike;
 using algoat::geometry::polygon_boolean;
 using algoat::geometry::polygon_difference;
@@ -470,9 +472,11 @@ using algoat::geometry::Triangle;
 using algoat::geometry::VoronoiCell;
 
 namespace boolean {
-using algoat::geometry::BooleanOp;
-using algoat::geometry::BooleanPolygon;
-using algoat::geometry::MultiPolygon;
+using BooleanOp = algoat::geometry::BooleanOp;
+template <algoat::geometry::Point2DLike PointType = std::array<double, 2>>
+using BooleanPolygon = algoat::geometry::BooleanPolygon<PointType>;
+template <algoat::geometry::Point2DLike PointType = std::array<double, 2>>
+using MultiPolygon = algoat::geometry::MultiPolygon<PointType>;
 using algoat::geometry::Point2DLike;
 using algoat::geometry::polygon_boolean;
 using algoat::geometry::polygon_difference;
