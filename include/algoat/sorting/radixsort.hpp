@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "algoat/meta/simd_sorting_network.hpp"
+
 #include <algorithm>
 #include <bit>
 #include <concepts>
@@ -267,6 +269,13 @@ template <typename K> constexpr auto to_sortable_key(K key) noexcept {
 template <typename T, typename Projection>
 void branchless_small_sort(std::span<T> data, Projection proj) {
     const std::size_t n = data.size();
+    if constexpr (std::is_same_v<std::remove_cvref_t<Projection>, std::identity> &&
+                  algoat::meta::detail::simd_net::is_simd_network_type_v<T>) {
+        if (!std::is_constant_evaluated() && n <= 64) {
+            algoat::meta::detail::simd_net::sort_small_simd(data.data(), n);
+            return;
+        }
+    }
     for (std::size_t i = 1; i < n; ++i) {
         T key = std::move(data[i]);
         auto key_val = to_sortable_key(std::invoke(proj, key));
