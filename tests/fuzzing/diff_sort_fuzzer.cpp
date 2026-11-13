@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -316,34 +317,55 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
             if (buf != exp_buf)
                 __builtin_trap();
         }
-        if (num_elements >= 4) {
-            std::array<int, 4> buf;
-            std::memcpy(buf.data(), original_ints.data(), 4 * sizeof(int));
-            std::array<int, 4> exp_buf = buf;
-            std::sort(exp_buf.begin(), exp_buf.end());
-            algoat::meta::static_sort(std::span<int, 4>{buf});
-            if (buf != exp_buf)
-                __builtin_trap();
-        }
-        if (num_elements >= 8) {
-            std::array<int, 8> buf;
-            std::memcpy(buf.data(), original_ints.data(), 8 * sizeof(int));
-            std::array<int, 8> exp_buf = buf;
-            std::sort(exp_buf.begin(), exp_buf.end());
-            algoat::meta::static_sort(std::span<int, 8>{buf});
-            if (buf != exp_buf)
-                __builtin_trap();
-        }
-        if (num_elements >= 16) {
-            std::array<int, 16> buf;
-            std::memcpy(buf.data(), original_ints.data(), 16 * sizeof(int));
-            std::array<int, 16> exp_buf = buf;
-            std::sort(exp_buf.begin(), exp_buf.end());
-            algoat::meta::static_sort(std::span<int, 16>{buf});
-            if (buf != exp_buf)
-                __builtin_trap();
-        }
+        auto check_static_extent = [&]<std::size_t N>() {
+            if (num_elements >= N) {
+                std::array<int, N> buf;
+                std::memcpy(buf.data(), original_ints.data(), N * sizeof(int));
+                std::array<int, N> exp_buf = buf;
+                std::sort(exp_buf.begin(), exp_buf.end());
+                algoat::meta::static_sort(std::span<int, N>{buf});
+                if (buf != exp_buf)
+                    __builtin_trap();
+            }
+        };
+        check_static_extent.template operator()<4>();
+        check_static_extent.template operator()<8>();
+        check_static_extent.template operator()<16>();
+        check_static_extent.template operator()<32>();
+        check_static_extent.template operator()<64>();
     }
+
+    // Differential fuzzing for in-register SIMDSortingNetwork across all supported widths and types
+    auto fuzz_simd_type = [&]<typename T>() {
+        auto check_n = [&]<std::size_t N>() {
+            if (size >= N * sizeof(T)) {
+                std::array<T, N> buf;
+                std::memcpy(buf.data(), data, N * sizeof(T));
+                if constexpr (std::is_floating_point_v<T>) {
+                    for (T& v : buf) {
+                        if (std::isnan(v)) {
+                            v = static_cast<T>(0);
+                        }
+                    }
+                }
+                std::array<T, N> exp_buf = buf;
+                std::sort(exp_buf.begin(), exp_buf.end());
+                algoat::meta::sort_simd_network(std::span<T, N>{buf});
+                if (buf != exp_buf)
+                    __builtin_trap();
+            }
+        };
+        check_n.template operator()<8>();
+        check_n.template operator()<16>();
+        check_n.template operator()<32>();
+        check_n.template operator()<64>();
+    };
+    fuzz_simd_type.template operator()<std::int32_t>();
+    fuzz_simd_type.template operator()<std::uint32_t>();
+    fuzz_simd_type.template operator()<std::int64_t>();
+    fuzz_simd_type.template operator()<std::uint64_t>();
+    fuzz_simd_type.template operator()<float>();
+    fuzz_simd_type.template operator()<double>();
 
     // Spatial Curve Sorts (Morton, Hilbert, Hybrid SFC)
     if (size % sizeof(std::complex<float>) == 0 && size > 0) {

@@ -12,6 +12,7 @@
 #pragma once
 
 #include "algoat/core/registry.hpp"
+#include "algoat/meta/simd_sorting_network.hpp"
 #include "algoat/sorting/detail/pdq_common.hpp"
 #include "algoat/sorting/heapsort.hpp"
 
@@ -65,6 +66,21 @@ constexpr void pdqsort_loop(I begin, I end, Comp comp, Proj proj, int bad_allowe
                             bool leftmost = true) {
     while (true) {
         auto size = end - begin;
+
+        using ValueT = std::iter_value_t<I>;
+        using RawComp = std::remove_cvref_t<Comp>;
+        if constexpr (std::contiguous_iterator<I> &&
+                      algoat::meta::detail::simd_net::is_simd_network_type_v<ValueT> &&
+                      std::is_same_v<std::remove_cvref_t<Proj>, std::identity> &&
+                      (std::is_same_v<RawComp, std::less<ValueT>> ||
+                       std::is_same_v<RawComp, std::less<>> ||
+                       std::is_same_v<RawComp, std::ranges::less>)) {
+            if (!std::is_constant_evaluated() && static_cast<std::size_t>(size) <= 64) {
+                algoat::meta::detail::simd_net::sort_small_simd(std::to_address(begin),
+                                                                static_cast<std::size_t>(size));
+                return;
+            }
+        }
 
         if (static_cast<std::size_t>(size) < pdq_insertion_sort_threshold) {
             if (leftmost) {

@@ -9,6 +9,7 @@
 #pragma once
 
 #include "algoat/meta/policy.hpp"
+#include "algoat/meta/simd_sorting_network.hpp"
 #include "algoat/meta/sorting_network.hpp"
 #include "algoat/sorting/blocksort.hpp"
 #include "algoat/sorting/insertionsort.hpp"
@@ -71,6 +72,22 @@ constexpr void dispatch_static_sort(std::span<T, N> data, Compare comp = {}) {
                 algoat::sorting::radixsort_lsd(std::span<T>{data});
             }
             return;
+        }
+
+        // 3a. Statically-known extents N in {8, 16, 32, 64} with default ascending comparator:
+        // in-register SIMD sorting network (runtime only; falls back to scalar network in
+        // constexpr).
+        if constexpr (N == 8 || N == 16 || N == 32 || N == 64) {
+            if constexpr (!Desc.stable && (!Desc.nearly_sorted || N <= 16) &&
+                          detail::simd_net::is_simd_network_type_v<T> &&
+                          (std::is_same_v<Compare, std::less<T>> ||
+                           std::is_same_v<Compare, std::less<>> ||
+                           std::is_same_v<Compare, std::ranges::less>)) {
+                if (!std::is_constant_evaluated()) {
+                    algoat::meta::SIMDSortingNetwork<N, T>::sort(data);
+                    return;
+                }
+            }
         }
 
         // 3. Statically-known small extents (N <= 16): optimal unrolled sorting network

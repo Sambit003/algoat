@@ -12,6 +12,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <memory>
 #include <rapidcheck.h>
@@ -535,4 +537,81 @@ TEST(GrailSortPBT, CustomComparatorAndProjectionInvariants) {
         algoat::sorting::grailsort(std::span<int>{data});
         RC_ASSERT(data == expected);
     });
+}
+
+namespace {
+
+template <std::size_t N, typename T> void check_simd_network_pbt(const std::string& label) {
+    rc::check(label, [](std::array<T, N> input) {
+        if constexpr (std::is_floating_point_v<T>) {
+            for (T& v : input) {
+                if (!std::isfinite(v)) {
+                    v = static_cast<T>(0);
+                }
+            }
+        }
+        auto expected = input;
+        std::sort(expected.begin(), expected.end());
+
+        algoat::meta::SIMDSortingNetwork<N, T>::sort(std::span<T, N>{input});
+        RC_ASSERT(input == expected);
+
+        auto idempotent = input;
+        algoat::meta::sort_simd_network(std::span<T, N>{idempotent});
+        RC_ASSERT(idempotent == input);
+    });
+}
+
+} // namespace
+
+TEST(SimdSortingNetworkPBT, AllSizesAndTypesInvariants) {
+    check_simd_network_pbt<8, std::int32_t>("SIMD network N=8 int32");
+    check_simd_network_pbt<16, std::int32_t>("SIMD network N=16 int32");
+    check_simd_network_pbt<32, std::int32_t>("SIMD network N=32 int32");
+    check_simd_network_pbt<64, std::int32_t>("SIMD network N=64 int32");
+
+    check_simd_network_pbt<8, std::uint32_t>("SIMD network N=8 uint32");
+    check_simd_network_pbt<16, std::uint32_t>("SIMD network N=16 uint32");
+    check_simd_network_pbt<32, std::uint32_t>("SIMD network N=32 uint32");
+    check_simd_network_pbt<64, std::uint32_t>("SIMD network N=64 uint32");
+
+    check_simd_network_pbt<8, float>("SIMD network N=8 float");
+    check_simd_network_pbt<16, float>("SIMD network N=16 float");
+    check_simd_network_pbt<32, float>("SIMD network N=32 float");
+    check_simd_network_pbt<64, float>("SIMD network N=64 float");
+
+    check_simd_network_pbt<8, std::int64_t>("SIMD network N=8 int64");
+    check_simd_network_pbt<16, std::int64_t>("SIMD network N=16 int64");
+    check_simd_network_pbt<32, std::int64_t>("SIMD network N=32 int64");
+    check_simd_network_pbt<64, std::int64_t>("SIMD network N=64 int64");
+
+    check_simd_network_pbt<8, std::uint64_t>("SIMD network N=8 uint64");
+    check_simd_network_pbt<16, std::uint64_t>("SIMD network N=16 uint64");
+    check_simd_network_pbt<32, std::uint64_t>("SIMD network N=32 uint64");
+    check_simd_network_pbt<64, std::uint64_t>("SIMD network N=64 uint64");
+
+    check_simd_network_pbt<8, double>("SIMD network N=8 double");
+    check_simd_network_pbt<16, double>("SIMD network N=16 double");
+    check_simd_network_pbt<32, double>("SIMD network N=32 double");
+    check_simd_network_pbt<64, double>("SIMD network N=64 double");
+
+    check_simd_network_pbt<16, std::int16_t>("SIMD network scalar fallback N=16 int16");
+
+    rc::check("Fixed extent 32 and 64 static_sort integration",
+              [](std::array<std::int32_t, 32> a32, std::array<double, 64> a64) {
+                  auto exp32 = a32;
+                  std::sort(exp32.begin(), exp32.end());
+                  algoat::meta::static_sort(std::span<std::int32_t, 32>{a32});
+                  RC_ASSERT(a32 == exp32);
+
+                  for (double& d : a64) {
+                      if (!std::isfinite(d)) {
+                          d = 0.0;
+                      }
+                  }
+                  auto exp64 = a64;
+                  std::sort(exp64.begin(), exp64.end());
+                  algoat::meta::static_sort(std::span<double, 64>{a64});
+                  RC_ASSERT(a64 == exp64);
+              });
 }
