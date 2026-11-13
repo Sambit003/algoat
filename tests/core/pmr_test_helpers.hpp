@@ -7,6 +7,10 @@
 #include <memory_resource>
 #include <new>
 
+#ifdef _WIN32
+#include <malloc.h>
+#endif
+
 #ifndef __has_feature
 #define __has_feature(x) 0
 #endif
@@ -106,6 +110,28 @@ private:
     bool active_{true};
 };
 
+namespace detail {
+
+#ifdef _WIN32
+inline void* aligned_alloc_impl(std::size_t alignment, std::size_t size) noexcept {
+    return ::_aligned_malloc(size, alignment);
+}
+
+inline void aligned_free_impl(void* p) noexcept {
+    ::_aligned_free(p);
+}
+#else
+inline void* aligned_alloc_impl(std::size_t alignment, std::size_t size) noexcept {
+    return std::aligned_alloc(alignment, size);
+}
+
+inline void aligned_free_impl(void* p) noexcept {
+    std::free(p);
+}
+#endif
+
+} // namespace detail
+
 } // namespace algoat::testing
 
 #if !defined(__SANITIZE_ADDRESS__) && (!defined(__has_feature) || !__has_feature(address_sanitizer))
@@ -132,7 +158,7 @@ private:
         }                                                                                          \
         const std::size_t req =                                                                    \
             size == 0 ? adj_align : ((size + adj_align - 1) & ~(adj_align - 1));                   \
-        void* p = std::aligned_alloc(adj_align, req);                                              \
+        void* p = ::algoat::testing::detail::aligned_alloc_impl(adj_align, req);                   \
         if (!p) {                                                                                  \
             throw std::bad_alloc();                                                                \
         }                                                                                          \
@@ -145,10 +171,10 @@ private:
         std::free(p);                                                                              \
     }                                                                                              \
     void operator delete(void* p, std::align_val_t) noexcept {                                     \
-        std::free(p);                                                                              \
+        ::algoat::testing::detail::aligned_free_impl(p);                                           \
     }                                                                                              \
     void operator delete(void* p, std::size_t, std::align_val_t) noexcept {                        \
-        std::free(p);                                                                              \
+        ::algoat::testing::detail::aligned_free_impl(p);                                           \
     }
 #else
 #define ALGOAT_INSTALL_GLOBAL_ALLOC_COUNTER()
