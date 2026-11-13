@@ -322,3 +322,31 @@ TEST(ModuleImportTest, StackArenaAndScratchBufferPmrExport) {
     algoat::sorting::radixsort(std::span{radix_vec}, arena.resource());
     EXPECT_TRUE(std::is_sorted(radix_vec.begin(), radix_vec.end()));
 }
+
+TEST(ModuleImportTest, GeometryPolygonBooleanExport) {
+    algoat::geometry::BooleanPolygon<> a;
+    a.outer_ring = {{0.0, 0.0}, {10.0, 0.0}, {10.0, 10.0}, {0.0, 10.0}};
+
+    algoat::geometry::boolean::Polygon<> b;
+    b.outer_ring = {{5.0, 5.0}, {15.0, 5.0}, {15.0, 15.0}, {5.0, 15.0}};
+
+    algoat::MultiPolygon<> inter = algoat::polygon_intersection(a, b);
+    ASSERT_EQ(inter.size(), 1u);
+    EXPECT_NEAR(inter[0].area(), 25.0, 1e-12);
+
+    auto uni = algoat::geometry::polygon_boolean(a, b, algoat::BooleanOp::Union);
+    ASSERT_EQ(uni.size(), 1u);
+    EXPECT_NEAR(uni[0].area(), 175.0, 1e-12);
+
+    auto uni_helper = algoat::polygon_union(a, b);
+    ASSERT_EQ(uni_helper.size(), 1u);
+    EXPECT_NEAR(uni_helper[0].area(), 175.0, 1e-12);
+
+    auto diff = algoat::polygon_difference(a, b);
+    ASSERT_EQ(diff.size(), 1u);
+    EXPECT_NEAR(diff[0].area(), 75.0, 1e-12);
+
+    auto sym = algoat::polygon_xor(a, b);
+    ASSERT_EQ(sym.size(), 2u);
+    EXPECT_NEAR(sym[0].area() + sym[1].area(), 150.0, 1e-12);
+}
