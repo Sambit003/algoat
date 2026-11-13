@@ -1,4 +1,5 @@
 #include "algoat/algoat.hpp"
+#include "algoat/core/scratch_buffer.hpp"
 #include "algoat/sorting/blocksort.hpp"
 #include "algoat/sorting/bucketsort.hpp"
 #include "algoat/sorting/combsort.hpp"
@@ -22,6 +23,7 @@
 
 #include <algorithm>
 #include <benchmark/benchmark.h>
+#include <memory_resource>
 #include <random>
 #include <vector>
 
@@ -175,6 +177,121 @@ static void BM_MergeSort_Large_PMR(benchmark::State& state) {
     state.SetComplexityN(state.range(0));
 }
 BENCHMARK(BM_MergeSort_Large_PMR)->RangeMultiplier(4)->Range(1 << 16, 1 << 22)->Complexity();
+
+static void BM_MergeSort_ShortLived_Heap(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+    std::vector<int> work(n);
+    for (auto _ : state) {
+        std::copy(data.begin(), data.end(), work.begin());
+        algoat::sorting::mergesort(std::span{work}, std::less<>{}, std::pmr::new_delete_resource());
+        benchmark::DoNotOptimize(work.data());
+    }
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(n));
+}
+BENCHMARK(BM_MergeSort_ShortLived_Heap)->RangeMultiplier(2)->Range(4, 1024)->ThreadRange(1, 8);
+
+static void BM_MergeSort_ShortLived_StackArena(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+    std::vector<int> work(n);
+    for (auto _ : state) {
+        std::copy(data.begin(), data.end(), work.begin());
+        algoat::core::StackArena<65536> arena;
+        algoat::sorting::mergesort(std::span{work}, std::less<>{}, arena.resource());
+        benchmark::DoNotOptimize(work.data());
+    }
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(n));
+}
+BENCHMARK(BM_MergeSort_ShortLived_StackArena)
+    ->RangeMultiplier(2)
+    ->Range(4, 1024)
+    ->ThreadRange(1, 8);
+
+static void BM_ScratchBuffer_ShortLived_StdVector(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    for (auto _ : state) {
+        std::vector<int> scratch(n);
+        scratch[0] = 1;
+        scratch[n - 1] = 2;
+        benchmark::DoNotOptimize(scratch.data());
+    }
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(n));
+}
+BENCHMARK(BM_ScratchBuffer_ShortLived_StdVector)
+    ->RangeMultiplier(4)
+    ->Range(64, 16384)
+    ->ThreadRange(1, 8);
+
+static void BM_ScratchBuffer_ShortLived_StackArena(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    for (auto _ : state) {
+        algoat::core::StackArena<65536> arena;
+        algoat::core::ScratchBuffer<int> scratch(n, arena.resource());
+        scratch.data()[0] = 1;
+        scratch.data()[n - 1] = 2;
+        benchmark::DoNotOptimize(scratch.data());
+    }
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(n));
+}
+BENCHMARK(BM_ScratchBuffer_ShortLived_StackArena)
+    ->RangeMultiplier(4)
+    ->Range(64, 16384)
+    ->ThreadRange(1, 8);
+
+static void BM_RadixSortLSD_ShortLived_Heap(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+    std::vector<int> work(n);
+    for (auto _ : state) {
+        std::copy(data.begin(), data.end(), work.begin());
+        algoat::sorting::radixsort_lsd(std::span{work}, std::pmr::new_delete_resource());
+        benchmark::DoNotOptimize(work.data());
+    }
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(n));
+}
+BENCHMARK(BM_RadixSortLSD_ShortLived_Heap)->RangeMultiplier(4)->Range(32, 4096);
+
+static void BM_RadixSortLSD_ShortLived_StackArena(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+    std::vector<int> work(n);
+    for (auto _ : state) {
+        std::copy(data.begin(), data.end(), work.begin());
+        algoat::core::StackArena<65536> arena;
+        algoat::sorting::radixsort_lsd(std::span{work}, arena.resource());
+        benchmark::DoNotOptimize(work.data());
+    }
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(n));
+}
+BENCHMARK(BM_RadixSortLSD_ShortLived_StackArena)->RangeMultiplier(4)->Range(32, 4096);
+
+static void BM_RadixSortMSD_ShortLived_Heap(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+    std::vector<int> work(n);
+    for (auto _ : state) {
+        std::copy(data.begin(), data.end(), work.begin());
+        algoat::sorting::radixsort_msd(std::span{work}, std::pmr::new_delete_resource());
+        benchmark::DoNotOptimize(work.data());
+    }
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(n));
+}
+BENCHMARK(BM_RadixSortMSD_ShortLived_Heap)->RangeMultiplier(4)->Range(32, 4096);
+
+static void BM_RadixSortMSD_ShortLived_StackArena(benchmark::State& state) {
+    const auto n = static_cast<std::size_t>(state.range(0));
+    auto data = generate_random_data(n);
+    std::vector<int> work(n);
+    for (auto _ : state) {
+        std::copy(data.begin(), data.end(), work.begin());
+        algoat::core::StackArena<65536> arena;
+        algoat::sorting::radixsort_msd(std::span{work}, arena.resource());
+        benchmark::DoNotOptimize(work.data());
+    }
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(n));
+}
+BENCHMARK(BM_RadixSortMSD_ShortLived_StackArena)->RangeMultiplier(4)->Range(32, 4096);
 
 #include <algoat/numerics/float16_sort.hpp>
 #include <algoat/numerics/morton.hpp>

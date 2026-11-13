@@ -39,6 +39,16 @@ template <typename Comp, typename Proj>
 template <typename R>
 concept contiguous_sized_range = std::ranges::contiguous_range<R> && std::ranges::sized_range<R>;
 
+template <typename T> struct is_std_span : std::false_type {};
+template <typename T, std::size_t Extent>
+struct is_std_span<std::span<T, Extent>> : std::true_type {};
+
+/**
+ * @brief Helper variable template identifying @c std::span specializations regardless of cvref.
+ */
+template <typename T>
+inline constexpr bool is_std_span_v = is_std_span<std::remove_cvref_t<T>>::value;
+
 /**
  * @brief Zero-overhead adapter converting any contiguous sized range to std::span<T>.
  */

@@ -297,3 +297,28 @@ TEST(ModuleImportTest, HardwareTopologyExport) {
     EXPECT_EQ(props.level, 1U);
     EXPECT_EQ(props.size_bytes, topo.l1d_cache_size());
 }
+
+TEST(ModuleImportTest, StackArenaAndScratchBufferPmrExport) {
+    algoat::core::StackArena<4096> arena;
+    EXPECT_EQ(arena.capacity(), 4096U);
+
+    algoat::core::ScratchBuffer<int> scratch(8, arena.resource());
+    EXPECT_EQ(scratch.size(), 8U);
+
+    std::vector<int> merge_vec = {9, 3, 7, 1, 5, 2, 8, 4, 6};
+    algoat::sorting::mergesort(std::span{merge_vec}, arena.resource());
+    EXPECT_TRUE(std::is_sorted(merge_vec.begin(), merge_vec.end()));
+
+    std::vector<int> lsd_vec = {90, -10, 40, 20, -30, 0};
+    algoat::sorting::radixsort_lsd(std::span{lsd_vec}, arena.resource());
+    EXPECT_TRUE(std::is_sorted(lsd_vec.begin(), lsd_vec.end()));
+
+    std::vector<int> msd_vec = {90, -10, 40, 20, -30, 0};
+    algoat::sorting::radixsort_msd(std::span{msd_vec}, arena.resource());
+    EXPECT_TRUE(std::is_sorted(msd_vec.begin(), msd_vec.end()));
+
+    arena.release();
+    std::vector<int> radix_vec = {90, -10, 40, 20, -30, 0};
+    algoat::sorting::radixsort(std::span{radix_vec}, arena.resource());
+    EXPECT_TRUE(std::is_sorted(radix_vec.begin(), radix_vec.end()));
+}
