@@ -18,6 +18,10 @@ module;
 #define ALGOAT_STATIC_BTREE_SCALAR_ONLY 1
 #define ALGOAT_SIMD_SORTING_NETWORK_SCALAR_ONLY 1
 
+// Suppress non-exported GMF `using`-declarations for non-function entities so GCC 14 emits
+// top-level `export namespace` bindings into the C++20 module CMI (PR c++/114683).
+#define ALGOAT_BUILDING_MODULE 1
+
 // Global Module Fragment (GMF): only preprocessor directives and non-modular includes
 #include <algorithm>
 #include <array>
@@ -466,16 +470,16 @@ using algoat::geometry::Triangle;
 using algoat::geometry::VoronoiCell;
 
 namespace boolean {
-using algoat::geometry::boolean::BooleanOp;
-using algoat::geometry::boolean::BooleanPolygon;
-using algoat::geometry::boolean::MultiPolygon;
-using algoat::geometry::boolean::Point2DLike;
+using algoat::geometry::BooleanOp;
+using algoat::geometry::BooleanPolygon;
+using algoat::geometry::MultiPolygon;
+using algoat::geometry::Point2DLike;
+using algoat::geometry::polygon_boolean;
+using algoat::geometry::polygon_difference;
+using algoat::geometry::polygon_intersection;
+using algoat::geometry::polygon_union;
+using algoat::geometry::polygon_xor;
 using algoat::geometry::boolean::Polygon;
-using algoat::geometry::boolean::polygon_boolean;
-using algoat::geometry::boolean::polygon_difference;
-using algoat::geometry::boolean::polygon_intersection;
-using algoat::geometry::boolean::polygon_union;
-using algoat::geometry::boolean::polygon_xor;
 } // namespace boolean
 } // namespace geometry
 

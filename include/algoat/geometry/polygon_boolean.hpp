@@ -1462,6 +1462,7 @@ namespace boolean {
 
 template <Point2DLike PointType = std::array<double, 2>> using Polygon = BooleanPolygon<PointType>;
 
+#ifndef ALGOAT_BUILDING_MODULE
 using algoat::geometry::BooleanOp;
 using algoat::geometry::BooleanPolygon;
 using algoat::geometry::MultiPolygon;
@@ -1471,6 +1472,7 @@ using algoat::geometry::polygon_difference;
 using algoat::geometry::polygon_intersection;
 using algoat::geometry::polygon_union;
 using algoat::geometry::polygon_xor;
+#endif
 
 } // namespace boolean
 

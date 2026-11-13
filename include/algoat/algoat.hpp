@@ -75,8 +75,6 @@ namespace algoat {
 
 using core::SearchHint;
 using geometry::AABB;
-using geometry::BooleanOp;
-using geometry::BooleanPolygon;
 using geometry::BVHNode;
 using geometry::CircleLocation;
 using geometry::convex_hull_2d_andrew;
@@ -89,21 +87,25 @@ using geometry::insphere;
 using geometry::KDTree;
 using geometry::LBVH;
 using geometry::MetricType;
-using geometry::MultiPolygon;
 using geometry::orient2d;
 using geometry::orient3d;
 using geometry::Orientation;
 using geometry::Point2D;
-using geometry::Point2DLike;
 using geometry::Point3D;
 using geometry::Polygon;
 using geometry::Polygon2D;
+using geometry::PolygonInclusion;
+#ifndef ALGOAT_BUILDING_MODULE
+using geometry::BooleanOp;
+using geometry::BooleanPolygon;
+using geometry::MultiPolygon;
+using geometry::Point2DLike;
 using geometry::polygon_boolean;
 using geometry::polygon_difference;
 using geometry::polygon_intersection;
 using geometry::polygon_union;
 using geometry::polygon_xor;
-using geometry::PolygonInclusion;
+#endif
 using geometry::Polyhedron3D;
 using geometry::Ray;
 using geometry::SpatialPoint;
