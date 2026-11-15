@@ -350,3 +350,27 @@ TEST(ModuleImportTest, GeometryPolygonBooleanExport) {
     ASSERT_EQ(sym.size(), 2u);
     EXPECT_NEAR(sym[0].area() + sym[1].area(), 150.0, 1e-12);
 }
+
+TEST(ModuleImportTest, GeometryRStarTreeExport) {
+    algoat::BoundingBox<double, 2> b1{{0.0, 0.0}, {4.0, 4.0}};
+    algoat::geometry::BoundingBox<double, 2> b2{{3.0, 3.0}, {7.0, 7.0}};
+    EXPECT_TRUE(b1.intersects(b2));
+    EXPECT_DOUBLE_EQ(b1.area(), 16.0);
+
+    algoat::RStarTree<int> tree;
+    std::vector<std::pair<algoat::BoundingBox<double, 2>, int>> items = {{b1, 1}, {b2, 2}};
+    tree.bulk_load(items);
+    tree.insert(algoat::BoundingBox<double, 2>{{10.0, 10.0}, {12.0, 12.0}}, 3);
+    EXPECT_EQ(tree.size(), 3u);
+
+    auto hits = tree.search_intersecting(algoat::BoundingBox<double, 2>{{2.5, 2.5}, {3.5, 3.5}});
+    std::sort(hits.begin(), hits.end());
+    EXPECT_EQ(hits, (std::vector<int>{1, 2}));
+
+    auto knn = tree.knn_search({1.0, 1.0}, 1);
+    ASSERT_EQ(knn.size(), 1u);
+    EXPECT_EQ(knn[0].first, 1);
+
+    EXPECT_TRUE(tree.remove(b1, 1));
+    EXPECT_EQ(tree.size(), 2u);
+}
