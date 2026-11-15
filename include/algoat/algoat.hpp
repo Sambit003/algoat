@@ -24,6 +24,7 @@
 #include "algoat/geometry/polygon.hpp"
 #include "algoat/geometry/polygon_boolean.hpp"
 #include "algoat/geometry/predicates.hpp"
+#include "algoat/geometry/rstar_tree.hpp"
 #include "algoat/graph/bipartite_matching.hpp"
 #include "algoat/graph/centrality.hpp"
 #include "algoat/graph/csr_graph.hpp"
@@ -98,6 +99,7 @@ using geometry::PolygonInclusion;
 #ifndef ALGOAT_BUILDING_MODULE
 using geometry::BooleanOp;
 using geometry::BooleanPolygon;
+using geometry::BoundingBox;
 using geometry::MultiPolygon;
 using geometry::Point2DLike;
 using geometry::polygon_boolean;
@@ -105,6 +107,7 @@ using geometry::polygon_difference;
 using geometry::polygon_intersection;
 using geometry::polygon_union;
 using geometry::polygon_xor;
+using geometry::RStarTree;
 #endif
 using geometry::Polyhedron3D;
 using geometry::Ray;
