@@ -17,6 +17,7 @@ module;
 // (including Clang 18) to prevent GMF immintrin.h internal-linkage intrinsic lookup failures.
 #define ALGOAT_STATIC_BTREE_SCALAR_ONLY 1
 #define ALGOAT_SIMD_SORTING_NETWORK_SCALAR_ONLY 1
+#define ALGOAT_RSTAR_SCALAR_ONLY 1
 
 // Suppress non-exported GMF `using`-declarations for non-function entities so GCC 14 emits
 // top-level `export namespace` bindings into the C++20 module CMI (PR c++/114683).
@@ -64,6 +65,7 @@ module;
 #include <algoat/geometry/polygon.hpp>
 #include <algoat/geometry/polygon_boolean.hpp>
 #include <algoat/geometry/predicates.hpp>
+#include <algoat/geometry/rstar_tree.hpp>
 #include <algoat/graph/bipartite_matching.hpp>
 #include <algoat/graph/centrality.hpp>
 #include <algoat/graph/csr_graph.hpp>
@@ -179,6 +181,10 @@ using algoat::geometry::polygon_difference;
 using algoat::geometry::polygon_intersection;
 using algoat::geometry::polygon_union;
 using algoat::geometry::polygon_xor;
+template <typename T = double, std::size_t Dim = 2>
+using BoundingBox = algoat::geometry::BoundingBox<T, Dim>;
+template <typename ValueType, typename T = double, std::size_t Dim = 2, std::size_t MaxEntries = 16>
+using RStarTree = algoat::geometry::RStarTree<ValueType, T, Dim, MaxEntries>;
 
 namespace graph {
 using algoat::graph::betweenness_centrality;
@@ -438,6 +444,7 @@ namespace geometry {
 using algoat::geometry::AABB;
 using algoat::geometry::BooleanOp;
 using algoat::geometry::BooleanPolygon;
+using algoat::geometry::BoundingBox;
 using algoat::geometry::BVHNode;
 using algoat::geometry::CircleLocation;
 using algoat::geometry::convex_hull_2d_andrew;
@@ -467,6 +474,7 @@ using algoat::geometry::polygon_xor;
 using algoat::geometry::PolygonInclusion;
 using algoat::geometry::Polyhedron3D;
 using algoat::geometry::Ray;
+using algoat::geometry::RStarTree;
 using algoat::geometry::SpatialPoint;
 using algoat::geometry::Triangle;
 using algoat::geometry::VoronoiCell;
