@@ -73,6 +73,8 @@ add_executable(bench_rstar_tree bench_rstar_tree.cpp)
 target_link_libraries(bench_rstar_tree PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
 add_executable(bench_bentley_ottmann bench_bentley_ottmann.cpp)
 target_link_libraries(bench_bentley_ottmann PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+add_executable(bench_smallest_enclosing_ball bench_smallest_enclosing_ball.cpp)
+target_link_libraries(bench_smallest_enclosing_ball PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
 
 add_executable(bench_graph bench_graph.cpp)
 target_link_libraries(bench_graph PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)

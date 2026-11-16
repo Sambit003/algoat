@@ -26,6 +26,7 @@
 #include "algoat/geometry/polygon_boolean.hpp"
 #include "algoat/geometry/predicates.hpp"
 #include "algoat/geometry/rstar_tree.hpp"
+#include "algoat/geometry/smallest_enclosing_ball.hpp"
 #include "algoat/graph/bipartite_matching.hpp"
 #include "algoat/graph/centrality.hpp"
 #include "algoat/graph/csr_graph.hpp"
@@ -102,6 +103,7 @@ using geometry::bentley_ottmann;
 using geometry::BooleanOp;
 using geometry::BooleanPolygon;
 using geometry::BoundingBox;
+using geometry::BoundingSphere;
 using geometry::count_intersections;
 using geometry::IntersectionResult;
 using geometry::LineSegment;
@@ -113,6 +115,8 @@ using geometry::polygon_intersection;
 using geometry::polygon_union;
 using geometry::polygon_xor;
 using geometry::RStarTree;
+using geometry::smallest_enclosing_ball;
+using geometry::smallest_enclosing_circle;
 using graph::DAryHeap;
 #endif
 using geometry::Polyhedron3D;

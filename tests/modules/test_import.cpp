@@ -11,6 +11,7 @@
 #include <array>
 #include <concepts>
 #include <gtest/gtest.h>
+#include <numbers>
 #include <numeric>
 #include <optional>
 #include <span>
@@ -386,6 +387,30 @@ TEST(ModuleImportTest, GeometryBentleyOttmannExport) {
     EXPECT_EQ(algoat::count_intersections(segs), 3u);
     EXPECT_DOUBLE_EQ(hits[0].point[0], 5.0);
     EXPECT_DOUBLE_EQ(hits[0].point[1], 5.0);
+}
+
+TEST(ModuleImportTest, GeometrySmallestEnclosingBallExport) {
+    std::vector<std::array<double, 2>> pts2 = {{0.0, 0.0}, {6.0, 0.0}, {0.0, 8.0}};
+    const algoat::BoundingSphere<double, 2> circle = algoat::smallest_enclosing_circle(pts2);
+    EXPECT_NEAR(circle.center[0], 3.0, 1e-12);
+    EXPECT_NEAR(circle.center[1], 4.0, 1e-12);
+    EXPECT_NEAR(circle.radius, 5.0, 1e-12);
+    EXPECT_TRUE(circle.contains({0.0, 0.0}));
+    EXPECT_NEAR(circle.volume(), std::numbers::pi * 25.0, 1e-12);
+
+    std::vector<std::array<double, 3>> pts3 = {
+        {1.0, 0.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+    const algoat::geometry::BoundingSphere<double, 3> sphere =
+        algoat::geometry::smallest_enclosing_ball(std::span<const std::array<double, 3>>{pts3});
+    EXPECT_NEAR(sphere.center[0], 0.0, 1e-12);
+    EXPECT_NEAR(sphere.center[1], 0.0, 1e-12);
+    EXPECT_NEAR(sphere.center[2], 0.0, 1e-12);
+    EXPECT_NEAR(sphere.radius, 1.0, 1e-12);
+    EXPECT_TRUE(sphere.contains({0.0, 0.0, 1.0}));
+    EXPECT_NEAR(sphere.volume(), (4.0 / 3.0) * std::numbers::pi, 1e-12);
+
+    const auto ball_top = algoat::smallest_enclosing_ball(pts3);
+    EXPECT_NEAR(ball_top.radius, 1.0, 1e-12);
 }
 
 TEST(ModuleImportTest, GraphDAryHeapExport) {
