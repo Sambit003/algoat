@@ -58,6 +58,7 @@ module;
 #include <algoat/dp/aho_corasick.hpp>
 #include <algoat/dp/alignment.hpp>
 #include <algoat/dp/levenshtein.hpp>
+#include <algoat/geometry/bentley_ottmann.hpp>
 #include <algoat/geometry/convex_hull.hpp>
 #include <algoat/geometry/delaunay.hpp>
 #include <algoat/geometry/kdtree.hpp>
@@ -185,6 +186,10 @@ template <typename T = double, std::size_t Dim = 2>
 using BoundingBox = algoat::geometry::BoundingBox<T, Dim>;
 template <typename ValueType, typename T = double, std::size_t Dim = 2, std::size_t MaxEntries = 16>
 using RStarTree = algoat::geometry::RStarTree<ValueType, T, Dim, MaxEntries>;
+template <typename T = double> using LineSegment = algoat::geometry::LineSegment<T>;
+template <typename T = double> using IntersectionResult = algoat::geometry::IntersectionResult<T>;
+using algoat::geometry::bentley_ottmann;
+using algoat::geometry::count_intersections;
 
 namespace graph {
 using algoat::graph::betweenness_centrality;
@@ -195,6 +200,7 @@ using algoat::graph::ConcurrentDisjointSet;
 using algoat::graph::CSRGraph;
 using algoat::graph::CSRGraphConcept;
 using algoat::graph::d_ary_heap;
+using algoat::graph::DAryHeap;
 using algoat::graph::degree_centrality;
 using algoat::graph::DisjointSetUnion;
 using algoat::graph::EdgeIndex;
@@ -442,6 +448,7 @@ using algoat::strings::search_pattern;
 
 namespace geometry {
 using algoat::geometry::AABB;
+using algoat::geometry::bentley_ottmann;
 using algoat::geometry::BooleanOp;
 using algoat::geometry::BooleanPolygon;
 using algoat::geometry::BoundingBox;
@@ -450,12 +457,15 @@ using algoat::geometry::CircleLocation;
 using algoat::geometry::convex_hull_2d_andrew;
 using algoat::geometry::convex_hull_2d_chan;
 using algoat::geometry::convex_hull_3d_quickhull;
+using algoat::geometry::count_intersections;
 using algoat::geometry::DelaunayTriangulation2D;
 using algoat::geometry::incircle;
 using algoat::geometry::InclusionRule;
 using algoat::geometry::insphere;
+using algoat::geometry::IntersectionResult;
 using algoat::geometry::KDTree;
 using algoat::geometry::LBVH;
+using algoat::geometry::LineSegment;
 using algoat::geometry::MetricType;
 using algoat::geometry::MultiPolygon;
 using algoat::geometry::orient2d;

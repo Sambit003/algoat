@@ -17,6 +17,7 @@
 #include "algoat/dp/aho_corasick.hpp"
 #include "algoat/dp/alignment.hpp"
 #include "algoat/dp/levenshtein.hpp"
+#include "algoat/geometry/bentley_ottmann.hpp"
 #include "algoat/geometry/convex_hull.hpp"
 #include "algoat/geometry/delaunay.hpp"
 #include "algoat/geometry/kdtree.hpp"
@@ -97,9 +98,13 @@ using geometry::Polygon;
 using geometry::Polygon2D;
 using geometry::PolygonInclusion;
 #ifndef ALGOAT_BUILDING_MODULE
+using geometry::bentley_ottmann;
 using geometry::BooleanOp;
 using geometry::BooleanPolygon;
 using geometry::BoundingBox;
+using geometry::count_intersections;
+using geometry::IntersectionResult;
+using geometry::LineSegment;
 using geometry::MultiPolygon;
 using geometry::Point2DLike;
 using geometry::polygon_boolean;
@@ -108,6 +113,7 @@ using geometry::polygon_intersection;
 using geometry::polygon_union;
 using geometry::polygon_xor;
 using geometry::RStarTree;
+using graph::DAryHeap;
 #endif
 using geometry::Polyhedron3D;
 using geometry::Ray;
