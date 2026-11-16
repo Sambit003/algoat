@@ -11,6 +11,7 @@
 #include <array>
 #include <concepts>
 #include <gtest/gtest.h>
+#include <numbers>
 #include <numeric>
 #include <optional>
 #include <span>
