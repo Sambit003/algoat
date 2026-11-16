@@ -374,3 +374,23 @@ TEST(ModuleImportTest, GeometryRStarTreeExport) {
     EXPECT_TRUE(tree.remove(b1, 1));
     EXPECT_EQ(tree.size(), 2u);
 }
+
+TEST(ModuleImportTest, GeometryBentleyOttmannExport) {
+    std::vector<algoat::LineSegment<double>> segs = {
+        {{0.0, 0.0}, {10.0, 10.0}},
+        {{0.0, 10.0}, {10.0, 0.0}},
+        {{5.0, 0.0}, {5.0, 10.0}},
+    };
+    const auto hits = algoat::geometry::bentley_ottmann(segs);
+    ASSERT_EQ(hits.size(), 3u);
+    EXPECT_EQ(algoat::count_intersections(segs), 3u);
+    EXPECT_DOUBLE_EQ(hits[0].point[0], 5.0);
+    EXPECT_DOUBLE_EQ(hits[0].point[1], 5.0);
+}
+
+TEST(ModuleImportTest, GraphDAryHeapExport) {
+    algoat::graph::DAryHeap<4, double, uint32_t> heap;
+    heap.push(0u, 3.5);
+    heap.push(1u, 1.25);
+    EXPECT_EQ(heap.top_index(), 1u);
+}

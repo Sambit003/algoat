@@ -361,4 +361,7 @@ private:
     std::vector<int32_t> pos_in_heap_;
 };
 
+template <std::size_t Arity = 4, typename KeyType = double, typename IndexType = VertexId>
+using DAryHeap = d_ary_heap<Arity, KeyType, IndexType>;
+
 } // namespace algoat::graph
