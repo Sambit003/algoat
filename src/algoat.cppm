@@ -67,6 +67,7 @@ module;
 #include <algoat/geometry/polygon_boolean.hpp>
 #include <algoat/geometry/predicates.hpp>
 #include <algoat/geometry/rstar_tree.hpp>
+#include <algoat/geometry/smallest_enclosing_ball.hpp>
 #include <algoat/graph/bipartite_matching.hpp>
 #include <algoat/graph/centrality.hpp>
 #include <algoat/graph/csr_graph.hpp>
@@ -190,6 +191,10 @@ template <typename T = double> using LineSegment = algoat::geometry::LineSegment
 template <typename T = double> using IntersectionResult = algoat::geometry::IntersectionResult<T>;
 using algoat::geometry::bentley_ottmann;
 using algoat::geometry::count_intersections;
+template <typename T = double, std::size_t Dim = 2>
+using BoundingSphere = algoat::geometry::BoundingSphere<T, Dim>;
+using algoat::geometry::smallest_enclosing_ball;
+using algoat::geometry::smallest_enclosing_circle;
 
 namespace graph {
 using algoat::graph::betweenness_centrality;
@@ -452,6 +457,7 @@ using algoat::geometry::bentley_ottmann;
 using algoat::geometry::BooleanOp;
 using algoat::geometry::BooleanPolygon;
 using algoat::geometry::BoundingBox;
+using algoat::geometry::BoundingSphere;
 using algoat::geometry::BVHNode;
 using algoat::geometry::CircleLocation;
 using algoat::geometry::convex_hull_2d_andrew;
@@ -485,6 +491,8 @@ using algoat::geometry::PolygonInclusion;
 using algoat::geometry::Polyhedron3D;
 using algoat::geometry::Ray;
 using algoat::geometry::RStarTree;
+using algoat::geometry::smallest_enclosing_ball;
+using algoat::geometry::smallest_enclosing_circle;
 using algoat::geometry::SpatialPoint;
 using algoat::geometry::Triangle;
 using algoat::geometry::VoronoiCell;
