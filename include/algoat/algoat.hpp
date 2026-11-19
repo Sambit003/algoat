@@ -34,6 +34,7 @@
 #include "algoat/graph/disjoint_set.hpp"
 #include "algoat/graph/max_flow.hpp"
 #include "algoat/graph/mst.hpp"
+#include "algoat/graph/network_simplex.hpp"
 #include "algoat/graph/scc.hpp"
 #include "algoat/graph/shortest_path.hpp"
 #include "algoat/hash/hash.hpp"
@@ -118,6 +119,7 @@ using geometry::RStarTree;
 using geometry::smallest_enclosing_ball;
 using geometry::smallest_enclosing_circle;
 using graph::DAryHeap;
+using graph::NetworkSimplex;
 #endif
 using geometry::Polyhedron3D;
 using geometry::Ray;

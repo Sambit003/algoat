@@ -75,6 +75,7 @@ module;
 #include <algoat/graph/disjoint_set.hpp>
 #include <algoat/graph/max_flow.hpp>
 #include <algoat/graph/mst.hpp>
+#include <algoat/graph/network_simplex.hpp>
 #include <algoat/graph/scc.hpp>
 #include <algoat/graph/shortest_path.hpp>
 #include <algoat/hash/hash.hpp>
@@ -195,6 +196,8 @@ template <typename T = double, std::size_t Dim = 2>
 using BoundingSphere = algoat::geometry::BoundingSphere<T, Dim>;
 using algoat::geometry::smallest_enclosing_ball;
 using algoat::geometry::smallest_enclosing_circle;
+template <typename CostType = int64_t, typename CapacityType = int64_t>
+using NetworkSimplex = algoat::graph::NetworkSimplex<CostType, CapacityType>;
 
 namespace graph {
 using algoat::graph::betweenness_centrality;
@@ -215,6 +218,7 @@ using algoat::graph::MaxFlowResult;
 using algoat::graph::MinimumSpanningTreeEngine;
 using algoat::graph::MSTEdge;
 using algoat::graph::MSTResult;
+using algoat::graph::NetworkSimplex;
 using algoat::graph::pagerank;
 using algoat::graph::PageRankConfig;
 using algoat::graph::PageRankResult;
