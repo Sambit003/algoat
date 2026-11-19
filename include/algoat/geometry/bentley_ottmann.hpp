@@ -142,6 +142,59 @@ inline void expand_two_by_two_product(const double* a2, const double* b2, double
     prod_len = fast_expansion_sum_zeroelim(l01, s01, l23, s23, prod8);
 }
 
+inline int bo_compress_expansion(int elen, const double* e, double* h) noexcept {
+    if (elen <= 0) {
+        return 0;
+    }
+    if (elen == 1) {
+        h[0] = e[0];
+        return 1;
+    }
+
+    double tmp[32]{};
+    double q = e[elen - 1];
+    int bottom = elen - 1;
+    for (int i = elen - 2; i >= 0; --i) {
+        double next_q = 0.0;
+        double err = 0.0;
+        two_sum(q, e[i], next_q, err);
+        if (err != 0.0) {
+            tmp[bottom--] = next_q;
+            q = err;
+        } else {
+            q = next_q;
+        }
+    }
+    tmp[bottom] = q;
+
+    int top = 0;
+    q = tmp[bottom];
+    for (int i = bottom + 1; i < elen; ++i) {
+        double next_q = 0.0;
+        double err = 0.0;
+        two_sum(tmp[i], q, next_q, err);
+        if (err != 0.0) {
+            h[top++] = err;
+        }
+        q = next_q;
+    }
+    if (q != 0.0 || top == 0) {
+        h[top++] = q;
+    }
+    return top;
+}
+
+inline int expand_mul_by_two(int elen, const double* e, const double* d2, double* out) noexcept {
+    if (d2[0] == 0.0) {
+        return scale_expansion_zeroelim(elen, e, d2[1], out);
+    }
+    double s0[8]{};
+    double s1[8]{};
+    const int l0 = scale_expansion_zeroelim(elen, e, d2[0], s0);
+    const int l1 = scale_expansion_zeroelim(elen, e, d2[1], s1);
+    return fast_expansion_sum_zeroelim(l0, s0, l1, s1, out);
+}
+
 [[nodiscard]] inline int bo_max_exp(std::initializer_list<double> vals) noexcept {
     int max_e = std::numeric_limits<int>::min();
     for (double v : vals) {
@@ -457,7 +510,7 @@ struct SwapSchedule {
         std::max({std::abs(a0.x), std::abs(a0.y), std::abs(a1.x), std::abs(a1.y), std::abs(b0.x),
                   std::abs(b0.y), std::abs(b1.x), std::abs(b1.y)});
     int shift = 0;
-    if (max_mag > 1e140 || (max_mag > 0.0 && max_mag < 1e-140)) {
+    if (max_mag > 1e80 || (max_mag > 0.0 && max_mag < 1e-80)) {
         shift = bo_max_exp({a0.x, a0.y, a1.x, a1.y, b0.x, b0.y, b1.x, b1.y});
     }
 
@@ -469,6 +522,77 @@ struct SwapSchedule {
     const double sb0y = std::ldexp(b0.y, -shift);
     const double sb1x = std::ldexp(b1.x, -shift);
     const double sb1y = std::ldexp(b1.y, -shift);
+
+    // Exact Shewchuk-expansion Cramer system eliminates catastrophic cancellation near crossings
+    double dx0_e[2]{}, dy0_e[2]{}, dx1_e[2]{}, dy1_e[2]{};
+    bo_two_diff_exact(sa1x, sa0x, dx0_e[1], dx0_e[0]);
+    bo_two_diff_exact(sa1y, sa0y, dy0_e[1], dy0_e[0]);
+    bo_two_diff_exact(sb1x, sb0x, dx1_e[1], dx1_e[0]);
+    bo_two_diff_exact(sb1y, sb0y, dy1_e[1], dy1_e[0]);
+
+    double dt1[8]{}, dt2[8]{}, det_raw[16]{}, det_c1[16]{}, det_c2[16]{};
+    int dl1 = 0, dl2 = 0;
+    expand_two_by_two_product(dx0_e, dy1_e, dt1, dl1);
+    const double neg_dy0_e[2] = {-dy0_e[0], -dy0_e[1]};
+    expand_two_by_two_product(neg_dy0_e, dx1_e, dt2, dl2);
+    const int ld_raw = fast_expansion_sum_zeroelim(dl1, dt1, dl2, dt2, det_raw);
+    const int ld_c1 = bo_compress_expansion(ld_raw, det_raw, det_c1);
+    const int ld_c2 = bo_compress_expansion(ld_c1, det_c1, det_c2);
+    const double det_est = estimate(ld_c2, det_c2);
+
+    if (det_est != 0.0 && std::isfinite(det_est)) {
+        double ka0_hi = 0.0, ka0_lo = 0.0, ka1_hi = 0.0, ka1_lo = 0.0;
+        two_product_fma(sa0x, sa1y, ka0_hi, ka0_lo);
+        two_product_fma(-sa0y, sa1x, ka1_hi, ka1_lo);
+        const double ka_t0[2] = {ka0_lo, ka0_hi};
+        const double ka_t1[2] = {ka1_lo, ka1_hi};
+        double ka_raw[4]{}, ka_cmp[4]{}, neg_ka_cmp[4]{};
+        const int lka = bo_compress_expansion(
+            fast_expansion_sum_zeroelim(2, ka_t0, 2, ka_t1, ka_raw), ka_raw, ka_cmp);
+        for (int k = 0; k < lka; ++k) {
+            neg_ka_cmp[k] = -ka_cmp[k];
+        }
+
+        double kb0_hi = 0.0, kb0_lo = 0.0, kb1_hi = 0.0, kb1_lo = 0.0;
+        two_product_fma(sb0x, sb1y, kb0_hi, kb0_lo);
+        two_product_fma(-sb0y, sb1x, kb1_hi, kb1_lo);
+        const double kb_t0[2] = {kb0_lo, kb0_hi};
+        const double kb_t1[2] = {kb1_lo, kb1_hi};
+        double kb_raw[4]{}, kb_cmp[4]{};
+        const int lkb = bo_compress_expansion(
+            fast_expansion_sum_zeroelim(2, kb_t0, 2, kb_t1, kb_raw), kb_raw, kb_cmp);
+
+        double nx_p1[16]{}, nx_p2[16]{}, nx_raw[32]{}, nx_c1[32]{}, nx_c2[32]{};
+        const int lnx1 = expand_mul_by_two(lkb, kb_cmp, dx0_e, nx_p1);
+        const int lnx2 = expand_mul_by_two(lka, neg_ka_cmp, dx1_e, nx_p2);
+        const int lnx_c1 = bo_compress_expansion(
+            fast_expansion_sum_zeroelim(lnx1, nx_p1, lnx2, nx_p2, nx_raw), nx_raw, nx_c1);
+        const int lnx_c2 = bo_compress_expansion(lnx_c1, nx_c1, nx_c2);
+        const double nx_est = estimate(lnx_c2, nx_c2);
+
+        double ny_p1[16]{}, ny_p2[16]{}, ny_raw[32]{}, ny_c1[32]{}, ny_c2[32]{};
+        const int lny1 = expand_mul_by_two(lkb, kb_cmp, dy0_e, ny_p1);
+        const int lny2 = expand_mul_by_two(lka, neg_ka_cmp, dy1_e, ny_p2);
+        const int lny_c1 = bo_compress_expansion(
+            fast_expansion_sum_zeroelim(lny1, ny_p1, lny2, ny_p2, ny_raw), ny_raw, ny_c1);
+        const int lny_c2 = bo_compress_expansion(lny_c1, ny_c1, ny_c2);
+        const double ny_est = estimate(lny_c2, ny_c2);
+
+        if (std::isfinite(nx_est) && std::isfinite(ny_est)) {
+            double cx = std::ldexp(nx_est / det_est, shift);
+            double cy = std::ldexp(ny_est / det_est, shift);
+            if (std::isfinite(cx) && std::isfinite(cy)) {
+                if (cx == 0.0) {
+                    cx = 0.0;
+                }
+                if (cy == 0.0) {
+                    cy = 0.0;
+                }
+                ip = Point2D{std::clamp(cx, min_x, max_x), std::clamp(cy, min_y, max_y)};
+                return true;
+            }
+        }
+    }
 
     const double dx0 = sa1x - sa0x;
     const double dy0 = sa1y - sa0y;
