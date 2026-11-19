@@ -302,6 +302,30 @@ TEST(BentleyOttmannSlice3, CollinearOverlapsMultiSegmentPencilsAndOverloads) {
     }
 }
 
+TEST(BentleyOttmannSlice3, CatastrophicCancellationAndCounterexamplePrecision) {
+    // Regression for large-span segments crossing near small x where double parametric subtraction
+    // suffers ~4 orders of magnitude of cancellation (seed=281348918167350869 counterexample).
+    const std::vector<LineSegment<double>> pbt_repro = {
+        {{-23179078.0 * 0.125, 22343077.0 * 0.125}, {34209323.0 * 0.125, -49589117.0 * 0.125}},
+        {{-90130076.0 * 0.125, -105181829.0 * 0.125}, {74690223.0 * 0.125, 74853360.0 * 0.125}},
+    };
+    const auto repro_res = bentley_ottmann(std::span<const LineSegment<double>>{pbt_repro});
+    ASSERT_EQ(repro_res.size(), 1u);
+    EXPECT_NEAR(repro_res[0].point[0], 1143.128039633528, 1e-11);
+    EXPECT_NEAR(repro_res[0].point[1], -840209.62408972916, 1e-9);
+
+    // Extreme ~15-order cancellation: (-1e9, -1e9 + 1e-6)->(1e9, 1e9 + 1e-6) vs antidiagonal.
+    // Exact rational intersection at x = -2^-21 = -4.76837158203125e-7, y = +2^-21.
+    const std::vector<LineSegment<double>> extreme_cancel = {
+        {{-1.0e9, -1.0e9 + 1.0e-6}, {1.0e9, 1.0e9 + 1.0e-6}},
+        {{-1.0e9, 1.0e9}, {1.0e9, -1.0e9}},
+    };
+    const auto cancel_res = bentley_ottmann(std::span<const LineSegment<double>>{extreme_cancel});
+    ASSERT_EQ(cancel_res.size(), 1u);
+    EXPECT_NEAR(cancel_res[0].point[0], -4.76837158203125e-7, 1e-15);
+    EXPECT_NEAR(cancel_res[0].point[1], 4.76837158203125e-7, 1e-15);
+}
+
 TEST(BentleyOttmannSlice4, ExactEquivalence10000RandomSegmentSets) {
     std::mt19937_64 rng(20261116ULL);
     constexpr int kTotalTrials = 10000;

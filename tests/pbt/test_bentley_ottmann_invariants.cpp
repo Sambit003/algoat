@@ -5,12 +5,15 @@
 
 #include "algoat/geometry/bentley_ottmann.hpp"
 #include "algoat/geometry/predicates.hpp"
+#include "algoat/numerics/bigint.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <gtest/gtest.h>
+#include <limits>
 #include <rapidcheck.h>
 #include <rapidcheck/gtest.h>
 #include <span>
@@ -30,8 +33,25 @@ namespace {
            q.y <= std::max(a.y, b.y);
 }
 
+[[nodiscard]] double bigint_ratio_to_double(const algoat::numerics::BigInt& num,
+                                            const algoat::numerics::BigInt& den) {
+    using algoat::numerics::BigInt;
+    if (num.is_zero()) {
+        return 0.0;
+    }
+    const bool neg = (num.is_negative() != den.is_negative());
+    const BigInt a = num.is_negative() ? -num : num;
+    const BigInt b = den.is_negative() ? -den : den;
+    const int diff_bits = static_cast<int>(a.num_bits()) - static_cast<int>(b.num_bits());
+    const int k = 60 - diff_bits;
+    const BigInt q = (k >= 0) ? ((a << static_cast<std::size_t>(k)) / b)
+                              : (a / (b << static_cast<std::size_t>(-k)));
+    const double val = std::ldexp(static_cast<double>(q.to_int64()), -k);
+    return neg ? -val : val;
+}
+
 [[nodiscard]] bool independent_intersect(const Point2D& p0, const Point2D& p1, const Point2D& q0,
-                                         const Point2D& q1, Point2D& out_ip) noexcept {
+                                         const Point2D& q1, Point2D& out_ip) {
     if (std::max(p0.x, p1.x) < std::min(q0.x, q1.x) ||
         std::max(q0.x, q1.x) < std::min(p0.x, p1.x) ||
         std::max(p0.y, p1.y) < std::min(q0.y, q1.y) ||
@@ -102,6 +122,57 @@ namespace {
         return false;
     }
 
+    const double min_ix = std::max(std::min(p0.x, p1.x), std::min(q0.x, q1.x));
+    const double max_ix = std::min(std::max(p0.x, p1.x), std::max(q0.x, q1.x));
+    const double min_iy = std::max(std::min(p0.y, p1.y), std::min(q0.y, q1.y));
+    const double max_iy = std::min(std::max(p0.y, p1.y), std::max(q0.y, q1.y));
+
+    const std::array<double, 8> raw_coords{p0.x, p0.y, p1.x, p1.y, q0.x, q0.y, q1.x, q1.y};
+    std::array<int64_t, 8> mants{};
+    std::array<int, 8> exps{};
+    int min_p = std::numeric_limits<int>::max();
+    int max_p = std::numeric_limits<int>::min();
+    for (std::size_t i = 0; i < 8; ++i) {
+        if (raw_coords[i] != 0.0) {
+            int e = 0;
+            (void)std::frexp(raw_coords[i], &e);
+            const int p = e - 53;
+            mants[i] = static_cast<int64_t>(std::ldexp(raw_coords[i], -p));
+            exps[i] = p;
+            min_p = std::min(min_p, p);
+            max_p = std::max(max_p, p);
+        }
+    }
+    if (min_p > max_p) {
+        out_ip = {0.0, 0.0};
+        return true;
+    }
+    if (max_p - min_p <= 256) {
+        using algoat::numerics::BigInt;
+        auto to_bi = [&](std::size_t idx) {
+            return (mants[idx] == 0)
+                       ? BigInt(0LL)
+                       : (BigInt(mants[idx]) << static_cast<std::size_t>(exps[idx] - min_p));
+        };
+        const BigInt ax0 = to_bi(0), ay0 = to_bi(1), ax1 = to_bi(2), ay1 = to_bi(3);
+        const BigInt bx0 = to_bi(4), by0 = to_bi(5), bx1 = to_bi(6), by1 = to_bi(7);
+        const BigInt dx1 = ax1 - ax0;
+        const BigInt dy1 = ay1 - ay0;
+        const BigInt dx2 = bx1 - bx0;
+        const BigInt dy2 = by1 - by0;
+        const BigInt denom = dx1 * dy2 - dy1 * dx2;
+        if (!denom.is_zero()) {
+            const BigInt ka = ax0 * ay1 - ay0 * ax1;
+            const BigInt kb = bx0 * by1 - by0 * bx1;
+            const BigInt nx = kb * dx1 - ka * dx2;
+            const BigInt ny = kb * dy1 - ka * dy2;
+            out_ip = {
+                std::clamp(std::ldexp(bigint_ratio_to_double(nx, denom), min_p), min_ix, max_ix),
+                std::clamp(std::ldexp(bigint_ratio_to_double(ny, denom), min_p), min_iy, max_iy)};
+            return true;
+        }
+    }
+
     const long double dx1 = static_cast<long double>(p1.x) - static_cast<long double>(p0.x);
     const long double dy1 = static_cast<long double>(p1.y) - static_cast<long double>(p0.y);
     const long double dx2 = static_cast<long double>(q1.x) - static_cast<long double>(q0.x);
@@ -114,8 +185,9 @@ namespace {
                              denom,
                          0.0L, 1.0L)
             : 0.5L;
-    out_ip = {static_cast<double>(static_cast<long double>(p0.x) + t * dx1),
-              static_cast<double>(static_cast<long double>(p0.y) + t * dy1)};
+    out_ip = {
+        std::clamp(static_cast<double>(static_cast<long double>(p0.x) + t * dx1), min_ix, max_ix),
+        std::clamp(static_cast<double>(static_cast<long double>(p0.y) + t * dy1), min_iy, max_iy)};
     return true;
 }
 
