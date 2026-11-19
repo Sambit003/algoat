@@ -419,3 +419,32 @@ TEST(ModuleImportTest, GraphDAryHeapExport) {
     heap.push(1u, 1.25);
     EXPECT_EQ(heap.top_index(), 1u);
 }
+
+TEST(ModuleImportTest, GraphNetworkSimplexExport) {
+    algoat::NetworkSimplex<> ns(3);
+    ns.set_supply(0, 5);
+    ns.set_supply(2, -5);
+    ns.add_edge(0, 1, 10, 2, /*lower_bound=*/2);
+    ns.add_edge(1, 2, 10, 3);
+    ns.add_edge(0, 2, 10, -1);
+
+    ASSERT_EQ(ns.run(), algoat::NetworkSimplex<>::ProblemType::Optimal);
+    // 2 forced via 0->1->2 (cost 10), 3 via 0->2 (cost -3) -> total 7
+    EXPECT_EQ(ns.total_cost(), 7);
+    EXPECT_EQ(ns.flow(0), 2);
+    EXPECT_EQ(ns.flow(1), 2);
+    EXPECT_EQ(ns.flow(2), 3);
+
+    using NS64 = algoat::graph::NetworkSimplex<int64_t, int64_t>;
+    NS64 inf_ns(2);
+    inf_ns.set_supply(0, 4);
+    inf_ns.set_supply(1, -4);
+    inf_ns.add_edge(0, 1, 2, 1);
+    EXPECT_EQ(inf_ns.run(), NS64::ProblemType::Infeasible);
+
+    NS64 unb_ns(2);
+    constexpr auto kInf = NS64::kInfiniteCapacity;
+    unb_ns.add_edge(0, 1, kInf, -3);
+    unb_ns.add_edge(1, 0, kInf, 1);
+    EXPECT_EQ(unb_ns.run(), NS64::ProblemType::Unbounded);
+}
