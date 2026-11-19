@@ -94,6 +94,12 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(bench_max_flow PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
+add_executable(bench_network_simplex bench_network_simplex.cpp)
+target_link_libraries(bench_network_simplex PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(bench_network_simplex PRIVATE OpenMP::OpenMP_CXX)
+endif()
+
 add_executable(bench_bipartite_matching bench_bipartite_matching.cpp)
 target_link_libraries(bench_bipartite_matching PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
 if(OpenMP_CXX_FOUND)
