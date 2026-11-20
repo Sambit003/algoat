@@ -448,3 +448,32 @@ TEST(ModuleImportTest, GraphNetworkSimplexExport) {
     unb_ns.add_edge(1, 0, kInf, 1);
     EXPECT_EQ(unb_ns.run(), NS64::ProblemType::Unbounded);
 }
+
+TEST(ModuleImportTest, GraphLinkCutTreeExport) {
+    algoat::LinkCutTree<> lct(4);
+    lct.update_vertex(0, 10);
+    lct.update_vertex(1, -4);
+    lct.update_vertex(2, 7);
+    lct.update_vertex(3, 2);
+
+    lct.link(1, 0);
+    lct.link(2, 1);
+    lct.link(3, 0);
+
+    EXPECT_TRUE(lct.connected(2, 3));
+    EXPECT_EQ(lct.find_root(2), 0U);
+    EXPECT_EQ(lct.query_path_sum(2, 3), 15);
+    EXPECT_EQ(lct.query_path_min(2, 3), -4);
+
+    lct.make_root(2);
+    EXPECT_EQ(lct.find_root(3), 2U);
+    lct.cut(1, 2);
+    EXPECT_FALSE(lct.connected(2, 3));
+
+    algoat::graph::LinkCutTree<double> lct_d(2);
+    lct_d.update_vertex(0, 1.5);
+    lct_d.update_vertex(1, 2.25);
+    lct_d.link(1, 0);
+    EXPECT_DOUBLE_EQ(lct_d.query_path_sum(0, 1), 3.75);
+    EXPECT_DOUBLE_EQ(lct_d.query_path_min(0, 1), 1.5);
+}
