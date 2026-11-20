@@ -73,6 +73,7 @@ module;
 #include <algoat/graph/csr_graph.hpp>
 #include <algoat/graph/d_ary_heap.hpp>
 #include <algoat/graph/disjoint_set.hpp>
+#include <algoat/graph/link_cut_tree.hpp>
 #include <algoat/graph/max_flow.hpp>
 #include <algoat/graph/mst.hpp>
 #include <algoat/graph/network_simplex.hpp>
@@ -198,6 +199,7 @@ using algoat::geometry::smallest_enclosing_ball;
 using algoat::geometry::smallest_enclosing_circle;
 template <typename CostType = int64_t, typename CapacityType = int64_t>
 using NetworkSimplex = algoat::graph::NetworkSimplex<CostType, CapacityType>;
+template <typename ValueType = int64_t> using LinkCutTree = algoat::graph::LinkCutTree<ValueType>;
 
 namespace graph {
 using algoat::graph::betweenness_centrality;
@@ -213,6 +215,7 @@ using algoat::graph::degree_centrality;
 using algoat::graph::DisjointSetUnion;
 using algoat::graph::EdgeIndex;
 using algoat::graph::FlowEdge;
+using algoat::graph::LinkCutTree;
 using algoat::graph::MaxFlowEngine;
 using algoat::graph::MaxFlowResult;
 using algoat::graph::MinimumSpanningTreeEngine;

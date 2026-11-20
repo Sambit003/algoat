@@ -32,6 +32,7 @@
 #include "algoat/graph/csr_graph.hpp"
 #include "algoat/graph/d_ary_heap.hpp"
 #include "algoat/graph/disjoint_set.hpp"
+#include "algoat/graph/link_cut_tree.hpp"
 #include "algoat/graph/max_flow.hpp"
 #include "algoat/graph/mst.hpp"
 #include "algoat/graph/network_simplex.hpp"
@@ -119,6 +120,7 @@ using geometry::RStarTree;
 using geometry::smallest_enclosing_ball;
 using geometry::smallest_enclosing_circle;
 using graph::DAryHeap;
+using graph::LinkCutTree;
 using graph::NetworkSimplex;
 #endif
 using geometry::Polyhedron3D;
