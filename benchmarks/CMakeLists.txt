@@ -118,6 +118,9 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(bench_mst PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
+add_executable(bench_link_cut_tree bench_link_cut_tree.cpp)
+target_link_libraries(bench_link_cut_tree PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
+
 add_executable(bench_hyperloglog bench_hyperloglog.cpp)
 target_link_libraries(bench_hyperloglog PRIVATE algoat benchmark::benchmark benchmark::benchmark_main)
 
