@@ -120,8 +120,6 @@ using algoat::CircleLocation;
 using algoat::clamp;
 using algoat::ConcurrentDisjointSet;
 using algoat::CountMinSketch;
-using algoat::CSRGraph;
-using algoat::CSRGraphConcept;
 using algoat::DelaunayTriangulation2D;
 using algoat::DisjointSetUnion;
 using algoat::DynamicMedian;
@@ -201,6 +199,8 @@ using algoat::geometry::smallest_enclosing_circle;
 template <typename CostType = int64_t, typename CapacityType = int64_t>
 using NetworkSimplex = algoat::graph::NetworkSimplex<CostType, CapacityType>;
 template <typename ValueType = int64_t> using LinkCutTree = algoat::graph::LinkCutTree<ValueType>;
+template <typename WeightType = void> using CSRGraph = algoat::graph::CSRGraph<WeightType>;
+using algoat::graph::CSRGraphConcept;
 using BiconnectivityResult = algoat::graph::BiconnectivityResult;
 using BridgeBlockTree = algoat::graph::BridgeBlockTree;
 using BlockCutTree = algoat::graph::BlockCutTree;
