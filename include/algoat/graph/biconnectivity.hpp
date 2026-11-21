@@ -49,8 +49,7 @@ static_assert(sizeof(DfsFrame) == 12, "DfsFrame must be tightly packed to 12 byt
  * @brief Depth-bounded, 64-byte cache-aligned paged small-vector stack avoiding 2x geometric
  * reallocation spikes and OS call-stack overflow on deep linear graphs.
  */
-template <typename T, std::size_t InlineCount, std::size_t PageElems>
-class alignas(64) CacheAlignedPagedStack {
+template <typename T, std::size_t InlineCount, std::size_t PageElems> class CacheAlignedPagedStack {
     static_assert(std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>);
     static_assert(InlineCount > 0 && PageElems > 0);
     static_assert((PageElems & (PageElems - 1U)) == 0U, "PageElems must be a power of two");
@@ -217,7 +216,7 @@ template <typename WeightType = void>
         uint32_t root_children = 0;
 
         while (!call_stack.empty()) {
-            detail::DfsFrame& cur = call_stack.top();
+            const detail::DfsFrame cur = call_stack.top();
             const VertexId u = cur.u;
             const VertexId parent = (call_stack.size() >= 2U)
                                         ? call_stack.at(call_stack.size() - 2U).u
@@ -225,7 +224,8 @@ template <typename WeightType = void>
             const auto neighbors = graph.out_neighbors(u);
 
             if (cur.edge_idx < neighbors.size()) {
-                const VertexId v = neighbors[cur.edge_idx++];
+                const VertexId v = neighbors[cur.edge_idx];
+                call_stack.top().edge_idx = cur.edge_idx + 1U;
                 if (v == u || v == parent) {
                     continue;
                 }
@@ -239,8 +239,8 @@ template <typename WeightType = void>
                     tin[v] = child_tin;
                     call_stack.push(detail::DfsFrame{v, 0U, child_tin});
                     v_stack.push(v);
-                } else {
-                    cur.low = std::min(cur.low, v_tin);
+                } else if (v_tin < cur.low) {
+                    call_stack.top().low = v_tin;
                 }
             } else {
                 const uint32_t u_low = cur.low;
@@ -349,7 +349,7 @@ template <typename WeightType = void>
                 call_stack.push(detail::DfsFrame{root, 0U, tin[root]});
 
                 while (!call_stack.empty()) {
-                    detail::DfsFrame& cur = call_stack.top();
+                    const detail::DfsFrame cur = call_stack.top();
                     const VertexId u = cur.u;
                     const VertexId parent = (call_stack.size() >= 2U)
                                                 ? call_stack.at(call_stack.size() - 2U).u
@@ -357,7 +357,8 @@ template <typename WeightType = void>
                     const auto neighbors = graph.out_neighbors(u);
 
                     if (cur.edge_idx < neighbors.size()) {
-                        const VertexId v = neighbors[cur.edge_idx++];
+                        const VertexId v = neighbors[cur.edge_idx];
+                        call_stack.top().edge_idx = cur.edge_idx + 1U;
                         if (v == u || v == parent) {
                             continue;
                         }
@@ -367,8 +368,8 @@ template <typename WeightType = void>
                             const uint32_t child_tin = ++timer;
                             tin[v] = child_tin;
                             call_stack.push(detail::DfsFrame{v, 0U, child_tin});
-                        } else if ((v_raw & detail::kClosedCompBit) == 0U) {
-                            cur.low = std::min(cur.low, v_raw);
+                        } else if ((v_raw & detail::kClosedCompBit) == 0U && v_raw < cur.low) {
+                            call_stack.top().low = v_raw;
                         }
                     } else {
                         const uint32_t u_low = cur.low;
