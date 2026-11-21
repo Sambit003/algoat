@@ -16,6 +16,9 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <tuple>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 import algoat;
@@ -476,4 +479,49 @@ TEST(ModuleImportTest, GraphLinkCutTreeExport) {
     lct_d.link(1, 0);
     EXPECT_DOUBLE_EQ(lct_d.query_path_sum(0, 1), 3.75);
     EXPECT_DOUBLE_EQ(lct_d.query_path_min(0, 1), 1.5);
+}
+
+TEST(ModuleImportTest, GraphBiconnectivityExport) {
+    using ResT = algoat::BiconnectivityResult;
+    using BbtT = algoat::BridgeBlockTree;
+    using BctT = algoat::BlockCutTree;
+    using CsrVoidT = algoat::CSRGraph<void>;
+    using CsrDoubleT = algoat::graph::CSRGraph<double>;
+    static_assert(
+        std::is_same_v<decltype(&algoat::find_biconnectivity<void>), ResT (*)(const CsrVoidT&)>);
+    static_assert(std::is_same_v<decltype(&algoat::build_bridge_block_tree<void>),
+                                 BbtT (*)(const CsrVoidT&)>);
+    static_assert(std::is_same_v<decltype(&algoat::graph::build_block_cut_tree<void>),
+                                 BctT (*)(const CsrVoidT&)>);
+    static_assert(std::is_same_v<decltype(&algoat::graph::find_biconnectivity<double>),
+                                 ResT (*)(const CsrDoubleT&)>);
+
+    // MSVC 2022 hangs at runtime when executing CSRGraph<void>::build_from_edges across an .ifc
+    // module boundary; runtime behavior on MSVC is covered by BiconnectivityTest and
+    // BiconnectivityPBT in header mode.
+#if !defined(_MSC_VER)
+    const std::vector<std::pair<algoat::VertexId, algoat::VertexId>> edges = {
+        {0, 1}, {1, 2}, {2, 0}, {2, 3}, {3, 4}, {4, 5}, {5, 3}};
+    const auto g = algoat::CSRGraph<void>::build_from_edges(6, edges, false);
+
+    const algoat::BiconnectivityResult res = algoat::find_biconnectivity(g);
+    EXPECT_EQ(res.articulation_points, (std::vector<std::size_t>{2, 3}));
+    EXPECT_EQ(res.bridges, (std::vector<std::pair<std::size_t, std::size_t>>{{2, 3}}));
+    EXPECT_EQ(res.biconnected_components.size(), 3U);
+
+    const algoat::BridgeBlockTree bbt = algoat::build_bridge_block_tree(g);
+    EXPECT_EQ(bbt.condensed_tree.num_vertices(), 2U);
+    EXPECT_EQ(bbt.condensed_tree.num_edges(), 2U);
+
+    const algoat::BlockCutTree bct = algoat::graph::build_block_cut_tree(g);
+    EXPECT_EQ(bct.num_articulation_nodes, 2U);
+    EXPECT_EQ(bct.num_block_nodes, 3U);
+
+    const std::vector<std::tuple<algoat::graph::VertexId, algoat::graph::VertexId, double>>
+        w_edges = {{0, 1, 1.0}, {1, 2, 2.0}};
+    const auto wg = algoat::graph::CSRGraph<double>::build_from_weighted_edges(3, w_edges, false);
+    const algoat::graph::BiconnectivityResult wres = algoat::graph::find_biconnectivity(wg);
+    EXPECT_EQ(wres.articulation_points, (std::vector<std::size_t>{1}));
+    EXPECT_EQ(wres.bridges.size(), 2U);
+#endif
 }

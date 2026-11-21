@@ -27,6 +27,7 @@
 #include "algoat/geometry/predicates.hpp"
 #include "algoat/geometry/rstar_tree.hpp"
 #include "algoat/geometry/smallest_enclosing_ball.hpp"
+#include "algoat/graph/biconnectivity.hpp"
 #include "algoat/graph/bipartite_matching.hpp"
 #include "algoat/graph/centrality.hpp"
 #include "algoat/graph/csr_graph.hpp"
@@ -119,7 +120,15 @@ using geometry::polygon_xor;
 using geometry::RStarTree;
 using geometry::smallest_enclosing_ball;
 using geometry::smallest_enclosing_circle;
+using graph::BiconnectivityResult;
+using graph::BlockCutTree;
+using graph::BridgeBlockTree;
+using graph::build_block_cut_tree;
+using graph::build_bridge_block_tree;
+using graph::CSRGraph;
+using graph::CSRGraphConcept;
 using graph::DAryHeap;
+using graph::find_biconnectivity;
 using graph::LinkCutTree;
 using graph::NetworkSimplex;
 #endif
@@ -133,8 +142,6 @@ using graph::BipartiteGraph;
 using graph::BipartiteMatchingResult;
 using graph::CentralityResult;
 using graph::ConcurrentDisjointSet;
-using graph::CSRGraph;
-using graph::CSRGraphConcept;
 using graph::d_ary_heap;
 using graph::degree_centrality;
 using graph::DisjointSetUnion;

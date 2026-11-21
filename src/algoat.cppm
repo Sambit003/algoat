@@ -68,6 +68,7 @@ module;
 #include <algoat/geometry/predicates.hpp>
 #include <algoat/geometry/rstar_tree.hpp>
 #include <algoat/geometry/smallest_enclosing_ball.hpp>
+#include <algoat/graph/biconnectivity.hpp>
 #include <algoat/graph/bipartite_matching.hpp>
 #include <algoat/graph/centrality.hpp>
 #include <algoat/graph/csr_graph.hpp>
@@ -119,8 +120,6 @@ using algoat::CircleLocation;
 using algoat::clamp;
 using algoat::ConcurrentDisjointSet;
 using algoat::CountMinSketch;
-using algoat::CSRGraph;
-using algoat::CSRGraphConcept;
 using algoat::DelaunayTriangulation2D;
 using algoat::DisjointSetUnion;
 using algoat::DynamicMedian;
@@ -200,11 +199,24 @@ using algoat::geometry::smallest_enclosing_circle;
 template <typename CostType = int64_t, typename CapacityType = int64_t>
 using NetworkSimplex = algoat::graph::NetworkSimplex<CostType, CapacityType>;
 template <typename ValueType = int64_t> using LinkCutTree = algoat::graph::LinkCutTree<ValueType>;
+template <typename WeightType = void> using CSRGraph = algoat::graph::CSRGraph<WeightType>;
+using algoat::graph::CSRGraphConcept;
+using BiconnectivityResult = algoat::graph::BiconnectivityResult;
+using BridgeBlockTree = algoat::graph::BridgeBlockTree;
+using BlockCutTree = algoat::graph::BlockCutTree;
+using algoat::graph::build_block_cut_tree;
+using algoat::graph::build_bridge_block_tree;
+using algoat::graph::find_biconnectivity;
 
 namespace graph {
 using algoat::graph::betweenness_centrality;
+using algoat::graph::BiconnectivityResult;
 using algoat::graph::BipartiteGraph;
 using algoat::graph::BipartiteMatchingResult;
+using algoat::graph::BlockCutTree;
+using algoat::graph::BridgeBlockTree;
+using algoat::graph::build_block_cut_tree;
+using algoat::graph::build_bridge_block_tree;
 using algoat::graph::CentralityResult;
 using algoat::graph::ConcurrentDisjointSet;
 using algoat::graph::CSRGraph;
@@ -214,6 +226,7 @@ using algoat::graph::DAryHeap;
 using algoat::graph::degree_centrality;
 using algoat::graph::DisjointSetUnion;
 using algoat::graph::EdgeIndex;
+using algoat::graph::find_biconnectivity;
 using algoat::graph::FlowEdge;
 using algoat::graph::LinkCutTree;
 using algoat::graph::MaxFlowEngine;
