@@ -5,7 +5,7 @@
  *
  * Implements:
  * 1. Single-pass O(V + E) non-recursive Hopcroft-Tarjan (1973) DFS over static CSRGraph.
- * 2. Depth-bounded 64-byte cache-aligned paged small-vector stacks preventing OS call-stack
+ * 2. Depth-bounded 64-byte cache-aligned pre-reserved stacks preventing OS call-stack
  *    overflow on deep linear/path topologies (V >= 10^6) and eliminating 2x vector spikes.
  * 3. Working memory bounded strictly within 3 * V * 8 bytes via packed 32-bit timestamps,
  *    stack-resident lowpoint frames, and an O(V) vertex stack.
@@ -43,113 +43,6 @@ struct DfsFrame {
     uint32_t low;
 };
 static_assert(sizeof(DfsFrame) == 12, "DfsFrame must be tightly packed to 12 bytes");
-
-/**
- * @class CacheAlignedPagedStack
- * @brief Depth-bounded, 64-byte cache-aligned paged small-vector stack avoiding 2x geometric
- * reallocation spikes and OS call-stack overflow on deep linear graphs.
- */
-template <typename T, std::size_t InlineCount, std::size_t PageElems> class CacheAlignedPagedStack {
-    static_assert(std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>);
-    static_assert(InlineCount > 0 && PageElems > 0);
-    static_assert((PageElems & (PageElems - 1U)) == 0U, "PageElems must be a power of two");
-
-public:
-    explicit CacheAlignedPagedStack(std::size_t max_capacity) noexcept
-        : inline_buf_{}, pages_{}, alloc_{}, size_(0), allocated_capacity_(InlineCount),
-          max_capacity_(max_capacity) {}
-
-    CacheAlignedPagedStack(const CacheAlignedPagedStack&) = delete;
-    CacheAlignedPagedStack& operator=(const CacheAlignedPagedStack&) = delete;
-    CacheAlignedPagedStack(CacheAlignedPagedStack&&) = delete;
-    CacheAlignedPagedStack& operator=(CacheAlignedPagedStack&&) = delete;
-
-    ~CacheAlignedPagedStack() {
-        for (const Page& page : pages_) {
-            alloc_.deallocate(page.ptr, page.count);
-        }
-    }
-
-    [[nodiscard]] bool empty() const noexcept {
-        return size_ == 0;
-    }
-
-    [[nodiscard]] std::size_t size() const noexcept {
-        return size_;
-    }
-
-    void push(const T& value) {
-        if (size_ == allocated_capacity_) {
-            allocate_next_page();
-        }
-        at(size_) = value;
-        ++size_;
-    }
-
-    void pop() noexcept {
-        if (size_ > 0) {
-            --size_;
-        }
-    }
-
-    [[nodiscard]] T& top() noexcept {
-        return at(size_ - 1U);
-    }
-
-    [[nodiscard]] const T& top() const noexcept {
-        return at(size_ - 1U);
-    }
-
-    [[nodiscard]] T& at(std::size_t idx) noexcept {
-        if (idx < InlineCount) {
-            return inline_buf_[idx];
-        }
-        const std::size_t overflow = idx - InlineCount;
-        return pages_[overflow / PageElems].ptr[overflow & (PageElems - 1U)];
-    }
-
-    [[nodiscard]] const T& at(std::size_t idx) const noexcept {
-        if (idx < InlineCount) {
-            return inline_buf_[idx];
-        }
-        const std::size_t overflow = idx - InlineCount;
-        return pages_[overflow / PageElems].ptr[overflow & (PageElems - 1U)];
-    }
-
-private:
-    struct Page {
-        T* ptr;
-        std::size_t count;
-    };
-
-    void allocate_next_page() {
-        if (allocated_capacity_ >= max_capacity_) {
-            throw std::length_error("CacheAlignedPagedStack: capacity exceeded");
-        }
-        if (pages_.empty() && max_capacity_ > InlineCount) {
-            const std::size_t max_pages =
-                (max_capacity_ - InlineCount + PageElems - 1U) / PageElems;
-            pages_.reserve(max_pages);
-        }
-        const std::size_t remaining = max_capacity_ - allocated_capacity_;
-        const std::size_t chunk = std::min(PageElems, remaining);
-        T* mem = alloc_.allocate(chunk);
-        try {
-            pages_.push_back(Page{mem, chunk});
-        } catch (...) {
-            alloc_.deallocate(mem, chunk);
-            throw;
-        }
-        allocated_capacity_ += chunk;
-    }
-
-    std::array<T, InlineCount> inline_buf_;
-    std::vector<Page, AlignedAllocator<Page, 64>> pages_;
-    AlignedAllocator<T, 64> alloc_;
-    std::size_t size_;
-    std::size_t allocated_capacity_;
-    std::size_t max_capacity_;
-};
 
 template <typename WeightType>
 inline void validate_biconnectivity_graph(const CSRGraph<WeightType>& graph, const char* fn_name) {
@@ -200,8 +93,10 @@ template <typename WeightType = void>
     }
 
     std::vector<uint32_t, detail::AlignedAllocator<uint32_t, 64>> tin(num_v, 0U);
-    detail::CacheAlignedPagedStack<detail::DfsFrame, 256, 4096> call_stack(num_v);
-    detail::CacheAlignedPagedStack<VertexId, 512, 4096> v_stack(num_v);
+    std::vector<detail::DfsFrame, detail::AlignedAllocator<detail::DfsFrame, 64>> call_stack;
+    call_stack.reserve(num_v);
+    std::vector<VertexId, detail::AlignedAllocator<VertexId, 64>> v_stack;
+    v_stack.reserve(num_v);
 
     uint32_t timer = 0;
 
@@ -211,21 +106,20 @@ template <typename WeightType = void>
         }
 
         tin[root] = ++timer;
-        call_stack.push(detail::DfsFrame{root, 0U, tin[root]});
-        v_stack.push(root);
+        call_stack.push_back(detail::DfsFrame{root, 0U, tin[root]});
+        v_stack.push_back(root);
         uint32_t root_children = 0;
 
         while (!call_stack.empty()) {
-            const detail::DfsFrame cur = call_stack.top();
+            const detail::DfsFrame cur = call_stack.back();
             const VertexId u = cur.u;
-            const VertexId parent = (call_stack.size() >= 2U)
-                                        ? call_stack.at(call_stack.size() - 2U).u
-                                        : detail::kInvalidVertex;
+            const VertexId parent = (call_stack.size() >= 2U) ? call_stack[call_stack.size() - 2U].u
+                                                              : detail::kInvalidVertex;
             const auto neighbors = graph.out_neighbors(u);
 
             if (cur.edge_idx < neighbors.size()) {
                 const VertexId v = neighbors[cur.edge_idx];
-                call_stack.top().edge_idx = cur.edge_idx + 1U;
+                call_stack.back().edge_idx = cur.edge_idx + 1U;
                 if (v == u || v == parent) {
                     continue;
                 }
@@ -237,17 +131,17 @@ template <typename WeightType = void>
                     }
                     const uint32_t child_tin = ++timer;
                     tin[v] = child_tin;
-                    call_stack.push(detail::DfsFrame{v, 0U, child_tin});
-                    v_stack.push(v);
+                    call_stack.push_back(detail::DfsFrame{v, 0U, child_tin});
+                    v_stack.push_back(v);
                 } else if (v_tin < cur.low) {
-                    call_stack.top().low = v_tin;
+                    call_stack.back().low = v_tin;
                 }
             } else {
                 const uint32_t u_low = cur.low;
-                call_stack.pop();
+                call_stack.pop_back();
 
                 if (!call_stack.empty()) {
-                    detail::DfsFrame& parent_frame = call_stack.top();
+                    detail::DfsFrame& parent_frame = call_stack.back();
                     const VertexId p = parent_frame.u;
                     const uint32_t p_tin = tin[p] & detail::kTinMask;
                     parent_frame.low = std::min(parent_frame.low, u_low);
@@ -263,8 +157,8 @@ template <typename WeightType = void>
                         std::vector<std::size_t> comp;
                         comp.push_back(static_cast<std::size_t>(p));
                         while (!v_stack.empty()) {
-                            const VertexId w = v_stack.top();
-                            v_stack.pop();
+                            const VertexId w = v_stack.back();
+                            v_stack.pop_back();
                             comp.push_back(static_cast<std::size_t>(w));
                             if (w == u) {
                                 break;
@@ -274,7 +168,7 @@ template <typename WeightType = void>
                         result.biconnected_components.push_back(std::move(comp));
                     }
                 } else {
-                    v_stack.pop();
+                    v_stack.pop_back();
                     if (root_children >= 2U) {
                         tin[u] |= detail::kArticulationBit;
                     }
@@ -336,8 +230,11 @@ template <typename WeightType = void>
         std::size_t num_bridges = 0;
 
         {
-            detail::CacheAlignedPagedStack<detail::DfsFrame, 256, 4096> call_stack(num_v);
-            detail::CacheAlignedPagedStack<VertexId, 512, 4096> ecc_stack(num_v);
+            std::vector<detail::DfsFrame, detail::AlignedAllocator<detail::DfsFrame, 64>>
+                call_stack;
+            call_stack.reserve(num_v);
+            std::vector<VertexId, detail::AlignedAllocator<VertexId, 64>> ecc_stack;
+            ecc_stack.reserve(num_v);
             uint32_t timer = 0;
 
             for (VertexId root = 0; root < static_cast<VertexId>(num_v); ++root) {
@@ -346,19 +243,19 @@ template <typename WeightType = void>
                 }
 
                 tin[root] = ++timer;
-                call_stack.push(detail::DfsFrame{root, 0U, tin[root]});
+                call_stack.push_back(detail::DfsFrame{root, 0U, tin[root]});
 
                 while (!call_stack.empty()) {
-                    const detail::DfsFrame cur = call_stack.top();
+                    const detail::DfsFrame cur = call_stack.back();
                     const VertexId u = cur.u;
                     const VertexId parent = (call_stack.size() >= 2U)
-                                                ? call_stack.at(call_stack.size() - 2U).u
+                                                ? call_stack[call_stack.size() - 2U].u
                                                 : detail::kInvalidVertex;
                     const auto neighbors = graph.out_neighbors(u);
 
                     if (cur.edge_idx < neighbors.size()) {
                         const VertexId v = neighbors[cur.edge_idx];
-                        call_stack.top().edge_idx = cur.edge_idx + 1U;
+                        call_stack.back().edge_idx = cur.edge_idx + 1U;
                         if (v == u || v == parent) {
                             continue;
                         }
@@ -367,17 +264,17 @@ template <typename WeightType = void>
                         if (v_raw == 0U) {
                             const uint32_t child_tin = ++timer;
                             tin[v] = child_tin;
-                            call_stack.push(detail::DfsFrame{v, 0U, child_tin});
+                            call_stack.push_back(detail::DfsFrame{v, 0U, child_tin});
                         } else if ((v_raw & detail::kClosedCompBit) == 0U && v_raw < cur.low) {
-                            call_stack.top().low = v_raw;
+                            call_stack.back().low = v_raw;
                         }
                     } else {
                         const uint32_t u_low = cur.low;
                         const uint32_t u_tin = tin[u];
-                        call_stack.pop();
+                        call_stack.pop_back();
 
                         if (!call_stack.empty()) {
-                            detail::DfsFrame& parent_frame = call_stack.top();
+                            detail::DfsFrame& parent_frame = call_stack.back();
                             parent_frame.low = std::min(parent_frame.low, u_low);
                         }
 
@@ -388,15 +285,15 @@ template <typename WeightType = void>
                             const uint32_t comp_id = num_ecc++;
                             tin[u] = detail::kClosedCompBit | comp_id;
                             while (!ecc_stack.empty()) {
-                                const VertexId w = ecc_stack.top();
+                                const VertexId w = ecc_stack.back();
                                 if (tin[w] <= u_tin) {
                                     break;
                                 }
-                                ecc_stack.pop();
+                                ecc_stack.pop_back();
                                 tin[w] = detail::kClosedCompBit | comp_id;
                             }
                         } else {
-                            ecc_stack.push(u);
+                            ecc_stack.push_back(u);
                         }
                     }
                 }
