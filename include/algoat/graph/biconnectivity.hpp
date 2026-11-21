@@ -38,9 +38,9 @@ inline constexpr uint32_t kTinMask = kArticulationBit - 1U;
 inline constexpr VertexId kInvalidVertex = std::numeric_limits<VertexId>::max();
 
 struct DfsFrame {
-    VertexId u{0};
-    uint32_t edge_idx{0};
-    uint32_t low{0};
+    VertexId u;
+    uint32_t edge_idx;
+    uint32_t low;
 };
 static_assert(sizeof(DfsFrame) == 12, "DfsFrame must be tightly packed to 12 bytes");
 
@@ -49,14 +49,16 @@ static_assert(sizeof(DfsFrame) == 12, "DfsFrame must be tightly packed to 12 byt
  * @brief Depth-bounded, 64-byte cache-aligned paged small-vector stack avoiding 2x geometric
  * reallocation spikes and OS call-stack overflow on deep linear graphs.
  */
-template <typename T, std::size_t InlineCount, std::size_t PageElems> class CacheAlignedPagedStack {
+template <typename T, std::size_t InlineCount, std::size_t PageElems>
+class alignas(64) CacheAlignedPagedStack {
     static_assert(std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>);
     static_assert(InlineCount > 0 && PageElems > 0);
     static_assert((PageElems & (PageElems - 1U)) == 0U, "PageElems must be a power of two");
 
 public:
     explicit CacheAlignedPagedStack(std::size_t max_capacity) noexcept
-        : max_capacity_(max_capacity) {}
+        : inline_buf_{}, pages_{}, alloc_{}, size_(0), allocated_capacity_(InlineCount),
+          max_capacity_(max_capacity) {}
 
     CacheAlignedPagedStack(const CacheAlignedPagedStack&) = delete;
     CacheAlignedPagedStack& operator=(const CacheAlignedPagedStack&) = delete;
@@ -117,8 +119,8 @@ public:
 
 private:
     struct Page {
-        T* ptr{nullptr};
-        std::size_t count{0};
+        T* ptr;
+        std::size_t count;
     };
 
     void allocate_next_page() {
@@ -142,12 +144,12 @@ private:
         allocated_capacity_ += chunk;
     }
 
-    alignas(64) std::array<T, InlineCount> inline_buf_{};
+    std::array<T, InlineCount> inline_buf_;
     std::vector<Page, AlignedAllocator<Page, 64>> pages_;
-    AlignedAllocator<T, 64> alloc_{};
-    std::size_t size_{0};
-    std::size_t allocated_capacity_{InlineCount};
-    std::size_t max_capacity_{0};
+    AlignedAllocator<T, 64> alloc_;
+    std::size_t size_;
+    std::size_t allocated_capacity_;
+    std::size_t max_capacity_;
 };
 
 template <typename WeightType>
